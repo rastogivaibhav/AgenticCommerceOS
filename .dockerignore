@@ -1,0 +1,19 @@
+# Files/dirs to exclude from Docker image (keeps image small and secret-free)
+.git
+.gitignore
+.env
+*.env.local
+*.env.staging
+*.env.production
+.env.example
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+tests/
+*.md
+.gemini/
+.vscode/
+.idea/
+htmlcov/
+.coverage
