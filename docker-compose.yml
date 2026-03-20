@@ -13,6 +13,7 @@ services:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - PYTHONPATH=/app
       - APP_VERSION=${APP_VERSION:-1.0.0}
+      - OPS_ENVIRONMENT=${OPS_ENVIRONMENT:-dev}
     restart: unless-stopped
 
   ops-api:
@@ -28,6 +29,7 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - PYTHONPATH=/app
       - APP_VERSION=${APP_VERSION:-1.0.0}
+      - OPS_ENVIRONMENT=${OPS_ENVIRONMENT:-dev}
     restart: unless-stopped
 
   db:

@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 from acosplatform.db.connection import get_connection, transaction
 
@@ -9,15 +9,66 @@ logger = logging.getLogger(__name__)
 _fallback_runs = []
 _fallback_events = []
 _fallback_experiments = []
+_fallback_workflows = []
+_fallback_workflow_versions = []
+_fallback_workflow_promotions = []
+_fallback_audit_events = []
+
+_JSON_KEYS = {
+    "input",
+    "output",
+    "payload",
+    "variant_a",
+    "variant_b",
+    "input_schema",
+    "output_schema",
+    "step_definitions",
+    "agent_bindings",
+    "policy_bindings",
+}
 
 
 def _use_db():
     return get_connection() is not None
 
 
-# ── Runs ──────────────────────────────────────────────────────────────────────
+def _serialize_record(row):
+    data = dict(row)
+    for key in _JSON_KEYS:
+        if isinstance(data.get(key), str):
+            try:
+                data[key] = json.loads(data[key])
+            except Exception:
+                pass
+    for key, value in list(data.items()):
+        if value and hasattr(value, "isoformat") and not isinstance(value, str):
+            data[key] = value.isoformat()
+    return data
 
-def save_run(run_id, tenant_id, customer_id, journey, input_data, output_data, cost=0.0, score=0.0, variant=None):
+
+def _append_or_replace(store, record, identity_key):
+    for idx, existing in enumerate(store):
+        if existing.get(identity_key) == record.get(identity_key):
+            store[idx] = record
+            return record
+    store.append(record)
+    return record
+
+
+def save_run(
+    run_id,
+    tenant_id,
+    customer_id,
+    journey,
+    input_data,
+    output_data,
+    cost=0.0,
+    score=0.0,
+    variant=None,
+    workflow_id=None,
+    workflow_version=None,
+    environment_id="dev",
+):
     record = {
         "id": run_id,
         "tenant_id": tenant_id,
@@ -28,6 +79,9 @@ def save_run(run_id, tenant_id, customer_id, journey, input_data, output_data, c
         "cost": cost,
         "score": score,
         "variant": variant,
+        "workflow_id": workflow_id,
+        "workflow_version": workflow_version,
+        "environment_id": environment_id,
         "created_at": datetime.now(UTC).isoformat(),
     }
     if _use_db():
@@ -35,15 +89,27 @@ def save_run(run_id, tenant_id, customer_id, journey, input_data, output_data, c
             with transaction() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
-                    """INSERT INTO runs (id, tenant_id, customer_id, journey, input, output, cost, score, variant)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                       ON CONFLICT (id) DO NOTHING""",
-                    (
-                        run_id, tenant_id, customer_id, journey,
-                        json.dumps(input_data), json.dumps(output_data),
-                        cost, score, variant,
-                    ),
-                )
+                        """INSERT INTO runs (
+                               id, tenant_id, customer_id, journey, input, output, cost, score, variant,
+                               workflow_id, workflow_version, environment_id
+                           )
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO NOTHING""",
+                        (
+                            run_id,
+                            tenant_id,
+                            customer_id,
+                            journey,
+                            json.dumps(input_data),
+                            json.dumps(output_data),
+                            cost,
+                            score,
+                            variant,
+                            workflow_id,
+                            workflow_version,
+                            environment_id,
+                        ),
+                    )
             return record
         except Exception as e:
             logger.warning(f"save_run DB error: {e}")
@@ -63,11 +129,29 @@ def get_runs(tenant_id=None, limit=100):
                         )
                     else:
                         cur.execute("SELECT * FROM runs ORDER BY created_at DESC LIMIT %s", (limit,))
-                    rows = cur.fetchall()
-                    return [_serialize_run(r) for r in rows]
+                    return [_serialize_record(r) for r in cur.fetchall()]
         except Exception as e:
             logger.warning(f"get_runs DB error: {e}")
-    return list(reversed(_fallback_runs[-limit:]))
+    result = list(reversed(_fallback_runs[-limit:]))
+    if tenant_id:
+        result = [r for r in result if r.get("tenant_id") == tenant_id]
+    return result
+
+
+def get_runs_by_workflow(workflow_id, limit=100):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT * FROM runs WHERE workflow_id=%s ORDER BY created_at DESC LIMIT %s",
+                        (workflow_id, limit),
+                    )
+                    return [_serialize_record(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"get_runs_by_workflow DB error: {e}")
+    filtered = [r for r in _fallback_runs if r.get("workflow_id") == workflow_id]
+    return list(reversed(filtered[-limit:]))
 
 
 def get_run(run_id):
@@ -78,29 +162,14 @@ def get_run(run_id):
                     cur.execute("SELECT * FROM runs WHERE id=%s", (run_id,))
                     row = cur.fetchone()
                     if row:
-                        return _serialize_run(row)
+                        return _serialize_record(row)
         except Exception as e:
             logger.warning(f"get_run DB error: {e}")
-    for r in _fallback_runs:
-        if r["id"] == run_id:
-            return r
+    for record in _fallback_runs:
+        if record["id"] == run_id:
+            return record
     return None
 
-
-def _serialize_run(row):
-    d = dict(row)
-    for key in ("input", "output"):
-        if isinstance(d.get(key), str):
-            try:
-                d[key] = json.loads(d[key])
-            except Exception:
-                pass
-    if d.get("created_at") and not isinstance(d["created_at"], str):
-        d["created_at"] = d["created_at"].isoformat()
-    return d
-
-
-# ── Events ────────────────────────────────────────────────────────────────────
 
 def save_event(run_id, event_type, payload=None):
     record = {
@@ -114,7 +183,7 @@ def save_event(run_id, event_type, payload=None):
             with transaction() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
-                        """INSERT INTO events (run_id, event_type, payload) VALUES (%s, %s, %s)""",
+                        "INSERT INTO events (run_id, event_type, payload) VALUES (%s, %s, %s)",
                         (run_id, event_type, json.dumps(payload or {})),
                     )
             return record
@@ -129,28 +198,12 @@ def get_events(run_id):
         try:
             with transaction() as conn:
                 with conn.cursor() as cur:
-                    cur.execute(
-                        "SELECT * FROM events WHERE run_id=%s ORDER BY created_at", (run_id,)
-                    )
-                    rows = cur.fetchall()
-                    result = []
-                    for r in rows:
-                        d = dict(r)
-                        if isinstance(d.get("payload"), str):
-                            try:
-                                d["payload"] = json.loads(d["payload"])
-                            except Exception:
-                                pass
-                        if d.get("created_at") and not isinstance(d["created_at"], str):
-                            d["created_at"] = d["created_at"].isoformat()
-                        result.append(d)
-                    return result
+                    cur.execute("SELECT * FROM events WHERE run_id=%s ORDER BY created_at", (run_id,))
+                    return [_serialize_record(r) for r in cur.fetchall()]
         except Exception as e:
             logger.warning(f"get_events DB error: {e}")
-    return [e for e in _fallback_events if e["run_id"] == run_id]
+    return [event for event in _fallback_events if event["run_id"] == run_id]
 
-
-# ── Experiments ───────────────────────────────────────────────────────────────
 
 def save_experiment(name, variant_a, variant_b, winner=None):
     record = {
@@ -169,8 +222,8 @@ def save_experiment(name, variant_a, variant_b, winner=None):
                            VALUES (%s, %s, %s, %s) RETURNING id""",
                         (name, json.dumps(variant_a), json.dumps(variant_b), winner),
                     )
-                row = cur.fetchone()
-                record["id"] = row["id"] if row else None
+                    row = cur.fetchone()
+                    record["id"] = row["id"] if row else None
             return record
         except Exception as e:
             logger.warning(f"save_experiment DB error: {e}")
@@ -185,26 +238,434 @@ def get_experiments():
             with transaction() as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT * FROM experiments ORDER BY created_at DESC")
-                    rows = cur.fetchall()
-                    result = []
-                    for r in rows:
-                        d = dict(r)
-                        for key in ("variant_a", "variant_b"):
-                            if isinstance(d.get(key), str):
-                                try:
-                                    d[key] = json.loads(d[key])
-                                except Exception:
-                                    pass
-                        if d.get("created_at") and not isinstance(d["created_at"], str):
-                            d["created_at"] = d["created_at"].isoformat()
-                        result.append(d)
-                    return result
+                    return [_serialize_record(r) for r in cur.fetchall()]
         except Exception as e:
             logger.warning(f"get_experiments DB error: {e}")
     return list(_fallback_experiments)
 
 
-# ── Dashboard ─────────────────────────────────────────────────────────────────
+def save_workflow(
+    workflow_id,
+    tenant_id,
+    name,
+    workflow_family,
+    description="",
+    business_owner="acos-team",
+    status="draft",
+):
+    now = datetime.now(UTC).isoformat()
+    record = {
+        "id": workflow_id,
+        "tenant_id": tenant_id,
+        "name": name,
+        "workflow_family": workflow_family,
+        "description": description,
+        "business_owner": business_owner,
+        "status": status,
+        "created_at": now,
+        "updated_at": now,
+    }
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO workflows (
+                               id, tenant_id, name, workflow_family, description, business_owner, status
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET tenant_id=EXCLUDED.tenant_id,
+                               name=EXCLUDED.name,
+                               workflow_family=EXCLUDED.workflow_family,
+                               description=EXCLUDED.description,
+                               business_owner=EXCLUDED.business_owner,
+                               status=EXCLUDED.status,
+                               updated_at=NOW()""",
+                        (
+                            workflow_id,
+                            tenant_id,
+                            name,
+                            workflow_family,
+                            description,
+                            business_owner,
+                            status,
+                        ),
+                    )
+                    cur.execute("SELECT * FROM workflows WHERE id=%s", (workflow_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _serialize_record(row)
+            return record
+        except Exception as e:
+            logger.warning(f"save_workflow DB error: {e}")
+    return _append_or_replace(_fallback_workflows, record, "id")
+
+
+def get_workflows(tenant_id=None):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    if tenant_id:
+                        cur.execute(
+                            "SELECT * FROM workflows WHERE tenant_id=%s ORDER BY workflow_family, name",
+                            (tenant_id,),
+                        )
+                    else:
+                        cur.execute("SELECT * FROM workflows ORDER BY workflow_family, name")
+                    return [_serialize_record(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"get_workflows DB error: {e}")
+    result = list(_fallback_workflows)
+    if tenant_id:
+        result = [w for w in result if w.get("tenant_id") == tenant_id]
+    return sorted(result, key=lambda item: (item.get("workflow_family", ""), item.get("name", "")))
+
+
+def get_workflow(workflow_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM workflows WHERE id=%s", (workflow_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _serialize_record(row)
+        except Exception as e:
+            logger.warning(f"get_workflow DB error: {e}")
+    for workflow in _fallback_workflows:
+        if workflow["id"] == workflow_id:
+            return workflow
+    return None
+
+
+def save_workflow_version(
+    workflow_id,
+    version,
+    change_summary,
+    validation_status="draft",
+    lifecycle_state=None,
+    created_by="system",
+    input_schema=None,
+    output_schema=None,
+    step_definitions=None,
+    agent_bindings=None,
+    policy_bindings=None,
+    approved_by=None,
+):
+    version_id = f"{workflow_id}:{version}"
+    lifecycle = lifecycle_state or validation_status
+    approved_at = datetime.now(UTC).isoformat() if approved_by else None
+    record = {
+        "id": version_id,
+        "workflow_id": workflow_id,
+        "version": version,
+        "lifecycle_state": lifecycle,
+        "change_summary": change_summary,
+        "validation_status": validation_status,
+        "input_schema": input_schema or {},
+        "output_schema": output_schema or {},
+        "step_definitions": step_definitions or [],
+        "agent_bindings": agent_bindings or [],
+        "policy_bindings": policy_bindings or [],
+        "created_by": created_by,
+        "created_at": datetime.now(UTC).isoformat(),
+        "approved_by": approved_by,
+        "approved_at": approved_at,
+    }
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO workflow_versions (
+                               id, workflow_id, version, lifecycle_state, change_summary, validation_status,
+                               input_schema, output_schema, step_definitions, agent_bindings, policy_bindings,
+                               created_by, approved_by, approved_at
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET lifecycle_state=EXCLUDED.lifecycle_state,
+                               change_summary=EXCLUDED.change_summary,
+                               validation_status=EXCLUDED.validation_status,
+                               input_schema=EXCLUDED.input_schema,
+                               output_schema=EXCLUDED.output_schema,
+                               step_definitions=EXCLUDED.step_definitions,
+                               agent_bindings=EXCLUDED.agent_bindings,
+                               policy_bindings=EXCLUDED.policy_bindings,
+                               approved_by=EXCLUDED.approved_by,
+                               approved_at=EXCLUDED.approved_at""",
+                        (
+                            version_id,
+                            workflow_id,
+                            version,
+                            lifecycle,
+                            change_summary,
+                            validation_status,
+                            json.dumps(input_schema or {}),
+                            json.dumps(output_schema or {}),
+                            json.dumps(step_definitions or []),
+                            json.dumps(agent_bindings or []),
+                            json.dumps(policy_bindings or []),
+                            created_by,
+                            approved_by,
+                            approved_at,
+                        ),
+                    )
+                    cur.execute("SELECT * FROM workflow_versions WHERE id=%s", (version_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _serialize_record(row)
+            return record
+        except Exception as e:
+            logger.warning(f"save_workflow_version DB error: {e}")
+    return _append_or_replace(_fallback_workflow_versions, record, "id")
+
+
+def get_workflow_versions(workflow_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT * FROM workflow_versions WHERE workflow_id=%s ORDER BY created_at DESC",
+                        (workflow_id,),
+                    )
+                    return [_serialize_record(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"get_workflow_versions DB error: {e}")
+    result = [v for v in _fallback_workflow_versions if v.get("workflow_id") == workflow_id]
+    return sorted(result, key=lambda item: item.get("created_at", ""), reverse=True)
+
+
+def get_workflow_version(workflow_id, version):
+    version_id = f"{workflow_id}:{version}"
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM workflow_versions WHERE id=%s", (version_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _serialize_record(row)
+        except Exception as e:
+            logger.warning(f"get_workflow_version DB error: {e}")
+    for workflow_version in _fallback_workflow_versions:
+        if workflow_version["id"] == version_id:
+            return workflow_version
+    return None
+
+
+def save_workflow_promotion(
+    workflow_id,
+    version,
+    source_environment,
+    target_environment,
+    requested_by,
+    approved_by,
+    note="",
+    status="promoted",
+):
+    record = {
+        "id": len(_fallback_workflow_promotions) + 1,
+        "workflow_id": workflow_id,
+        "version": version,
+        "source_environment": source_environment,
+        "target_environment": target_environment,
+        "status": status,
+        "is_active": True,
+        "requested_by": requested_by,
+        "approved_by": approved_by,
+        "note": note,
+        "promoted_at": datetime.now(UTC).isoformat(),
+    }
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """UPDATE workflow_promotions
+                           SET is_active=FALSE
+                           WHERE workflow_id=%s AND target_environment=%s AND is_active=TRUE""",
+                        (workflow_id, target_environment),
+                    )
+                    cur.execute(
+                        """INSERT INTO workflow_promotions (
+                               workflow_id, version, source_environment, target_environment, status, is_active,
+                               requested_by, approved_by, note
+                           ) VALUES (%s, %s, %s, %s, %s, TRUE, %s, %s, %s)
+                           RETURNING id, promoted_at""",
+                        (
+                            workflow_id,
+                            version,
+                            source_environment,
+                            target_environment,
+                            status,
+                            requested_by,
+                            approved_by,
+                            note,
+                        ),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        record["id"] = row["id"]
+                        record["promoted_at"] = row["promoted_at"].isoformat()
+            return record
+        except Exception as e:
+            logger.warning(f"save_workflow_promotion DB error: {e}")
+    for promotion in _fallback_workflow_promotions:
+        if promotion.get("workflow_id") == workflow_id and promotion.get("target_environment") == target_environment:
+            promotion["is_active"] = False
+    _fallback_workflow_promotions.append(record)
+    return record
+
+
+def get_workflow_promotions(workflow_id=None, environment=None):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    query = "SELECT * FROM workflow_promotions WHERE 1=1"
+                    params = []
+                    if workflow_id:
+                        query += " AND workflow_id=%s"
+                        params.append(workflow_id)
+                    if environment:
+                        query += " AND target_environment=%s"
+                        params.append(environment)
+                    query += " ORDER BY promoted_at DESC"
+                    cur.execute(query, tuple(params))
+                    return [_serialize_record(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"get_workflow_promotions DB error: {e}")
+    result = list(_fallback_workflow_promotions)
+    if workflow_id:
+        result = [p for p in result if p.get("workflow_id") == workflow_id]
+    if environment:
+        result = [p for p in result if p.get("target_environment") == environment]
+    return sorted(result, key=lambda item: item.get("promoted_at", ""), reverse=True)
+
+
+def get_active_workflow_version(workflow_family, tenant_id="default", environment="dev"):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT w.id as workflow_id, w.name, w.workflow_family, v.version, v.lifecycle_state
+                           FROM workflows w
+                           JOIN workflow_promotions p
+                             ON p.workflow_id = w.id
+                           JOIN workflow_versions v
+                             ON v.workflow_id = w.id AND v.version = p.version
+                           WHERE w.workflow_family=%s
+                             AND w.tenant_id=%s
+                             AND p.target_environment=%s
+                             AND p.is_active=TRUE
+                           ORDER BY p.promoted_at DESC
+                           LIMIT 1""",
+                        (workflow_family, tenant_id, environment),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        return _serialize_record(row)
+        except Exception as e:
+            logger.warning(f"get_active_workflow_version DB error: {e}")
+    workflow_lookup = {
+        workflow["id"]: workflow
+        for workflow in _fallback_workflows
+        if workflow.get("tenant_id") == tenant_id and workflow.get("workflow_family") == workflow_family
+    }
+    for promotion in sorted(_fallback_workflow_promotions, key=lambda item: item.get("promoted_at", ""), reverse=True):
+        if promotion.get("target_environment") != environment or not promotion.get("is_active"):
+            continue
+        workflow = workflow_lookup.get(promotion.get("workflow_id"))
+        if workflow:
+            return {
+                "workflow_id": workflow["id"],
+                "name": workflow["name"],
+                "workflow_family": workflow["workflow_family"],
+                "version": promotion["version"],
+                "lifecycle_state": "active",
+            }
+    return None
+
+
+def save_audit_event(
+    actor,
+    action,
+    resource_type,
+    resource_id,
+    tenant_id="default",
+    environment_id="dev",
+    payload=None,
+):
+    record = {
+        "id": len(_fallback_audit_events) + 1,
+        "actor": actor,
+        "action": action,
+        "resource_type": resource_type,
+        "resource_id": resource_id,
+        "tenant_id": tenant_id,
+        "environment_id": environment_id,
+        "payload": payload or {},
+        "created_at": datetime.now(UTC).isoformat(),
+    }
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO audit_events (
+                               actor, action, resource_type, resource_id, tenant_id, environment_id, payload
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                           RETURNING id, created_at""",
+                        (
+                            actor,
+                            action,
+                            resource_type,
+                            resource_id,
+                            tenant_id,
+                            environment_id,
+                            json.dumps(payload or {}),
+                        ),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        record["id"] = row["id"]
+                        record["created_at"] = row["created_at"].isoformat()
+            return record
+        except Exception as e:
+            logger.warning(f"save_audit_event DB error: {e}")
+    _fallback_audit_events.append(record)
+    return record
+
+
+def get_audit_events(resource_type=None, resource_id=None, limit=200):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    query = "SELECT * FROM audit_events WHERE 1=1"
+                    params = []
+                    if resource_type:
+                        query += " AND resource_type=%s"
+                        params.append(resource_type)
+                    if resource_id:
+                        query += " AND resource_id=%s"
+                        params.append(resource_id)
+                    query += " ORDER BY created_at DESC LIMIT %s"
+                    params.append(limit)
+                    cur.execute(query, tuple(params))
+                    return [_serialize_record(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"get_audit_events DB error: {e}")
+    result = list(_fallback_audit_events)
+    if resource_type:
+        result = [event for event in result if event.get("resource_type") == resource_type]
+    if resource_id:
+        result = [event for event in result if event.get("resource_id") == resource_id]
+    return sorted(result, key=lambda item: item.get("created_at", ""), reverse=True)[:limit]
+
 
 def get_dashboard():
     if _use_db():
@@ -238,13 +699,12 @@ def get_dashboard():
     cost = sum(r.get("cost", 0) for r in _fallback_runs)
     avg_score = (sum(r.get("score", 0) for r in _fallback_runs) / total) if total else 0
     by_journey = {}
-    for r in _fallback_runs:
-        j = r.get("journey", "unknown")
-        by_journey[j] = by_journey.get(j, 0) + 1
     by_tenant = {}
-    for r in _fallback_runs:
-        t = r.get("tenant_id", "default")
-        by_tenant[t] = by_tenant.get(t, 0) + 1
+    for record in _fallback_runs:
+        journey = record.get("journey", "unknown")
+        tenant = record.get("tenant_id", "default")
+        by_journey[journey] = by_journey.get(journey, 0) + 1
+        by_tenant[tenant] = by_tenant.get(tenant, 0) + 1
     return {
         "total_runs": total,
         "unique_customers": customers,

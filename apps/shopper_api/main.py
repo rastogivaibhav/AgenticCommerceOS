@@ -18,6 +18,7 @@ from acosplatform.db.connection import ensure_schema
 from acosplatform.journey.engine import run_journey
 from acosplatform.middleware.rate_limit import limiter, rate_limit_error_handler, JOURNEY_LIMIT
 from acosplatform.observability.metrics import metrics_endpoint
+from acosplatform.workflows.service import ensure_default_workflow_registry
 from slowapi.errors import RateLimitExceeded
 
 logging.basicConfig(level=logging.INFO)
@@ -65,6 +66,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 def startup():
     logger.info("Shopper API starting up...")
     ensure_schema()
+    ensure_default_workflow_registry(environment=os.environ.get("OPS_ENVIRONMENT", "dev"))
     logger.info("Shopper API ready")
 
 

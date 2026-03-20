@@ -102,7 +102,60 @@ class TestOpsAPI:
     def test_ui_served(self):
         r = ops.get("/")
         assert r.status_code == 200
-        assert "ACOS Ops Dashboard" in r.text
+        assert "ACOS Control Plane" in r.text
+
+    def test_workflows_list(self):
+        r = ops.get("/workflows", headers=OPS_AUTH)
+        assert r.status_code == 200
+        data = r.json()
+        assert "workflows" in data
+        assert len(data["workflows"]) >= 1
+
+    def test_workflow_detail(self):
+        listing = ops.get("/workflows", headers=OPS_AUTH).json()["workflows"]
+        workflow_id = listing[0]["id"]
+        r = ops.get(f"/workflows/{workflow_id}", headers=OPS_AUTH)
+        assert r.status_code == 200
+        data = r.json()
+        assert "workflow" in data
+        assert "versions" in data
+        assert "promotions" in data
+        assert "audits" in data
+
+    def test_create_and_promote_workflow(self):
+        create = ops.post(
+            "/workflows",
+            json={
+                "tenant_id": "default",
+                "name": "Warranty Escalation",
+                "workflow_family": "service",
+                "description": "Handle warranty escalations",
+                "business_owner": "service-ops",
+                "change_summary": "Initial draft",
+            },
+            headers=OPS_AUTH,
+        )
+        assert create.status_code == 200
+        workflow_id = create.json()["workflow"]["id"]
+
+        version = ops.post(
+            f"/workflows/{workflow_id}/versions",
+            json={"change_summary": "Approved pilot version", "validation_status": "approved"},
+            headers=OPS_AUTH,
+        )
+        assert version.status_code == 200
+        version_label = version.json()["version"]
+
+        promote = ops.post(
+            f"/workflows/{workflow_id}/versions/{version_label}/promote",
+            json={"target_environment": "dev", "approval_note": "Pilot activation"},
+            headers=OPS_AUTH,
+        )
+        assert promote.status_code == 200
+
+        detail = ops.get(f"/workflows/{workflow_id}", headers=OPS_AUTH)
+        assert detail.status_code == 200
+        assert any(a["action"] == "workflow.promoted" for a in detail.json()["audits"])
 
     def test_replay_not_found(self):
         r = ops.post("/replay/nonexistent", headers=OPS_AUTH)

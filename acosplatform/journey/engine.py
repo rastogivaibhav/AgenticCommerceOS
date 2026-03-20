@@ -13,6 +13,7 @@ from acosplatform.evaluation.scorer import score
 from acosplatform.billing.engine import compute_cost
 from acosplatform.db.repository import save_run, save_event
 from acosplatform.analytics.stream import push
+from acosplatform.workflows.service import resolve_execution_workflow
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +21,12 @@ logger = logging.getLogger(__name__)
 def run_journey(payload):
     """Execute a full commerce journey based on the incoming payload."""
     run_id = "run-" + uuid.uuid4().hex[:8]
+    environment_id = payload.get("environment_id", "dev")
 
     # Build enriched context
     ctx = build_context(payload)
     journey_type = route(ctx)
+    workflow = resolve_execution_workflow(ctx["tenant_id"], journey_type, environment=environment_id) or {}
 
     # Start tracing
     trace_id = start_trace(run_id, ctx)
@@ -33,15 +36,11 @@ def run_journey(payload):
     result = _execute_journey(journey_type, ctx, run_id, trace_id)
 
     # ADK agent enrichment
-    adk_result = run_adk(ctx, journey_type)
+    adk_result = run_adk({**ctx, **result}, journey_type)
     result["agent"] = adk_result
 
     # Personalize
     result = personalize(ctx, result)
-
-    # Score quality
-    quality_score = score(result, journey_type)
-    result["quality_score"] = quality_score
 
     # Policy check before finalizing
     policy = policy_check(trace_id, ctx, result)
@@ -50,6 +49,17 @@ def run_journey(payload):
     # Compute cost
     run_cost = compute_cost(run_id, ctx, result)
     result["cost"] = run_cost
+
+    # Attach workflow identity before scoring and persistence
+    result["workflow"] = {
+        "workflow_id": workflow.get("workflow_id"),
+        "workflow_version": workflow.get("version"),
+        "environment_id": environment_id,
+    }
+
+    # Score quality after policy and cost are available
+    quality_score = score(result, journey_type)
+    result["quality_score"] = quality_score
 
     # Persist
     save_run(
@@ -61,6 +71,9 @@ def run_journey(payload):
         output_data=result,
         cost=run_cost.get("total_cost", 0),
         score=quality_score.get("overall", 0),
+        workflow_id=workflow.get("workflow_id"),
+        workflow_version=workflow.get("version"),
+        environment_id=environment_id,
     )
     save_event(run_id, "journey_completed", {"journey": journey_type})
 
@@ -77,6 +90,11 @@ def run_journey(payload):
     return {
         "run_id": run_id,
         "journey": journey_type,
+        "workflow": {
+            "workflow_id": workflow.get("workflow_id"),
+            "workflow_version": workflow.get("version"),
+            "environment_id": environment_id,
+        },
         "result": result,
     }
 

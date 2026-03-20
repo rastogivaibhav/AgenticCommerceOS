@@ -22,7 +22,7 @@ def audit(
     resource: str,
     outcome: str = "success",
     **kwargs,
-) -> None:
+) -> dict:
     """
     Emit a structured audit log entry.
 
@@ -43,3 +43,4 @@ def audit(
         **kwargs,
     }
     _audit.info(json.dumps(entry))
+    return entry

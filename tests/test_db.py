@@ -3,7 +3,10 @@
 from acosplatform.db.repository import (
     save_run, get_runs, get_run, save_event, get_events,
     save_experiment, get_experiments, get_dashboard,
+    save_workflow, get_workflows, get_workflow, save_workflow_version, get_workflow_versions,
+    save_workflow_promotion, get_workflow_promotions, save_audit_event, get_audit_events,
     _fallback_runs, _fallback_events, _fallback_experiments,
+    _fallback_workflows, _fallback_workflow_versions, _fallback_workflow_promotions, _fallback_audit_events,
 )
 
 
@@ -12,6 +15,10 @@ def _clear_fallback():
     _fallback_runs.clear()
     _fallback_events.clear()
     _fallback_experiments.clear()
+    _fallback_workflows.clear()
+    _fallback_workflow_versions.clear()
+    _fallback_workflow_promotions.clear()
+    _fallback_audit_events.clear()
 
 
 class TestRepository:
@@ -81,3 +88,16 @@ class TestRepository:
         save_run("t2", "tenant-b", "cust-1", "purchase", {}, {})
         all_runs = get_runs()
         assert len(all_runs) >= 2
+
+    def test_save_and_get_workflow_registry(self):
+        save_workflow("wf-test", "default", "Test Workflow", "service", "desc", "ops", "draft")
+        save_workflow_version("wf-test", "v1", "Initial draft")
+        save_workflow_promotion("wf-test", "v1", None, "dev", "tester", "tester", "activate")
+        save_audit_event("tester", "workflow.promoted", "workflow", "wf-test", payload={"version": "v1"})
+
+        workflows = get_workflows()
+        assert len(workflows) == 1
+        assert get_workflow("wf-test")["name"] == "Test Workflow"
+        assert get_workflow_versions("wf-test")[0]["version"] == "v1"
+        assert get_workflow_promotions("wf-test")[0]["version"] == "v1"
+        assert get_audit_events("workflow", "wf-test")[0]["action"] == "workflow.promoted"

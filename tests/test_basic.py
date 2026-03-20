@@ -10,6 +10,7 @@ def test_imports():
     from acosplatform.plugins import catalog, pricing, promotions, loyalty, checkout, orders, returns
     from acosplatform.journey import context, routing, engine
     from acosplatform.db import connection, repository
+    from acosplatform.workflows import service as workflows
     from acosplatform.billing import engine as billing
     from acosplatform.evaluation import scorer
     from acosplatform.personalization import engine as personalization
