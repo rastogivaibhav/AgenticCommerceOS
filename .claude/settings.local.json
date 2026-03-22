@@ -41,7 +41,8 @@
       "Bash(python -c \"from ops_api.models.shopping import *; from ops_api.models.schemas import *; print\\(''✓ All imports successful''\\)\")",
       "Bash(python -c \"from ops_api.models.shopping import *; from ops_api.models.schemas import *; print\\(''[OK] All imports successful''\\)\")",
       "Bash(python:*)",
-      "Bash(wc -l /c/Users/vrast/OneDrive/Apps/Documents/acos/ops_api/models/*.py)"
+      "Bash(wc -l /c/Users/vrast/OneDrive/Apps/Documents/acos/ops_api/models/*.py)",
+      "Bash(timeout 120 tail -f /c/Users/vrast/AppData/Local/Temp/claude/C--Users-vrast-OneDrive-Apps-Documents-acos/65bf61ff-e948-479a-99d2-3554faf2e426/tasks/bn75cxxqq.output)"
     ]
   }
 }
