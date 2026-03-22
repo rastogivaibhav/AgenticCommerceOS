@@ -565,3 +565,556 @@ Visit https://react.dev/link/error-boundaries to learn more about error boundari
 [2m16:31:04[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/Layout.css[22m
 [2m16:46:18[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
 [2m16:46:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m16:51:15[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m16:51:54[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/WorkflowCanvas.jsx[22m
+[2m16:52:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/components/WorkflowCanvas.jsx[22m
+[2m16:52:09[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Simulation.css[22m
+[2m16:52:20[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Lists.css[22m
+[2m16:52:29[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Lists.css[22m
+[2m17:16:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ new dependencies optimized: [33mclass-variance-authority, zustand[32m[39m
+[2m17:16:34[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ optimized dependencies changed. reloading[39m
+[2m17:16:59[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m17:16:59[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m17:16:59[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: The React Flow parent container needs a width and a height to render the graph. Help: https://reactflow.dev/error#004
+[2m17:17:00[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: The React Flow parent container needs a width and a height to render the graph. Help: https://reactflow.dev/error#004
+[2m17:17:00[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: The React Flow parent container needs a width and a height to render the graph. Help: https://reactflow.dev/error#004
+[2m17:17:00[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: The React Flow parent container needs a width and a height to render the graph. Help: https://reactflow.dev/error#004
+[2m17:17:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:17:06[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:17:23[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:18:01[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:18:01[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:18:01[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:18:01[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:18:05[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:18:05[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:18:05[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:18:05[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:18:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:18:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:18:59[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:19:00[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:19:53[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:19:53[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:19:55[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:19:55[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:19:56[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:19:56[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:19:56[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:19:56[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:20:10[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:25:36[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:25:36[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:25:37[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:25:37[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:36:06[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:36:06[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:36:16[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:36:16[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:36:19[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:36:19[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:36:20[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:36:20[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:36:20[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m17:36:20[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m17:36:20[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: The React Flow parent container needs a width and a height to render the graph. Help: https://reactflow.dev/error#004
+[2m17:36:20[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: The React Flow parent container needs a width and a height to render the graph. Help: https://reactflow.dev/error#004
+[2m17:36:21[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: The React Flow parent container needs a width and a height to render the graph. Help: https://reactflow.dev/error#004
+[2m17:36:21[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: The React Flow parent container needs a width and a height to render the graph. Help: https://reactflow.dev/error#004
+[2m17:36:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:36:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:36:28[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:37:48[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:37:48[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:37:51[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:37:51[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:37:53[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:37:53[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:37:53[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:37:53[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:38:03[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:38:20[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:38:20[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:38:22[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:38:22[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:38:24[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:38:24[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:38:24[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:38:24[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:38:38[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:39:39[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:39:39[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:39:45[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:39:45[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:39:56[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:39:56[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:39:56[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:39:56[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mNo routes matched location "/404-not-found" 
+[2m17:42:57[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:42:57[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:42:57[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:42:57[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:42:59[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7700:6)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7712:14)
+    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7687:5)
+[2m17:42:59[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+    at fetchAgents (http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:26:3)
+    at http://localhost:5173/ui/src/pages/Agents.jsx?t=1774198349015:29:3
+    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:12903:13)
+    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:850:66)
+    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6616:153)
+    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:6651:55)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7617:22)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7671:14)
+    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=201d6d60:7605:5)
+[2m17:43:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
+[2m17:43:22[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mpage reload [39m[2mplaywright-report/index.html[22m
