@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { Activity, Users, Wrench, GitMerge, X } from 'lucide-react';
+import { Activity, Users, Wrench, GitMerge, Zap, X } from 'lucide-react';
 
 const navItems = [
   { path: '/agents', label: 'Agents', icon: Users },
   { path: '/skills', label: 'Skills', icon: Wrench },
   { path: '/workflows', label: 'Workflows', icon: GitMerge },
   { path: '/simulation', label: 'Simulation', icon: Activity },
+  { path: '/experiments', label: 'Experiments', icon: Zap },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

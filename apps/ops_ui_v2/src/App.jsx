@@ -4,6 +4,7 @@ import Agents from './pages/Agents';
 import Skills from './pages/Skills';
 import WorkflowRegistry from './pages/WorkflowRegistry';
 import Simulation from './pages/Simulation';
+import Experiments from './pages/Experiments';
 import './App.css';
 
 
@@ -18,6 +19,7 @@ function App() {
           <Route path="/skills" element={<Skills />} />
           <Route path="/workflows" element={<WorkflowRegistry />} />
           <Route path="/simulation" element={<Simulation />} />
+          <Route path="/experiments" element={<Experiments />} />
         </Route>
       </Routes>
     </BrowserRouter>
