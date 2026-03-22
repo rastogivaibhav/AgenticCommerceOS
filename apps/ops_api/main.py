@@ -38,6 +38,7 @@ from acosplatform.workflows.service import (
     list_workflows_with_state,
     promote_workflow_version,
 )
+from apps.ops_api.routers import workflows, experiments, analytics
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,6 +74,11 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+# Include routers
+app.include_router(workflows.router)
+app.include_router(experiments.router)
+app.include_router(analytics.router)
 
 
 @app.exception_handler(Exception)
