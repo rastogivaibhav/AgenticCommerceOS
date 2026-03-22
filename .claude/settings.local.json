@@ -37,7 +37,11 @@
       "Skill(commit-commands:commit)",
       "Skill(commit-commands:commit:*)",
       "Bash(psql --version)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(python -c \"from ops_api.models.shopping import *; from ops_api.models.schemas import *; print\\(''✓ All imports successful''\\)\")",
+      "Bash(python -c \"from ops_api.models.shopping import *; from ops_api.models.schemas import *; print\\(''[OK] All imports successful''\\)\")",
+      "Bash(python:*)",
+      "Bash(wc -l /c/Users/vrast/OneDrive/Apps/Documents/acos/ops_api/models/*.py)"
     ]
   }
 }
