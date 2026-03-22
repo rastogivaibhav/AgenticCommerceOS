@@ -210,65 +210,142 @@ The customer provides MCP servers that expose:
 **PostgreSQL Schema:**
 
 ```sql
--- Shopping sessions: manage conversation context
+-- Shopping sessions: manage conversation context and session state
 CREATE TABLE shopping_sessions (
-  session_id UUID PRIMARY KEY,
-  customer_id UUID REFERENCES users(id) NULL,  -- NULL for guests
-  conversation_history JSONB NOT NULL,  -- Array of messages
-  cart_items JSONB NOT NULL,  -- Array of {product_id, qty, price, name}
-  session_preferences JSONB,  -- Inferred from conversation
-  created_at TIMESTAMP DEFAULT NOW(),
-  last_activity TIMESTAMP DEFAULT NOW(),
-  expires_at TIMESTAMP,  -- 30 days for guests, null for registered
+  session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID REFERENCES users(id) ON DELETE CASCADE,  -- NULL for guests
+  conversation_history JSONB NOT NULL DEFAULT '[]',  -- Array of {role, content, timestamp}
+  cart_items JSONB NOT NULL DEFAULT '[]',  -- Array of {product_id, qty, price_at_time, name}
+  session_preferences JSONB,  -- {inferred_budget, categories, firmness_preference}
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  last_activity TIMESTAMP NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMP,  -- 30 days for guests, NULL for registered users
+
   CONSTRAINT valid_guest_expiry CHECK (
     customer_id IS NOT NULL OR expires_at IS NOT NULL
+  ),
+  CONSTRAINT valid_conversation_history CHECK (
+    jsonb_typeof(conversation_history) = 'array'
+  ),
+  CONSTRAINT valid_cart_items CHECK (
+    jsonb_typeof(cart_items) = 'array'
   )
 );
 
--- Shopping carts: persistent cart state
+CREATE INDEX idx_sessions_customer ON shopping_sessions(customer_id);
+CREATE INDEX idx_sessions_expires_at ON shopping_sessions(expires_at)
+  WHERE expires_at IS NOT NULL;
+
+-- Shopping carts: persistent cart state (optional—can use session.cart_items instead)
 CREATE TABLE shopping_carts (
-  cart_id UUID PRIMARY KEY,
-  session_id UUID REFERENCES shopping_sessions(session_id),
-  customer_id UUID REFERENCES users(id),
-  items JSONB NOT NULL,  -- [{product_id, qty, price, name, image_url}]
-  subtotal DECIMAL(12,2),
-  tax DECIMAL(12,2),
-  total DECIMAL(12,2),
-  status TEXT DEFAULT 'active',  -- active, abandoned, converted
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
-  converted_at TIMESTAMP NULL
+  cart_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES shopping_sessions(session_id) ON DELETE CASCADE,
+  customer_id UUID REFERENCES users(id) ON DELETE CASCADE,
+
+  items JSONB NOT NULL DEFAULT '[]',  -- [{product_id, qty, price_at_time, name, image_url}]
+  subtotal DECIMAL(19,4) NOT NULL DEFAULT 0.0000,  -- GBP with 4 decimal places
+  tax DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+  total DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+
+  status TEXT NOT NULL DEFAULT 'active',  -- active, abandoned, converted
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  converted_at TIMESTAMP,
+
+  CONSTRAINT valid_items CHECK (jsonb_typeof(items) = 'array'),
+  CONSTRAINT valid_amounts CHECK (subtotal >= 0 AND tax >= 0 AND total = subtotal + tax),
+  CONSTRAINT valid_status CHECK (status IN ('active', 'abandoned', 'converted')),
+  CONSTRAINT valid_conversion_date CHECK (
+    (status = 'converted' AND converted_at IS NOT NULL) OR
+    (status IN ('active', 'abandoned') AND converted_at IS NULL)
+  )
 );
 
--- Shopping orders: track customer purchases
+CREATE INDEX idx_carts_session ON shopping_carts(session_id);
+CREATE INDEX idx_carts_customer ON shopping_carts(customer_id);
+CREATE INDEX idx_carts_status ON shopping_carts(status);
+CREATE INDEX idx_carts_updated_at ON shopping_carts(updated_at);
+
+-- Shopping orders: immutable snapshot of purchases
 CREATE TABLE shopping_orders (
-  order_id UUID PRIMARY KEY,
-  customer_id UUID REFERENCES users(id),
-  session_id UUID REFERENCES shopping_sessions(session_id),
-  items JSONB NOT NULL,  -- Snapshot of cart items
-  subtotal DECIMAL(12,2),
-  tax DECIMAL(12,2),
-  total DECIMAL(12,2),
-  status TEXT DEFAULT 'pending',  -- pending, confirmed, shipped, delivered
-  delivery_address JSONB,  -- {street, city, zip, country}
-  created_at TIMESTAMP DEFAULT NOW(),
-  confirmed_at TIMESTAMP NULL,
-  shipped_at TIMESTAMP NULL,
-  delivered_at TIMESTAMP NULL
+  order_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  session_id UUID REFERENCES shopping_sessions(session_id) ON DELETE SET NULL,
+
+  -- Items: snapshot at purchase time (prevents price disputes)
+  items JSONB NOT NULL,  -- [{product_id, qty, price_at_purchase, name, image_url}]
+
+  -- Financial snapshot
+  subtotal DECIMAL(19,4) NOT NULL,  -- GBP
+  tax DECIMAL(19,4) NOT NULL DEFAULT 0.0000,
+  total DECIMAL(19,4) NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'GBP',
+
+  -- Delivery
+  delivery_address JSONB NOT NULL,  -- {street, city, postcode, country}
+
+  -- Payment
+  payment_method TEXT NOT NULL,  -- stripe, paypal, etc.
+  payment_intent_id VARCHAR(255),  -- Stripe PaymentIntent ID for reconciliation
+  payment_status TEXT NOT NULL DEFAULT 'pending',  -- pending, succeeded, failed
+
+  -- Status tracking
+  status TEXT NOT NULL DEFAULT 'pending',  -- pending, confirmed, shipped, delivered, cancelled
+
+  -- Timestamps
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  confirmed_at TIMESTAMP,
+  shipped_at TIMESTAMP,
+  delivered_at TIMESTAMP,
+  cancelled_at TIMESTAMP,
+
+  CONSTRAINT valid_items CHECK (jsonb_typeof(items) = 'array' AND jsonb_array_length(items) > 0),
+  CONSTRAINT valid_address CHECK (jsonb_typeof(delivery_address) = 'object'),
+  CONSTRAINT valid_amounts CHECK (subtotal > 0 AND tax >= 0 AND total = subtotal + tax),
+  CONSTRAINT valid_status CHECK (status IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled')),
+  CONSTRAINT valid_payment_status CHECK (payment_status IN ('pending', 'succeeded', 'failed')),
+  CONSTRAINT valid_status_timestamps CHECK (
+    (status = 'confirmed' AND confirmed_at IS NOT NULL) OR
+    (status IN ('pending') AND confirmed_at IS NULL)
+  )
 );
 
--- Training data: product knowledge for agent enrichment
+CREATE INDEX idx_orders_customer ON shopping_orders(customer_id);
+CREATE INDEX idx_orders_session ON shopping_orders(session_id);
+CREATE INDEX idx_orders_status ON shopping_orders(status);
+CREATE INDEX idx_orders_created_at ON shopping_orders(created_at);
+CREATE INDEX idx_orders_payment_intent ON shopping_orders(payment_intent_id);
+
+-- Training data: product knowledge for LLM context enrichment
 CREATE TABLE shopping_training_data (
-  id UUID PRIMARY KEY,
-  product_id VARCHAR(255),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id VARCHAR(255) NOT NULL,
   category VARCHAR(100),
-  content TEXT,  -- Product info, FAQs, recommendations
-  embedding VECTOR(1536),  -- OpenAI embeddings for semantic search
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
-  INDEX idx_product_id (product_id),
-  INDEX idx_embedding ON embedding
+
+  content TEXT NOT NULL,  -- Product info, FAQs, buying guides, recommendations
+  embedding VECTOR(1536),  -- OpenAI embeddings (optional—if using semantic search)
+
+  source TEXT,  -- "product_description", "faq", "review", "guide"
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT valid_content CHECK (length(content) > 0)
 );
+
+CREATE INDEX idx_training_data_product ON shopping_training_data(product_id);
+CREATE INDEX idx_training_data_category ON shopping_training_data(category);
+CREATE INDEX idx_training_data_source ON shopping_training_data(source);
+-- Vector index for semantic search (pgvector extension)
+CREATE INDEX idx_training_data_embedding ON shopping_training_data
+  USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+
+-- Helper function: calculate cart total
+CREATE OR REPLACE FUNCTION calculate_cart_total(
+  p_subtotal DECIMAL,
+  p_tax_rate DECIMAL DEFAULT 0.20  -- 20% VAT (UK)
+) RETURNS DECIMAL AS $$
+  SELECT p_subtotal * (1 + p_tax_rate);
+$$ LANGUAGE SQL IMMUTABLE;
 ```
 
 ---
@@ -412,19 +489,98 @@ Customers can resume/re-order from previous conversations
 
 ## 5. Error Handling & Edge Cases
 
+### 5.1 Tool Execution & Retry Strategy
+
+**Tool Timeout Specification:**
+```
+Tool Type          Timeout   Retries   Backoff Strategy
+─────────────────────────────────────────────────────────
+search_products    10s       3         exponential: 1s, 2s, 4s
+get_product_details 5s       2         exponential: 1s, 2s
+add_to_cart        8s        2         exponential: 1s, 2s
+check_stock        5s        2         exponential: 1s, 2s
+track_order        10s       2         exponential: 1s, 2s
+```
+
+**End-to-End Message Timeout:**
+- Agent receives message → deadline = now() + 30 seconds
+- All tool calls must complete within deadline
+- If deadline approaches, agent truncates response and sends partial result
+
+**Retry Logic (Exponential Backoff):**
+```python
+def call_tool_with_retry(tool_name, params, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            result = mcp_server.call_tool(tool_name, params)
+            return result
+        except ToolTimeout:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # 1s, 2s, 4s
+                time.sleep(wait_time)
+            else:
+                raise ToolFailureError(f"{tool_name} failed after {max_retries} retries")
+        except MalformedResponse as e:
+            # Don't retry for malformed data—log and fail immediately
+            log_error(f"MCP server returned invalid data: {e}")
+            raise
+```
+
+### 5.2 Scenario Handling
+
 | Scenario | Handling Strategy |
 |----------|-------------------|
-| **MCP Server Down** | Agent responds: "I'm having trouble accessing our catalog. Please try again in a moment." Fall back to pre-cached product list. Rate limit retries to 2x. |
-| **Product No Longer Available** | Agent: "That product is no longer in stock, but we have similar options." Suggest alternatives from MCP. |
-| **Out of Stock** | Show availability: "Back in stock on [date]." Offer to notify when available. |
-| **Invalid Product ID** | Agent: "I couldn't find that product. Let me show you similar items." |
-| **Customer Disconnects** | WebSocket closes, session saved. Customer can reconnect and resume conversation. |
-| **Rate Limit Hit (100 req/min)** | Agent: "I'm getting lots of requests. Your message is queued." Queue and retry. |
+| **MCP Server Down** | Agent responds: "I'm having trouble accessing our catalog. Please try again in a moment." Fall back to pre-cached product list (max 15 min old). If > 5 min down, send customer SMS/email with link to re-access. |
+| **Product No Longer Available** | Agent: "That product is no longer in stock, but we have similar options." Use recommendations engine. |
+| **Out of Stock** | Agent: "Back in stock on [date]." Offer to notify customer (store in notification queue). |
+| **Invalid Product ID** | Agent: "I couldn't find that product. Let me show you similar items based on your preferences." |
+| **Tool Timeout After 3 Retries** | Agent: "I had trouble with that request. Let me try something else." Simplify request or suggest alternative. |
+| **Malformed MCP Response** | Log error (alert ops), Agent: "I encountered an unexpected error. Please try again." Don't retry. |
+| **Customer Disconnects** | WebSocket closes gracefully. Session persisted. Customer reconnects within 24 hours → resume conversation. |
+| **Session Expires (30 days guest)** | Cannot reopen. Direct to new session creation. Offer: "Your old cart is no longer available, but we saved your preferences." |
+| **Rate Limit Hit (100 req/min)** | Agent: "I'm getting lots of requests. Your message is queued." Queue and retry with backoff. |
 | **Unclear Intent** | Agent asks clarifying question: "Are you looking for mattresses, pillows, or bed frames?" |
-| **Guest Timeout (30 days)** | Session expires. New chat creates new session. Old cart abandoned. |
-| **Cart Item Price Changed** | Agent updates total: "Note: Product X price changed to $X. Your cart total is now $Y." |
-| **Payment Failure** | Agent: "There was an issue processing payment. Please try again or contact support." |
-| **Support Escalation** | Agent: "I'm connecting you with our support team..." → Transitions to support queue. |
+| **Cart Item Price Changed** | Agent: "Note: Product X price changed to $399 (was $499). Your cart total is now $Y." Allow re-confirmation. |
+| **Payment Failure (Card Declined)** | Agent: "Your card was declined. Please try a different card or payment method." Preserve cart for retry (24 hrs). |
+| **Payment Failure (3DS Auth)** | Customer completes authentication on Stripe form. Webhook updates order status. Agent: "Payment confirmed!" |
+| **Support Escalation** | Agent: "I'm connecting you with our support team. Please hold..." → Transition chat to support queue (future integration). |
+
+### 5.3 Conversation Context Management
+
+**Context Window Strategy:**
+```python
+# When building Claude prompt
+context_params = {
+    "max_messages": 10,  # Last 10 messages
+    "token_limit": 4000,  # Rough limit for context
+    "max_conversation_age": 24_hours,  # Conversations older than 24h are archived
+}
+
+messages_to_include = session.conversation_history[
+    -context_params["max_messages"]:
+]
+
+# If total tokens > 4000, truncate oldest messages
+while estimate_tokens(messages_to_include) > context_params["token_limit"]:
+    messages_to_include = messages_to_include[1:]  # Drop oldest
+
+# Optionally summarize truncated messages
+if len(session.conversation_history) > context_params["max_messages"]:
+    summary = summarize_earlier_messages(
+        session.conversation_history[:-context_params["max_messages"]]
+    )
+    system_prompt += f"\n\nEarlier conversation summary: {summary}"
+```
+
+**Behavior on Long Conversations:**
+- Keep last 10 messages in full
+- Summarize older messages (1-sentence per message)
+- Example: "Customer previously asked about firm mattresses, budget ~$500. Showed 3 products. Customer interested in Product A."
+- Storage: Store summaries in `session_preferences` for persistence
+
+**Handoff When Conversation Gets Old (>24h):**
+- Agent: "I see this conversation is over 24 hours old. Would you like me to remind you what we discussed?"
+- Provide 1-line summary of last action (e.g., "You had Mattress A in your cart")
 
 ---
 
@@ -505,17 +661,71 @@ Customers can resume/re-order from previous conversations
 
 ### 8.1 Authentication & Authorization
 
-- **Registered users:** Authenticate with existing ACOS API key
-- **Guest users:** Session tokens (short-lived, scoped to shopping only)
-- **MCP server calls:** Use server-side auth (API keys, OAuth) - never expose to client
-- **Cart access:** Customers can only view/modify their own carts
+**Registered Users:**
+- Authenticate with existing ACOS API key (Bearer token)
+- Session linked to customer_id
+- Can access cart, order history, preferences across sessions
+- Can logout (expires session token)
+
+**Guest Users:**
+- Generate anonymous session_token (UUID, 128-bit entropy)
+- Token valid for 24 hours or until checkout
+- Cannot access order history (can only track current order via order_id + email)
+- Cart preserved for 30 days (for abandoned cart recovery)
+
+**Cart Access Control:**
+```python
+# Enforce in all cart-modifying endpoints
+def require_cart_ownership(session_id, authenticated_user_id):
+    session = db.get_session(session_id)
+
+    # Registered user must own the session
+    if authenticated_user_id:
+        if session.customer_id != authenticated_user_id:
+            raise AuthorizationError("Cannot access other user's cart")
+
+    # Guest: check session token validity
+    else:
+        if session.expires_at < now():
+            raise AuthorizationError("Session expired")
+```
+
+**MCP Server Calls:**
+- Use server-side authentication (API keys, OAuth, mTLS)
+- Never expose MCP credentials to frontend
+- Store MCP secrets in environment variables or secrets manager
+- Rotate credentials quarterly
 
 ### 8.2 Data Protection
 
-- **PII:** Delivery address encrypted at rest in PostgreSQL
-- **Payment:** Never handle credit cards - use external payment processor
-- **Training data:** Product information sanitized before storing
-- **Conversation history:** Customers can request deletion (GDPR compliance)
+**Personally Identifiable Information (PII):**
+- **Delivery address:** Encrypted at rest using AES-256 (PostgreSQL pgcrypto or application-level)
+- **Email:** Stored as plaintext (necessary for order tracking + compliance)
+- **Conversation history:** Flagged for potential PII; sanitized before training data
+
+**Payment:**
+- **Never store:** Full card numbers, CVC, bank account details
+- **Use Stripe tokenization:** Client-side only, server receives token_id
+- **Log:** Only last 4 digits for customer reference
+- **Enforce HTTPS:** All payment endpoints require TLS 1.2+
+
+**Training Data:**
+- Sanitize product descriptions before storing (remove internal notes, PII)
+- Mark sources as public vs. internal
+- Embeddings generated from public content only
+
+**Conversation History:**
+- Customers (registered only) can request full conversation deletion (GDPR right-to-be-forgotten)
+- Implement: `DELETE FROM shopping_sessions WHERE customer_id = $1 AND created_at < $2`
+- Guests: Auto-delete after 30 days via scheduled job
+
+### 8.3 Authorization Matrix
+
+| User Type | View Own Cart | View Own Orders | View Other Carts | Create Order | Track Order |
+|-----------|---|---|---|---|---|
+| **Registered** | ✅ | ✅ | ❌ | ✅ | ✅ (history) |
+| **Guest** | ✅ (via token) | ❌ | ❌ | ✅ | ✅ (order_id + email) |
+| **Admin** | ✅ | ✅ | ✅ (view only) | ✅ (on behalf) | ✅ |
 
 ### 8.3 Rate Limiting & Abuse Prevention
 
@@ -564,6 +774,165 @@ Customers can resume/re-order from previous conversations
 
 ---
 
+## 9.4 Payment Integration Strategy
+
+### Payment Flow
+
+**Payment Processor:** Stripe (extensible to PayPal, others)
+
+**Flow:**
+```
+1. Customer initiates checkout → POST /api/shopping/sessions/{id}/checkout
+   └─> ACOS creates Stripe PaymentIntent, returns client_secret
+
+2. Frontend collects card details via Stripe Elements
+   └─> Never touches card data (PCI compliant)
+
+3. Customer confirms payment → POST /api/shopping/orders/{id}/confirm-payment
+   └─> Stripe processes charge, sends webhook to ACOS
+
+4. ACOS receives webhook → POST /api/shopping/webhooks/payment
+   └─> Validates signature, updates order status
+   └─> Sends confirmation email to customer
+
+5. Agent notifies customer: "Payment confirmed! Order #xyz dispatching..."
+```
+
+**Webhook Events:**
+```
+payment_intent.succeeded:
+  - Update order status: "confirmed"
+  - Send confirmation email
+  - Trigger fulfillment workflow
+
+payment_intent.payment_failed:
+  - Update order status: "payment_failed"
+  - Notify customer in chat: "Payment declined. Please try again."
+  - Preserve cart for retry (24 hours)
+
+charge.refunded:
+  - Update order status: "refunded"
+  - Send refund confirmation email
+```
+
+**3D Secure & SCA Compliance:**
+- For card_present: Stripe handles 3DS automatically
+- For card_not_present: Stripe requests customer authentication if needed
+- Payment confirmation includes SCA status
+
+**Error Handling:**
+```python
+# In payment confirmation endpoint
+try:
+    payment_intent = stripe.PaymentIntent.retrieve(payment_id)
+    if payment_intent.status == "succeeded":
+        order.status = "confirmed"
+        order.payment_date = now()
+        send_confirmation_email(order)
+    elif payment_intent.status == "requires_action":
+        return 400, "Payment requires additional authentication"
+    else:
+        return 400, "Payment failed. Please try again."
+except stripe.error.CardError as e:
+    return 400, {"code": "CARD_DECLINED", "message": e.user_message}
+except stripe.error.RateLimitError:
+    return 429, "Too many requests to payment processor"
+except stripe.error.APIConnectionError:
+    # Retry logic: exponential backoff
+    return 503, "Payment service temporarily unavailable"
+```
+
+**PCI Compliance:**
+- Never log card numbers or CVC
+- Use Stripe tokenization (client-side only)
+- Store only last 4 digits for customer reference
+- All HTTPS (enforce in nginx config)
+
+---
+
+## 9.5 MCP Server Integration Requirements
+
+### Expected MCP Server Capabilities
+
+Your MCP product server **MUST** provide these tools:
+
+| Tool | MCP Server Capability | Required Response | Timeout |
+|------|---|---|---|
+| `search_products` | Query product catalog by name, category, filters | Array of 5-10 products with {id, name, price, category, rating} | 10s |
+| `get_product_details` | Fetch full product info | {id, name, price, specs, images, reviews, guarantee, in_stock} | 5s |
+| `get_product_recommendations` | Recommend products based on preferences | Array of 3-5 products ranked by relevance | 10s |
+| `check_stock` | Check real-time inventory | {product_id, in_stock, quantity, delivery_estimate} | 5s |
+
+### MCP Server Schema Expectations
+
+**Product Object:**
+```json
+{
+  "product_id": "string (unique)",
+  "name": "string",
+  "category": "string",
+  "price": "number (GBP)",
+  "description": "string",
+  "specs": [
+    {"key": "material", "value": "cotton"},
+    {"key": "warranty", "value": "7 years"}
+  ],
+  "images": [
+    {"url": "https://...", "alt": "front view"},
+    {"url": "https://...", "alt": "detail view"}
+  ],
+  "rating": "number (0-5)",
+  "review_count": "number",
+  "in_stock": "boolean",
+  "stock_quantity": "number",
+  "tags": ["firm", "hypoallergenic", "eco-friendly"],
+  "guide_links": {
+    "how_to_choose": "https://...",
+    "care_instructions": "https://..."
+  }
+}
+```
+
+### Fallback Strategy
+
+**If MCP Server is Down:**
+
+1. **Cached Products (15-min cache):**
+   ```python
+   # Check Redis cache before querying MCP
+   cached_products = redis.get(f"mcp:search:{query}")
+   if cached_products:
+       return cached_products  # Use cache
+   ```
+
+2. **Agent Graceful Degradation:**
+   ```
+   Agent: "I'm having trouble accessing our full catalog right now,
+           but here are some products we know about:
+           - Mattress A ($399)
+           - Mattress B ($479)
+
+           Would you like to proceed, or try again in a moment?"
+   ```
+
+3. **Read-Only Mode:**
+   - Customers can view pre-cached products
+   - Cannot add to cart or checkout
+   - Agent suggests returning later
+
+4. **Monitoring & Alerts:**
+   - Alert if MCP server down > 5 minutes
+   - Page on-call engineer immediately
+   - Redirect traffic to maintenance page if down > 30 min
+
+### MCP Server SLA
+
+- **Uptime:** 99.5% (monthly)
+- **Response time:** p95 < 3 seconds
+- **Data freshness:** Inventory updates within 5 minutes
+
+---
+
 ## 10. Deployment & Operations
 
 ### 10.1 Database Migrations
@@ -573,24 +942,72 @@ Customers can resume/re-order from previous conversations
 2. Add indexes for performance
 3. No changes to existing ACOS tables
 
-### 10.2 Configuration
+### 10.2 Configuration & Environment Variables
 
-**Environment variables:**
+**Backend Configuration (.env or settings.json):**
+
 ```bash
-# MCP Product Server
-MCP_PRODUCT_SERVER_URL=<endpoint>
-MCP_PRODUCT_SERVER_API_KEY=<key>
+# MCP Product Server Integration
+MCP_PRODUCT_SERVER_URL=https://products.example.com/mcp
+MCP_PRODUCT_SERVER_API_KEY=<secure_key>
+MCP_PRODUCT_SERVER_TIMEOUT_SECONDS=10
+MCP_PRODUCT_CACHE_TTL_MINUTES=15  # Cache products for 15 min
 
-# Chat agent
-SHOPPING_AGENT_MODEL=claude-opus-4-6
+# Claude Agent Configuration
+SHOPPING_AGENT_MODEL=claude-opus-4-6  # or claude-sonnet-4-6 for faster/cheaper
 SHOPPING_AGENT_MAX_TOKENS=1024
+SHOPPING_AGENT_TEMPERATURE=0.7  # Conversational tone
+SHOPPING_AGENT_TIMEOUT_SECONDS=30  # End-to-end deadline
 
-# Session storage
-SHOPPING_SESSION_EXPIRY_DAYS=30
-SHOPPING_CART_RECOVERY_ENABLED=true
+# Payment Processor Integration
+STRIPE_API_KEY=sk_live_...  # or sk_test_... for dev
+STRIPE_WEBHOOK_SECRET=whsec_...
+PAYMENT_CURRENCY=GBP
+PAYMENT_TAX_RATE=0.20  # 20% VAT for UK
 
-# Analytics
-SHOPPING_ANALYTICS_ENABLED=true
+# Session Management
+SHOPPING_SESSION_EXPIRY_DAYS_GUEST=30
+SHOPPING_SESSION_EXPIRY_DAYS_REGISTERED=null  # No expiry
+SHOPPING_SESSION_TOKEN_LENGTH=32  # Bytes
+
+# Database
+SHOPPING_DB_POOL_SIZE=20
+SHOPPING_DB_POOL_TIMEOUT_SECONDS=10
+SHOPPING_DB_LOG_SLOW_QUERIES_MS=1000
+
+# Conversation Context
+SHOPPING_MAX_CONTEXT_MESSAGES=10
+SHOPPING_MAX_CONTEXT_TOKENS=4000
+SHOPPING_CONVERSATION_ARCHIVE_AFTER_HOURS=24
+
+# Alerts & Monitoring
+SHOPPING_ALERT_LATENCY_THRESHOLD_MS=5000  # 5 sec
+SHOPPING_ALERT_ERROR_RATE_THRESHOLD=0.05  # 5%
+SHOPPING_ALERT_MCP_DOWNTIME_THRESHOLD_MIN=5
+MONITORING_ENABLED=true
+PROMETHEUS_EXPORT_PORT=9090
+
+# Feature Flags
+SHOPPING_ENABLE_RECOMMENDATIONS=true
+SHOPPING_ENABLE_ABANDONED_CART_RECOVERY=true
+SHOPPING_ENABLE_PAYMENT_RETRY=true
+SHOPPING_ENABLE_ANALYTICS=true
+```
+
+**Frontend Configuration (react env):**
+
+```bash
+# .env.development
+VITE_API_BASE_URL=http://localhost:8000/api
+VITE_WS_URL=ws://localhost:8000
+VITE_STRIPE_PUBLIC_KEY=pk_test_...
+VITE_CHAT_WIDGET_ENABLED=true
+
+# .env.production
+VITE_API_BASE_URL=https://api.example.com/api
+VITE_WS_URL=wss://api.example.com
+VITE_STRIPE_PUBLIC_KEY=pk_live_...
+VITE_CHAT_WIDGET_ENABLED=true
 ```
 
 ### 10.3 Monitoring & Alerting
@@ -612,18 +1029,52 @@ SHOPPING_ANALYTICS_ENABLED=true
 
 ## 11. Success Criteria
 
-**Launch readiness checklist:**
+**Launch Readiness Checklist (Measurable):**
 
-- [ ] All 4 component sections functional: Chat endpoint, Agent executor, Tools, Session store
-- [ ] MCP product server integration tested with real data
-- [ ] E2E tests pass (80%+ critical paths)
-- [ ] Chat works on web (desktop + responsive)
-- [ ] Chat works on mobile (app or WebView)
-- [ ] Guest + registered customer flows working
-- [ ] Error handling for all 12+ edge cases
-- [ ] Rate limiting prevents abuse
-- [ ] Analytics dashboard showing shopping metrics
-- [ ] Documentation: API docs, user guide, troubleshooting
+**Functionality:**
+- [ ] Chat WebSocket endpoint handles 100+ concurrent connections
+- [ ] Agent Executor successfully plans and executes tool calls
+- [ ] All 10 shopping tools tested and integrated with MCP
+- [ ] Session store persists conversation history, cart, preferences
+- [ ] MCP product server integration tested with >1000 real products
+
+**Performance:**
+- [ ] Agent response latency p95 < 3 seconds (measured over 1000 requests)
+- [ ] Tool execution timeouts enforced (retries up to 3x per tool)
+- [ ] WebSocket message round-trip latency p95 < 1 second
+- [ ] Database queries optimized (all tables indexed, <100ms queries)
+
+**Testing:**
+- [ ] E2E test suite: 100% of critical paths covered (guest flow, registered flow, payment, tracking)
+- [ ] Unit tests: 80%+ code coverage (tool execution, session management, cart operations)
+- [ ] Load test: 100+ concurrent users, <2% error rate
+- [ ] Error scenarios tested: All 15+ edge cases from Section 5.2
+
+**Client Compatibility:**
+- [ ] Web: Works on Chrome, Firefox, Safari (desktop)
+- [ ] Web: Responsive design (375px mobile, 768px tablet, 1280px+ desktop)
+- [ ] Mobile: Works on iOS Safari and Android Chrome (WebView)
+- [ ] Accessibility: WCAG 2.1 AA compliance (color contrast, keyboard navigation)
+
+**Security & Compliance:**
+- [ ] Authentication: Registered users via API key, guests via session token
+- [ ] Authorization: Cart access control enforced (no cross-customer access)
+- [ ] Payment: Zero card details logged; Stripe tokenization working
+- [ ] GDPR: Customers can request data deletion
+- [ ] PCI: Passed security review (no unencrypted PII at rest)
+
+**Business Metrics:**
+- [ ] Cart creation rate: >50 carts/day (baseline)
+- [ ] Cart-to-order conversion: >30%
+- [ ] Average order value: >£50
+- [ ] Customer satisfaction: NPS >50 (post-purchase survey)
+
+**Documentation & Operations:**
+- [ ] API documentation: All 6+ endpoints documented with examples
+- [ ] Deployment guide: Step-by-step setup for dev, staging, production
+- [ ] Runbook: Troubleshooting guide for common issues (MCP down, payment failures, etc.)
+- [ ] Monitoring: Dashboards set up (latency, errors, conversion funnel)
+- [ ] Alerting: Automated alerts for critical issues (MCP > 5 min down, error rate > 5%)
 
 ---
 
@@ -656,11 +1107,206 @@ SHOPPING_ANALYTICS_ENABLED=true
 
 ---
 
-## Appendix: Example API Contracts
+## Appendix A: Complete API Contracts
 
-### WebSocket Message Format
+### A.1 REST API Endpoints
 
-**Client → Server:**
+#### Create Shopping Session
+```
+POST /api/shopping/sessions
+
+Request:
+{
+  "type": "guest" | "authenticated",  # guest or authenticated user
+  "customer_id": "uuid"  # required if type="authenticated"
+}
+
+Response (201):
+{
+  "session_id": "uuid",
+  "customer_id": "uuid|null",
+  "token": "session_token_xyz",  # used for WebSocket auth
+  "expires_at": "2026-04-22T10:00:00Z",
+  "created_at": "2026-03-22T10:00:00Z"
+}
+
+Error (400):
+{
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Missing required field: customer_id"
+  }
+}
+```
+
+#### Get Shopping Session
+```
+GET /api/shopping/sessions/{session_id}
+
+Headers: Authorization: Bearer {session_token}
+
+Response (200):
+{
+  "session_id": "uuid",
+  "conversation_history": [
+    {"role": "user", "content": "...", "timestamp": "..."},
+    {"role": "assistant", "content": "...", "timestamp": "..."}
+  ],
+  "cart": {
+    "items": [
+      {"product_id": "prod_123", "quantity": 2, "price": 399.99, "name": "..."}
+    ],
+    "subtotal": 799.98,
+    "tax": 0,
+    "total": 799.98
+  },
+  "customer_preferences": {
+    "inferred_budget": 500,
+    "product_categories": ["mattresses"],
+    "firmness": "firm"
+  }
+}
+
+Error (404):
+{
+  "error": {
+    "code": "SESSION_NOT_FOUND",
+    "message": "Session has expired or does not exist"
+  }
+}
+```
+
+#### Update Cart Item
+```
+POST /api/shopping/sessions/{session_id}/cart/items
+
+Request:
+{
+  "product_id": "prod_123",
+  "quantity": 2,  # 0 to remove, >0 to add/update
+  "action": "add|update|remove"
+}
+
+Response (200):
+{
+  "item_id": "prod_123",
+  "quantity": 2,
+  "price": 399.99,
+  "cart_total": 879.98,
+  "message": "Added 2 x Mattress A to cart"
+}
+
+Error (400):
+{
+  "error": {
+    "code": "OUT_OF_STOCK",
+    "message": "Only 1 unit available",
+    "available": 1
+  }
+}
+```
+
+#### Initiate Checkout
+```
+POST /api/shopping/sessions/{session_id}/checkout
+
+Request:
+{
+  "customer_info": {
+    "email": "customer@example.com",
+    "name": "John Doe"
+  },
+  "delivery_address": {
+    "street": "123 Main St",
+    "city": "London",
+    "postcode": "SW1A 1AA",
+    "country": "UK"
+  },
+  "payment_method": "stripe"  # or "paypal", etc.
+}
+
+Response (200):
+{
+  "order_id": "uuid",
+  "amount": 879.98,
+  "currency": "GBP",
+  "payment": {
+    "method": "stripe",
+    "client_secret": "pi_xxxxx",  # For Stripe client-side
+    "status": "requires_payment"
+  },
+  "expires_at": "2026-03-22T10:30:00Z"  # 30 min to complete payment
+}
+
+Error (400):
+{
+  "error": {
+    "code": "EMPTY_CART",
+    "message": "Cannot checkout with empty cart"
+  }
+}
+```
+
+#### Confirm Payment
+```
+POST /api/shopping/orders/{order_id}/confirm-payment
+
+Request:
+{
+  "payment_intent_id": "pi_xxxxx",  # From Stripe
+  "payment_token": "tok_xxx"  # Alternative: direct token
+}
+
+Response (200):
+{
+  "order_id": "uuid",
+  "status": "confirmed",
+  "items": [...],
+  "total": 879.98,
+  "delivery_estimate": "2026-03-27 - 2026-03-29",
+  "confirmation_email": "sent to customer@example.com"
+}
+
+Error (400):
+{
+  "error": {
+    "code": "PAYMENT_FAILED",
+    "message": "Card declined",
+    "retry_after": 10  # seconds
+  }
+}
+```
+
+#### Track Order
+```
+GET /api/shopping/orders/{order_id}?email=customer@example.com
+
+Response (200):
+{
+  "order_id": "uuid",
+  "status": "shipped",  # pending, confirmed, shipped, delivered
+  "items": [...],
+  "created_at": "2026-03-22T10:00:00Z",
+  "shipped_at": "2026-03-24T14:00:00Z",
+  "estimated_delivery": "2026-03-27",
+  "tracking_url": "https://carrier.com/track/xxxxx",
+  "tracking_number": "1Z999AA10123456784"
+}
+
+Error (401):
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Email does not match order"
+  }
+}
+```
+
+---
+
+### A.2 WebSocket Message Format
+
+**Client → Server (Chat):**
 ```json
 {
   "type": "message",
@@ -669,7 +1315,7 @@ SHOPPING_ANALYTICS_ENABLED=true
 }
 ```
 
-**Server → Client (streaming):**
+**Server → Client (Streaming Response):**
 ```json
 {
   "type": "response",
@@ -678,26 +1324,40 @@ SHOPPING_ANALYTICS_ENABLED=true
 }
 ```
 
-Then:
+**Server → Client (With Products):**
 ```json
 {
   "type": "response",
-  "content": "Great! I found 3 options:\n• Mattress A: $399\n• Mattress B: $479",
+  "content": "Great! I found 3 options:\n• Mattress A: $399 - Firm support, 4.8★\n• Mattress B: $479 - Premium comfort, 4.6★",
   "products": [
     {
-      "id": "prod_123",
+      "product_id": "prod_123",
       "name": "Mattress A",
-      "price": 399,
-      "image": "https://...",
+      "price": 399.99,
+      "image_url": "https://...",
       "rating": 4.8,
-      "action": "add-to-cart"
+      "reviews_count": 245,
+      "in_stock": true
     }
   ],
   "status": "complete"
 }
 ```
 
-### Tool Call Format (Internal)
+**Server → Client (Error):**
+```json
+{
+  "type": "error",
+  "error_code": "MCP_SERVER_UNAVAILABLE",
+  "message": "I'm having trouble accessing our catalog right now. Please try again in a moment.",
+  "status": "error",
+  "recovery_hint": "Check back in 30 seconds"
+}
+```
+
+---
+
+### A.3 Tool Call Format (Internal Agent → Tool Use Layer)
 
 ```json
 {
@@ -705,10 +1365,50 @@ Then:
   "params": {
     "query": "firm mattress",
     "price_max": 500,
-    "limit": 5
-  }
+    "category": "mattresses",
+    "limit": 5,
+    "sort_by": "relevance"
+  },
+  "timeout_seconds": 10,
+  "retry_strategy": "exponential_backoff"
 }
 ```
+
+---
+
+### A.4 Standard Error Response Format
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",  # Machine-readable (e.g., OUT_OF_STOCK, SESSION_EXPIRED)
+    "message": "Human-readable error message",
+    "details": {
+      "field": "product_id",  # Optional: which field caused error
+      "value": "prod_999",
+      "reason": "Product not found in catalog"
+    },
+    "retry_after": 10  # Optional: seconds to wait before retry
+  },
+  "timestamp": "2026-03-22T10:00:00Z",
+  "request_id": "req_xyz123"  # For debugging
+}
+```
+
+---
+
+### A.5 Common HTTP Status Codes
+
+| Code | Scenario |
+|------|----------|
+| 200 | Success |
+| 201 | Resource created (session, order) |
+| 400 | Bad request (invalid product_id, empty cart) |
+| 401 | Unauthorized (invalid session token, email mismatch) |
+| 404 | Not found (session expired, product removed) |
+| 429 | Rate limited (100 req/min exceeded) |
+| 500 | Internal error (MCP server error, DB error) |
+| 503 | Service unavailable (MCP server down) |
 
 ---
 
