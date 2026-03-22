@@ -175,7 +175,9 @@ def create_workflow_version(workflow_id: str, payload, actor: str, environment: 
         validation_status=payload.validation_status,
         lifecycle_state=payload.validation_status,
         created_by=actor,
-        step_definitions=[{"step": "draft", "family": workflow["workflow_family"], "version": next_version}],
+        step_definitions=payload.step_definitions or [{"step": "draft", "family": workflow["workflow_family"], "version": next_version}],
+        agent_bindings=payload.agent_bindings,
+        input_schema=payload.input_schema,
         approved_by=approved_by,
     )
     _write_audit(

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l acosplatform/**/*.py apps/ops_ui_v2/src/**/*.jsx)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn-ui@latest init -d)",
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}

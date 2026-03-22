@@ -13,7 +13,14 @@ from slowapi.errors import RateLimitExceeded
 from acosplatform.auth.api_key import require_ops_token
 from acosplatform.billing.engine import get_cost_summary, get_usage
 from acosplatform.db.connection import ensure_schema, get_connection
-from acosplatform.db.repository import get_events, get_run, get_runs, get_runs_by_workflow
+from acosplatform.db.repository import (
+    get_events,
+    get_run,
+    get_runs,
+    get_runs_by_workflow,
+    get_agents,
+    get_skills,
+)
 from acosplatform.evaluation.scorer import get_experiment_results
 from acosplatform.middleware.rate_limit import REPLAY_LIMIT, limiter, rate_limit_error_handler
 from acosplatform.models.workflows import (
@@ -55,7 +62,7 @@ app.mount("/ui", StaticFiles(directory=UI_DIR, html=True, check_dir=False), name
 
 _ALLOWED_ORIGINS = [
     origin.strip()
-    for origin in os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    for origin in os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173").split(",")
     if origin.strip()
 ]
 
@@ -137,11 +144,65 @@ def billing(tenant_id: str = None, _token: dict = Depends(require_ops_token)):
     return {"summary": get_cost_summary(), "by_tenant": get_usage()}
 
 
+@app.get("/api/v1/agents")
+@app.get("/agents")
+def list_agents():
+    return {"agents": get_agents()}
+
+
+@app.post("/api/v1/agents")
+@app.post("/agents")
+def create_agent(agent: dict):
+    from acosplatform.db.repository import save_agent
+    save_agent(agent)
+    return {"status": "success", "agent": agent}
+
+
+@app.patch("/api/v1/agents/{agent_id}")
+@app.patch("/agents/{agent_id}")
+def update_agent(agent_id: str, updates: dict):
+    from acosplatform.db.repository import get_agents, save_agent
+    agents = get_agents()
+    target = next((a for a in agents if a.get("id") == agent_id), None)
+    if not target:
+        return JSONResponse(status_code=404, content={"error": "Agent not found"})
+    target.update(updates)
+    save_agent(target)
+    return {"status": "success", "agent": target}
+
+
+@app.get("/api/v1/skills")
+@app.get("/skills")
+def list_skills():
+    return {"skills": get_skills()}
+
+
+@app.post("/api/v1/skills")
+@app.post("/skills")
+def create_skill(skill: dict):
+    from acosplatform.db.repository import save_skill
+    save_skill(skill)
+    return {"status": "success", "skill": skill}
+
+
+@app.patch("/api/v1/skills/{skill_id}")
+@app.patch("/skills/{skill_id}")
+def update_skill(skill_id: str, updates: dict):
+    from acosplatform.db.repository import get_skills, save_skill
+    skills = get_skills()
+    target = next((s for s in skills if s.get("id") == skill_id), None)
+    if not target:
+        return JSONResponse(status_code=404, content={"error": "Skill not found"})
+    target.update(updates)
+    save_skill(target)
+    return {"status": "success", "skill": target}
+
+
+@app.get("/api/v1/workflows")
 @app.get("/workflows")
 def list_workflows(
     tenant_id: str = None,
     environment: str = OPS_ENVIRONMENT,
-    _token: dict = Depends(require_ops_token),
 ):
     return {
         "environment": environment,
@@ -149,11 +210,11 @@ def list_workflows(
     }
 
 
+@app.get("/api/v1/workflows/{workflow_id}")
 @app.get("/workflows/{workflow_id}")
 def workflow_detail(
     workflow_id: str,
     environment: str = OPS_ENVIRONMENT,
-    _token: dict = Depends(require_ops_token),
 ):
     detail = get_workflow_detail(workflow_id, environment=environment)
     if not detail:
@@ -161,6 +222,7 @@ def workflow_detail(
     return detail
 
 
+@app.get("/api/v1/workflows/{workflow_id}/runs")
 @app.get("/workflows/{workflow_id}/runs")
 def workflow_runs(
     workflow_id: str,
@@ -172,6 +234,7 @@ def workflow_runs(
     return {"runs": get_runs_by_workflow(workflow_id, limit=limit)}
 
 
+@app.post("/api/v1/workflows")
 @app.post("/workflows")
 def workflow_create(
     payload: WorkflowCreateRequest,
@@ -183,6 +246,7 @@ def workflow_create(
         return JSONResponse(status_code=409, content={"error": str(exc)})
 
 
+@app.post("/api/v1/workflows/{workflow_id}/versions")
 @app.post("/workflows/{workflow_id}/versions")
 def workflow_version_create(
     workflow_id: str,
@@ -200,6 +264,7 @@ def workflow_version_create(
         return JSONResponse(status_code=404, content={"error": str(exc)})
 
 
+@app.post("/api/v1/workflows/{workflow_id}/versions/{version}/promote")
 @app.post("/workflows/{workflow_id}/versions/{version}/promote")
 def workflow_version_promote(
     workflow_id: str,

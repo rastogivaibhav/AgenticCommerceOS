@@ -1,0 +1,132 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.12, pytest-8.4.2, pluggy-1.6.0
+rootdir: C:\Users\vrast\OneDrive\Apps\Documents\acos
+plugins: anyio-4.12.1, langsmith-0.7.16, locust-2.43.3, asyncio-1.3.0, cov-7.0.0, respx-0.22.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 105 items
+
+tests\test_api.py ..............FF...                                    [ 18%]
+tests\test_basic.py ....                                                 [ 21%]
+tests\test_db.py ........                                                [ 29%]
+tests\test_journey.py ................                                   [ 44%]
+tests\test_plugins.py .............................                      [ 72%]
+tests\test_security.py .............................                     [100%]
+
+================================== FAILURES ===================================
+_______________________ TestOpsAPI.test_workflows_list ________________________
+
+self = <tests.test_api.TestOpsAPI object at 0x000002577829EBE0>
+
+    def test_workflows_list(self):
+        r = ops.get("/workflows", headers=OPS_AUTH)
+        assert r.status_code == 200
+        data = r.json()
+        assert "workflows" in data
+>       assert len(data["workflows"]) >= 1
+E       assert 0 >= 1
+E        +  where 0 = len([])
+
+tests\test_api.py:112: AssertionError
+------------------------------ Captured log call ------------------------------
+WARNING  acosplatform.auth.api_key:api_key.py:48 OPS_JWT_SECRET not set — JWT auth is DISABLED (dev mode)
+_______________________ TestOpsAPI.test_workflow_detail _______________________
+
+self = <tests.test_api.TestOpsAPI object at 0x0000025778262550>
+
+    def test_workflow_detail(self):
+        listing = ops.get("/workflows", headers=OPS_AUTH).json()["workflows"]
+>       workflow_id = listing[0]["id"]
+                      ^^^^^^^^^^
+E       IndexError: list index out of range
+
+tests\test_api.py:116: IndexError
+------------------------------ Captured log call ------------------------------
+WARNING  acosplatform.auth.api_key:api_key.py:48 OPS_JWT_SECRET not set — JWT auth is DISABLED (dev mode)
+============================== warnings summary ===============================
+apps\shopper_api\main.py:65
+  C:\Users\vrast\OneDrive\Apps\Documents\acos\apps\shopper_api\main.py:65: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\applications.py:4495
+..\..\..\..\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\applications.py:4495
+  C:\Users\vrast\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\fastapi\applications.py:4495: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+apps\ops_api\main.py:77
+  C:\Users\vrast\OneDrive\Apps\Documents\acos\apps\ops_api\main.py:77: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+______________ coverage: platform win32, python 3.13.12-final-0 _______________
+
+Name                                       Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------
+acosplatform\__init__.py                       0      0   100%
+acosplatform\analytics\__init__.py             0      0   100%
+acosplatform\analytics\stream.py              27     10    63%   27-28, 35, 40-41, 46-50
+acosplatform\audit\__init__.py                 0      0   100%
+acosplatform\audit\logger.py                  15      0   100%
+acosplatform\auth\__init__.py                  0      0   100%
+acosplatform\auth\api_key.py                  32      6    81%   22, 50-54
+acosplatform\auth\sanitize.py                 12      2    83%   41-42
+acosplatform\billing\__init__.py               0      0   100%
+acosplatform\billing\engine.py                41      3    93%   33, 35, 75
+acosplatform\db\__init__.py                    0      0   100%
+acosplatform\db\connection.py                 67     52    22%   8-9, 19, 27-47, 51-69, 75-84, 89-94
+acosplatform\db\repository.py                361    219    39%   36-46, 88-115, 122-134, 137, 143-152, 159-167, 182-191, 198-204, 217-229, 237-243, 269-300, 306-318, 321, 327-335, 377-420, 426-435, 443-451, 455, 482-514, 516-517, 524-539, 550-572, 580, 583, 614-638, 645-661, 672-696
+acosplatform\evaluation\__init__.py            0      0   100%
+acosplatform\evaluation\scorer.py             60     15    75%   36, 38, 83, 93-115
+acosplatform\journey\__init__.py               0      0   100%
+acosplatform\journey\context.py               11      0   100%
+acosplatform\journey\engine.py               122     11    91%   154, 207, 246-250, 267-275, 288-292
+acosplatform\journey\routing.py               17      0   100%
+acosplatform\middleware\__init__.py            0      0   100%
+acosplatform\middleware\rate_limit.py         12      1    92%   24
+acosplatform\models\__init__.py                0      0   100%
+acosplatform\models\requests.py               23      0   100%
+acosplatform\models\workflows.py              17      0   100%
+acosplatform\observability\__init__.py         0      0   100%
+acosplatform\observability\metrics.py         18      8    56%   54, 65-75
+acosplatform\personalization\__init__.py       0      0   100%
+acosplatform\personalization\engine.py        32      0   100%
+acosplatform\plugins\__init__.py               0      0   100%
+acosplatform\plugins\catalog.py               45      3    93%   47, 70, 101
+acosplatform\plugins\checkout.py              23      0   100%
+acosplatform\plugins\loyalty.py               25      0   100%
+acosplatform\plugins\orders.py                32      4    88%   73-76
+acosplatform\plugins\pricing.py               14      2    86%   42-43
+acosplatform\plugins\promotions.py            37      2    95%   95-96
+acosplatform\plugins\returns.py               43      8    81%   41-48, 53, 58, 87-89
+acosplatform\replay\__init__.py                0      0   100%
+acosplatform\replay\replay_engine.py          18     10    44%   22-40
+acosplatform\tenancy\__init__.py               0      0   100%
+acosplatform\tenancy\manager.py               13      4    69%   83, 94-95, 100
+acosplatform\workflows\__init__.py             0      0   100%
+acosplatform\workflows\service.py             82     17    79%   40-72, 89-91, 106, 133, 167, 204, 206, 254
+apps\__init__.py                               0      0   100%
+apps\ops_api\__init__.py                       0      0   100%
+apps\ops_api\main.py                         115     23    80%   73-74, 79-82, 96, 108, 136, 160, 170-172, 182-183, 199-200, 219-222, 227, 248
+apps\shopper_api\__init__.py                   0      0   100%
+apps\shopper_api\main.py                      43      7    84%   58-59, 67-70, 95
+------------------------------------------------------------------------
+TOTAL                                       1357    407    70%
+=========================== short test summary info ===========================
+FAILED tests/test_api.py::TestOpsAPI::test_workflows_list - assert 0 >= 1
+FAILED tests/test_api.py::TestOpsAPI::test_workflow_detail - IndexError: list...
+================== 2 failed, 103 passed, 4 warnings in 1.77s ==================

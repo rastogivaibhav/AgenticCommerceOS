@@ -15,15 +15,17 @@
 .page-header h1,
 .hero-panel h2 {
   margin: 0;
-  font-size: 2rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.2rem;
+  letter-spacing: -0.02em;
   color: var(--text-strong);
 }
 
 .eyebrow {
-  font-size: 0.78rem;
-  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-strong);
   font-weight: 700;
   margin-bottom: 8px;
 }
@@ -68,11 +70,11 @@
   text-transform: capitalize;
 }
 
-.tag-discovery { background: #e6f3ff; color: #0b5cad; }
-.tag-purchase { background: #e8f9ef; color: #1a7f4b; }
-.tag-post_purchase { background: #fff5db; color: #9a6500; }
-.tag-service { background: #ffe7e6; color: #b42318; }
-.tag-engagement { background: #f2ebff; color: #6f42c1; }
+.tag-discovery { background: rgba(56, 189, 248, 0.1); color: #7dd3fc; border: 1px solid rgba(56, 189, 248, 0.2); }
+.tag-purchase { background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
+.tag-post_purchase { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
+.tag-service { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+.tag-engagement { background: rgba(168, 85, 247, 0.1); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.2); }
 
 .summary-grid {
   display: grid;
@@ -235,9 +237,13 @@ textarea {
 }
 
 .secondary-button {
-  background: white;
+  background: transparent;
   color: var(--text-strong);
-  border-color: var(--border-strong);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.secondary-button:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .danger-button {
@@ -281,8 +287,8 @@ textarea {
 
 .hero-panel {
   background:
-    radial-gradient(circle at top right, rgba(14, 116, 144, 0.12), transparent 35%),
-    linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%);
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 45%),
+    linear-gradient(180deg, rgba(22, 24, 29, 0.8) 0%, rgba(15, 17, 21, 0.9) 100%);
 }
 
 .hero-meta,

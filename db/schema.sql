@@ -97,3 +97,30 @@ CREATE INDEX IF NOT EXISTS idx_workflows_tenant ON workflows(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_versions_workflow ON workflow_versions(workflow_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_promotions_lookup ON workflow_promotions(workflow_id, target_environment, is_active);
 CREATE INDEX IF NOT EXISTS idx_audit_events_lookup ON audit_events(resource_type, resource_id, created_at);
+
+CREATE TABLE IF NOT EXISTS agents (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    subsystem TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'healthy',
+    calls TEXT NOT NULL DEFAULT '0',
+    uptime TEXT NOT NULL DEFAULT '100%',
+    skills JSONB NOT NULL DEFAULT '[]',
+    grade TEXT NOT NULL DEFAULT 'A+',
+    latency TEXT NOT NULL DEFAULT '0ms',
+    history JSONB NOT NULL DEFAULT '[]',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS skills (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    type TEXT NOT NULL,
+    calls TEXT NOT NULL DEFAULT '0',
+    code TEXT NOT NULL DEFAULT '',
+    "linterWarnings" JSONB NOT NULL DEFAULT '[]',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

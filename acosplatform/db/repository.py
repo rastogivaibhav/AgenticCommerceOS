@@ -11,8 +11,119 @@ _fallback_events = []
 _fallback_experiments = []
 _fallback_workflows = []
 _fallback_workflow_versions = []
+_fallback_workflow_versions = []
 _fallback_workflow_promotions = []
 _fallback_audit_events = []
+_fallback_agents = [
+    {
+        "id": "ag_marketing",
+        "name": "Campaign Manager",
+        "subsystem": "Marketing",
+        "status": "healthy",
+        "calls": "12.4k",
+        "uptime": "99.9%",
+        "skills": ["sk_email_gen", "sk_search_products", "sk_audience_insight"],
+        "grade": "A+",
+        "latency": "110ms",
+        "history": [
+            {"id": "run_12931", "time": "2m ago", "outcome": "Success"},
+            {"id": "run_12929", "time": "1h ago", "outcome": "Degraded"},
+        ],
+    },
+    {
+        "id": "ag_support_l1",
+        "name": "Frontline Support",
+        "subsystem": "Customer Service",
+        "status": "healthy",
+        "calls": "45.1k",
+        "uptime": "99.9%",
+        "skills": ["sk_order_lookup", "sk_process_refund", "sk_check_loyalty"],
+        "grade": "A",
+        "latency": "240ms",
+        "history": [],
+    },
+    {
+        "id": "ag_support_l2",
+        "name": "Escalation Desk",
+        "subsystem": "Customer Service",
+        "status": "degraded",
+        "calls": "2.1k",
+        "uptime": "98.4%",
+        "skills": ["sk_human_handoff", "sk_issue_credit"],
+        "grade": "C-",
+        "latency": "1450ms",
+        "history": [
+            {"id": "run_841", "time": "1m ago", "outcome": "Failed"},
+            {"id": "run_839", "time": "12m ago", "outcome": "Timeout"},
+        ],
+    },
+    {
+        "id": "ag_fulfillment",
+        "name": "Logistics Router",
+        "subsystem": "Fulfillment",
+        "status": "healthy",
+        "calls": "8.3k",
+        "uptime": "100%",
+        "skills": [],
+        "grade": "A+",
+        "latency": "45ms",
+        "history": [],
+    },
+    {
+        "id": "ag_returns",
+        "name": "Returns Processor",
+        "subsystem": "Reverse Logistics",
+        "status": "healthy",
+        "calls": "1.2k",
+        "uptime": "99.8%",
+        "skills": [],
+        "grade": "A",
+        "latency": "310ms",
+        "history": [],
+    },
+]
+
+_fallback_skills = [
+    {
+        "id": "sk_catalog_search",
+        "name": "Catalog Search",
+        "category": "Integration",
+        "type": "read",
+        "calls": "105k",
+        "code": "def search_catalog(query: str, filters: dict = None):\n    \"\"\"Retrieves products matching the query.\"\"\"\n    es_client = get_elastic_client()\n    results = es_client.search(\n        index=\"products\",\n        body={\"query\": {\"match\": {\"name\": query}}}\n    )\n    return results[\"hits\"]\n",
+        "linterWarnings": [],
+    },
+    {
+        "id": "sk_process_refund",
+        "name": "Process Refund",
+        "category": "Finance",
+        "type": "write",
+        "calls": "340",
+        "code": "def process_refund(order_id: str, amount: float):\n    \"\"\"Issues a refund to the customer's payment method.\"\"\"\n    import stripe\n    # WARNING: Stripe version mismatch\n    if amount > 1000:\n         require_ops_approval()\n    \n    charge = get_charge_for_order(order_id)\n    return stripe.Refund.create(charge=charge.id, amount=int(amount*100))\n",
+        "linterWarnings": [
+            "Line 4: \"stripe\" imported but unused at module level",
+            "Line 7: Unhandled exception edge-case for large refunds",
+        ],
+    },
+    {
+        "id": "sk_check_loyalty",
+        "name": "Check Loyalty Tier",
+        "category": "CRM",
+        "type": "read",
+        "calls": "45k",
+        "code": "def loyalty(): pass",
+        "linterWarnings": [],
+    },
+    {
+        "id": "sk_create_label",
+        "name": "Create Return Label",
+        "category": "Logistics",
+        "type": "write",
+        "calls": "1.2k",
+        "code": "def label(): pass",
+        "linterWarnings": [],
+    },
+]
 
 _JSON_KEYS = {
     "input",
@@ -23,8 +134,12 @@ _JSON_KEYS = {
     "input_schema",
     "output_schema",
     "step_definitions",
+    "step_definitions",
     "agent_bindings",
     "policy_bindings",
+    "skills",
+    "history",
+    "linterWarnings",
 }
 
 
@@ -713,3 +828,99 @@ def get_dashboard():
         "runs_by_journey": by_journey,
         "runs_by_tenant": by_tenant,
     }
+
+
+def save_agent(agent_data):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO agents (
+                               id, name, subsystem, status, calls, uptime, skills, grade, latency, history
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET name=EXCLUDED.name,
+                               subsystem=EXCLUDED.subsystem,
+                               status=EXCLUDED.status,
+                               calls=EXCLUDED.calls,
+                               uptime=EXCLUDED.uptime,
+                               skills=EXCLUDED.skills,
+                               grade=EXCLUDED.grade,
+                               latency=EXCLUDED.latency,
+                               history=EXCLUDED.history,
+                               updated_at=NOW()""",
+                        (
+                            agent_data["id"],
+                            agent_data["name"],
+                            agent_data["subsystem"],
+                            agent_data.get("status", "healthy"),
+                            agent_data.get("calls", "0"),
+                            agent_data.get("uptime", "100%"),
+                            json.dumps(agent_data.get("skills", [])),
+                            agent_data.get("grade", "A+"),
+                            agent_data.get("latency", "0ms"),
+                            json.dumps(agent_data.get("history", [])),
+                        ),
+                    )
+            return agent_data
+        except Exception as e:
+            logger.warning(f"save_agent DB error: {e}")
+    return _append_or_replace(_fallback_agents, agent_data, "id")
+
+
+def get_agents():
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM agents ORDER BY name")
+                    return [_serialize_record(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"get_agents DB error: {e}")
+    return sorted(list(_fallback_agents), key=lambda x: x.get("name", ""))
+
+
+def save_skill(skill_data):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO skills (
+                               id, name, category, type, calls, code, "linterWarnings"
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET name=EXCLUDED.name,
+                               category=EXCLUDED.category,
+                               type=EXCLUDED.type,
+                               calls=EXCLUDED.calls,
+                               code=EXCLUDED.code,
+                               "linterWarnings"=EXCLUDED."linterWarnings",
+                               updated_at=NOW()""",
+                        (
+                            skill_data["id"],
+                            skill_data["name"],
+                            skill_data["category"],
+                            skill_data.get("type", "read"),
+                            skill_data.get("calls", "0"),
+                            skill_data.get("code", ""),
+                            json.dumps(skill_data.get("linterWarnings", [])),
+                        ),
+                    )
+            return skill_data
+        except Exception as e:
+            logger.warning(f"save_skill DB error: {e}")
+    return _append_or_replace(_fallback_skills, skill_data, "id")
+
+
+def get_skills():
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM skills ORDER BY name")
+                    return [_serialize_record(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"get_skills DB error: {e}")
+    return sorted(list(_fallback_skills), key=lambda x: x.get("name", ""))

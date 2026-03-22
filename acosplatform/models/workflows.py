@@ -20,6 +20,9 @@ class WorkflowCreateRequest(BaseModel):
 class WorkflowVersionCreateRequest(BaseModel):
     change_summary: str = Field(..., min_length=3, max_length=240)
     validation_status: Literal["draft", "validated", "approved"] = "draft"
+    agent_bindings: list[str] = Field(default_factory=list)
+    step_definitions: list[dict] = Field(default_factory=list)
+    input_schema: dict = Field(default_factory=dict)
 
 
 class WorkflowPromotionRequest(BaseModel):
