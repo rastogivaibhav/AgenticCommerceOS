@@ -35,7 +35,9 @@
       "Bash(head -500 \"C:\\\\Users\\\\vrast\\\\Downloads\\\\Buying a Mattress _ Mattress Types & Sizes _ John Lewis & Partners.html\")",
       "Bash(python3:*)",
       "Skill(commit-commands:commit)",
-      "Skill(commit-commands:commit:*)"
+      "Skill(commit-commands:commit:*)",
+      "Bash(psql --version)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }
