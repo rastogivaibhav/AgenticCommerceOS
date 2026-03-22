@@ -1,17 +1,27 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { colors } from './colors';
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) return saved;
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved) return saved;
+    } catch {
+      console.warn('localStorage access denied, using system preference');
+    }
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {
-    localStorage.setItem('theme', theme);
+    try {
+      localStorage.setItem('theme', theme);
+    } catch (err) {
+      console.warn('Could not save theme preference:', err.message);
+    }
+
     document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.style.colorScheme = theme;
 
@@ -22,7 +32,9 @@ export const ThemeProvider = ({ children }) => {
     });
   }, [theme]);
 
-  const toggleTheme = () => setTheme(t => t === 'light' ? 'dark' : 'light');
+  const toggleTheme = useCallback(() => {
+    setTheme(t => t === 'light' ? 'dark' : 'light');
+  }, []);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, colors: colors[theme] }}>
