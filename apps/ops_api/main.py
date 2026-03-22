@@ -287,6 +287,48 @@ def workflow_version_promote(
         return JSONResponse(status_code=409, content={"error": str(exc)})
 
 
+@app.get("/analytics/export")
+def export_analytics(
+    format: str = "csv",
+    _token: dict = Depends(require_ops_token),
+):
+    """Export analytics data in CSV or JSON format."""
+    import csv
+    import io
+    from datetime import datetime
+
+    if format not in ["csv", "json"]:
+        return JSONResponse(status_code=400, content={"error": "Invalid format. Use 'csv' or 'json'"})
+
+    runs = get_runs(limit=10000)
+
+    if format == "csv":
+        output = io.StringIO()
+        if runs:
+            writer = csv.DictWriter(
+                output,
+                fieldnames=['id', 'journey', 'score', 'cost', 'created_at']
+            )
+            writer.writeheader()
+            for run in runs:
+                writer.writerow({
+                    'id': run.get('id', ''),
+                    'journey': run.get('journey', ''),
+                    'score': run.get('score', 0),
+                    'cost': run.get('cost', 0),
+                    'created_at': run.get('created_at', ''),
+                })
+        return {
+            "content": output.getvalue(),
+            "filename": f"analytics-{datetime.now().strftime('%Y-%m-%d')}.csv"
+        }
+
+    return {
+        "content": runs,
+        "filename": f"analytics-{datetime.now().strftime('%Y-%m-%d')}.json"
+    }
+
+
 @app.get("/metrics")
 def ops_metrics():
     return metrics_endpoint()

@@ -1,36 +1,25 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAnalyticsStore } from '../store/analyticsStore';
 import MetricsCard from '../components/MetricsCard';
 import ChartPanel from '../components/ChartPanel';
 import Button from '../components/Button';
+import ExportDialog from '../components/ExportDialog';
 import { Download } from 'lucide-react';
 
 export default function Analytics() {
   const { metrics, timeSeries, workflowMetrics, isLoading, fetchAnalytics } =
     useAnalyticsStore();
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
   }, []);
 
-  const handleExport = async () => {
-    try {
-      const blob = await fetch('http://localhost:8000/analytics/export?format=csv').then(r => r.blob());
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-    } catch (error) {
-      console.error('Export failed:', error);
-    }
-  };
-
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold dark:text-white">Analytics Dashboard</h1>
-        <Button variant="outline" onClick={handleExport}>
+        <Button variant="outline" onClick={() => setExportOpen(true)}>
           <Download size={16} /> Export Data
         </Button>
       </div>
@@ -90,6 +79,12 @@ export default function Analytics() {
               </tbody>
             </table>
           </div>
+
+          <ExportDialog
+            data={workflowMetrics}
+            isOpen={exportOpen}
+            onClose={() => setExportOpen(false)}
+          />
         </>
       )}
     </div>
