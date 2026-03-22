@@ -19,9 +19,9 @@ import NodeConfigPanel from './NodeConfigPanel';
 
 // --- CUSTOM NODE COMPONENTS ---
 const TriggerNode = ({ data }) => (
-  <div style={{ background: '#1e1e24', border: '1px solid #8b5cf6', borderRadius: '8px', padding: '12px', minWidth: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+  <div style={{ background: '#1e1e24', border: '1px solid #8b5cf6', borderRadius: '8px', padding: '12px', minWidth: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', transition: 'all 0.2s ease' }} className="hover:shadow-lg">
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div style={{ background: '#8b5cf6', padding: '4px', borderRadius: '4px' }}>
+      <div style={{ background: '#8b5cf6', padding: '4px', borderRadius: '4px', transition: 'all 0.2s ease' }}>
         {data.type === 'cron' ? <Clock size={14} color="#fff" /> : <Zap size={14} color="#fff" />}
       </div>
       <strong style={{ color: '#fff', fontSize: '13px' }}>{data.label || 'Trigger'}</strong>
@@ -31,10 +31,10 @@ const TriggerNode = ({ data }) => (
 );
 
 const AgentNode = ({ data }) => (
-  <div style={{ background: '#1e1e24', border: '1px solid #3b82f6', borderRadius: '8px', padding: '12px', minWidth: '180px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+  <div style={{ background: '#1e1e24', border: '1px solid #3b82f6', borderRadius: '8px', padding: '12px', minWidth: '180px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', transition: 'all 0.2s ease' }} className="hover:shadow-lg">
     <Handle type="target" position={Position.Top} />
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div style={{ background: '#3b82f6', padding: '4px', borderRadius: '4px' }}>
+      <div style={{ background: '#3b82f6', padding: '4px', borderRadius: '4px', transition: 'all 0.2s ease' }}>
         <Settings size={14} color="#fff" />
       </div>
       <div>
@@ -47,10 +47,10 @@ const AgentNode = ({ data }) => (
 );
 
 const IntegrationNode = ({ data }) => (
-  <div style={{ background: '#1e1e24', border: '1px solid #10b981', borderRadius: '8px', padding: '12px', minWidth: '180px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+  <div style={{ background: '#1e1e24', border: '1px solid #10b981', borderRadius: '8px', padding: '12px', minWidth: '180px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', transition: 'all 0.2s ease' }} className="hover:shadow-lg">
     <Handle type="target" position={Position.Top} />
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div style={{ background: '#10b981', padding: '4px', borderRadius: '4px' }}>
+      <div style={{ background: '#10b981', padding: '4px', borderRadius: '4px', transition: 'all 0.2s ease' }}>
         <Link2 size={14} color="#fff" />
       </div>
       <div>
@@ -63,10 +63,10 @@ const IntegrationNode = ({ data }) => (
 );
 
 const LogicNode = ({ data }) => (
-  <div style={{ background: '#1e1e24', border: '1px solid #f59e0b', borderRadius: '8px', padding: '12px', minWidth: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+  <div style={{ background: '#1e1e24', border: '1px solid #f59e0b', borderRadius: '8px', padding: '12px', minWidth: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', transition: 'all 0.2s ease' }} className="hover:shadow-lg">
     <Handle type="target" position={Position.Top} />
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div style={{ background: '#f59e0b', padding: '4px', borderRadius: '4px' }}>
+      <div style={{ background: '#f59e0b', padding: '4px', borderRadius: '4px', transition: 'all 0.2s ease' }}>
         {data.logicType === 'code' ? <Terminal size={14} color="#fff" /> : <GitBranch size={14} color="#fff" />}
       </div>
       <strong style={{ color: '#fff', fontSize: '13px' }}>{data.label || 'Condition'}</strong>
@@ -158,8 +158,10 @@ const FlowEngine = () => {
   }, [toObject]);
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', overflow: 'hidden' }}>
-      <NodeSidebar />
+    <div className="animate-fadeInUp" style={{ width: '100%', height: '100%', display: 'flex', overflow: 'hidden' }}>
+      <div className="hidden lg:block">
+        <NodeSidebar />
+      </div>
 
       <div style={{ flexGrow: 1, position: 'relative' }} ref={reactFlowWrapper}>
         <ReactFlow

@@ -182,3 +182,62 @@
   background: rgba(0, 0, 0, 0.5) !important;
   color: #a1a1aa !important;
 }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .flow-container {
+    border-radius: 8px;
+    margin-top: 12px;
+  }
+
+  .react-flow__node {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  .toolbox {
+    width: 160px;
+    top: 8px;
+    left: 8px;
+  }
+
+  .live-overlay-banner {
+    top: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .toggle-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .react-flow__node {
+    padding: 6px 12px;
+    font-size: 11px;
+    min-width: 80px;
+  }
+
+  .toolbox {
+    width: 140px;
+    font-size: 12px;
+  }
+
+  .draggable-agent {
+    padding: 6px 8px;
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .live-overlay-banner {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .toggle-btn {
+    padding: 4px 8px;
+  }
+}

@@ -338,3 +338,85 @@
   border-color: rgba(16, 185, 129, 0.4) !important;
 }
 .enable-btn:hover { background: rgba(16, 185, 129, 0.2) !important; }
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sticky-header {
+    margin: -16px -16px 16px -16px;
+    padding: 16px;
+  }
+
+  .search-input {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .glass-card {
+    padding: 16px;
+  }
+
+  .card-title-group h3 {
+    font-size: 16px;
+  }
+
+  .card-header {
+    margin-bottom: 16px;
+  }
+
+  .card-body {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .modal-card {
+    padding: 20px;
+    max-width: calc(100% - 32px);
+  }
+}
+
+@media (max-width: 480px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .glass-card {
+    padding: 12px;
+  }
+
+  .card-title-group h3 {
+    font-size: 14px;
+  }
+
+  .stat-row {
+    padding-bottom: 8px;
+  }
+
+  .card-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card-footer .secondary-button {
+    width: 100%;
+  }
+
+  .modal-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sticky-header {
+    margin: -12px -12px 12px -12px;
+    padding: 12px;
+  }
+}
