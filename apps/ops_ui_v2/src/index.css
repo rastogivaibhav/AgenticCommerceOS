@@ -12,6 +12,7 @@
   --md-on-primary-container:   #21005D;
   --md-secondary:              #625B71;
   --md-secondary-container:    #E8DEF8;
+  --md-on-secondary:           #FFFFFF;
   --md-on-secondary-container: #1D192B;
   --md-tertiary:               #7E5260;
   --md-tertiary-container:     #FFD8E4;
@@ -42,6 +43,7 @@
   --md-on-primary-container:   #EADDFF;
   --md-secondary:              #CCC2DC;
   --md-secondary-container:    #4A4458;
+  --md-on-secondary:           #332D41;
   --md-on-secondary-container: #E8DEF8;
   --md-tertiary:               #EFB8C8;
   --md-tertiary-container:     #633B48;
