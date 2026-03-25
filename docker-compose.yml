@@ -8,6 +8,7 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      - DB_POOL_MAX=${DB_POOL_MAX:-10}
       - SHOPPER_API_KEYS=${SHOPPER_API_KEYS}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
@@ -24,7 +25,8 @@ services:
       db:
         condition: service_healthy
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://acos:${DB_PASSWORD}@db:5432/acos
+      - DB_POOL_MAX=${DB_POOL_MAX:-10}
       - OPS_JWT_SECRET=${OPS_JWT_SECRET}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - PYTHONPATH=/app
