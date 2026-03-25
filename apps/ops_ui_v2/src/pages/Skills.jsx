@@ -3,6 +3,11 @@ import { Database, Zap, Lock, Globe, ChevronRight, Play, AlertOctagon } from 'lu
 import Editor from '@monaco-editor/react';
 import './Lists.css';
 
+const TYPE_CLASSES = {
+  read:  'bg-secondary-container text-on-secondary-container',
+  write: 'bg-error-container text-on-error-container',
+};
+
 export default function Skills() {
   const [skills, setSkills] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,13 +23,14 @@ export default function Skills() {
     deploymentCycle: 'Immediate'
   });
   const [isDeploying, setIsDeploying] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   const fetchSkills = () => {
     setIsLoading(true);
-    fetch('http://localhost:8000/api/v1/skills')
+    fetch('http://localhost:8081/api/v1/skills')
       .then(res => res.json())
-      .then(data => setSkills(data.skills || []))
-      .catch(err => console.error('Failed to load skills:', err))
+      .then(data => { setSkills(data.skills || []); setApiError(null); })
+      .catch(err => { console.error('Failed to load skills:', err); setApiError(err.message); })
       .finally(() => setIsLoading(false));
   };
 
@@ -48,7 +54,7 @@ export default function Skills() {
       linterWarnings: []
     };
     try {
-      await fetch('http://localhost:8000/api/v1/skills', {
+      await fetch('http://localhost:8081/api/v1/skills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSkill)
@@ -148,7 +154,7 @@ export default function Skills() {
               )}
 
               <div className="lifecycle-options" style={{ marginTop: 24 }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#fff' }}>Deployment Lifecycle Timing</h4>
+                <h4 style={{ margin: '0 0 12px 0' }} className="text-on-surface">Deployment Lifecycle Timing</h4>
                 <div style={{ display: 'flex', gap: 24 }}>
                   <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                     <input type="radio" value="Immediate" checked={form.deploymentCycle === 'Immediate'} onChange={e => setForm({...form, deploymentCycle: e.target.value})} />
@@ -211,7 +217,7 @@ export default function Skills() {
                       </tr>
                     ))
                   ) : filtered.length === 0 ? (
-                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">No skills found.</td></tr>
+                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">{apiError ? <span className="text-on-error-container">API unavailable — check that the Ops API is running on port 8081</span> : 'No skills found.'}</td></tr>
                   ) : filtered.map(skill => (
                     <tr 
                       key={skill.id} 
@@ -229,7 +235,9 @@ export default function Skills() {
                       </td>
                       <td><span className="tag-category">{skill.category}</span></td>
                       <td>
-                        <span className={`tag-type ${skill.type}`}>{skill.type.toUpperCase()}</span>
+                        <span className={`${TYPE_CLASSES[skill.type?.toLowerCase()] ?? 'bg-surface-variant text-on-surface-variant'} text-xs px-2 py-0.5 rounded font-medium`}>
+                          {skill.type}
+                        </span>
                       </td>
                       <td className="metric-cell">{skill.calls}</td>
                       <td><ChevronRight size={16} className="text-muted" /></td>
@@ -248,8 +256,10 @@ export default function Skills() {
                 <div>
                   <div className="eyebrow">Skill Editor</div>
                   <div className="skill-title-group">
-                    <h2 style={{color: '#fff', margin: 0}}>{selectedSkill.name}</h2>
-                    <span className={`tag-type ${selectedSkill.type}`}>{selectedSkill.type.toUpperCase()}</span>
+                    <h2 style={{margin: 0}} className="text-on-surface">{selectedSkill.name}</h2>
+                    <span className={`${TYPE_CLASSES[selectedSkill.type?.toLowerCase()] ?? 'bg-surface-variant text-on-surface-variant'} text-xs px-2 py-0.5 rounded font-medium`}>
+                      {selectedSkill.type}
+                    </span>
                   </div>
                 </div>
                 <button className="close-btn" onClick={() => setSelectedSkillId(null)}>×</button>
