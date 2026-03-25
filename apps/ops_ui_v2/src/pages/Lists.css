@@ -9,17 +9,16 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(18, 18, 20, 0.85);
-  backdrop-filter: blur(12px);
+  background: var(--md-surface-container-high);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   margin: -32px -32px 32px -32px;
   padding: 32px;
 }
 
 .search-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--md-surface-variant);
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface);
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 14px;
@@ -29,9 +28,9 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #6366f1;
-  background: rgba(0, 0, 0, 0.2);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: var(--md-primary);
+  background: var(--md-surface-variant);
+  box-shadow: none;
 }
 
 .transparent-panel {
@@ -52,20 +51,19 @@
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--md-surface-container);
+  border: 1px solid transparent;
   border-radius: 16px;
   padding: 24px;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  backdrop-filter: blur(16px);
   display: flex;
   flex-direction: column;
 }
 
 .glass-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: var(--md-outline-variant);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
 
 .card-title-group {
@@ -78,7 +76,7 @@
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #f4f4f5;
+  color: var(--md-on-surface);
 }
 
 .status-dot {
@@ -87,13 +85,13 @@
   border-radius: 50%;
 }
 .status-dot.healthy {
-  background-color: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  background: var(--md-on-success-container);
+  box-shadow: none;
   animation: pulse-healthy 2s infinite;
 }
 .status-dot.degraded {
-  background-color: #f59e0b;
-  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  background: var(--md-on-warning-container);
+  box-shadow: none;
   animation: pulse-degraded 2s infinite;
 }
 
@@ -121,14 +119,14 @@
   letter-spacing: 0.5px;
 }
 .status-badge.healthy {
-  background: rgba(16, 185, 129, 0.1);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: var(--md-success-container);
+  color: var(--md-on-success-container);
+  border: 1px solid var(--md-on-success-container);
 }
 .status-badge.degraded {
-  background: rgba(245, 158, 11, 0.1);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: var(--md-warning-container);
+  color: var(--md-on-warning-container);
+  border: 1px solid var(--md-on-warning-container);
 }
 
 .card-header {
@@ -151,7 +149,7 @@
   justify-content: space-between;
   align-items: center;
   padding-bottom: 12px;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--md-outline-variant);
 }
 .stat-row:last-child {
   border-bottom: none;
@@ -159,17 +157,19 @@
 }
 
 .stat-label {
-  color: #a1a1aa;
+  color: var(--md-on-surface-variant);
   font-size: 13px;
+  font-weight: 500;
 }
 
 .stat-val {
   font-weight: 500;
-  color: #e4e4e7;
+  color: var(--md-on-surface);
 }
 
 .tag-subsystem {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface-variant);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 12px;
@@ -188,11 +188,10 @@
 
 /* Table layout for Skills */
 .glass-table-wrap {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--md-surface-container);
   border-radius: 16px;
+  border: none;
   overflow: hidden;
-  backdrop-filter: blur(10px);
 }
 
 .interactive-row {
@@ -201,7 +200,7 @@
 }
 
 .interactive-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--md-surface);
 }
 
 .skill-name-cell {
@@ -214,17 +213,17 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(99, 102, 241, 0.1);
-  color: #818cf8;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid var(--md-outline-variant);
 }
 
 .tag-category {
-  background: rgba(255, 255, 255, 0.08);
-  color: #d4d4d8;
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface-variant);
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 12px;
@@ -239,15 +238,15 @@
 }
 
 .tag-type.read {
-  background: rgba(56, 189, 248, 0.1);
-  color: #7dd3fc;
-  border: 1px solid rgba(56, 189, 248, 0.2);
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  border: none;
 }
 
 .tag-type.write {
-  background: rgba(244, 63, 94, 0.1);
-  color: #fda4af;
-  border: 1px solid rgba(244, 63, 94, 0.2);
+  background: var(--md-error-container);
+  color: var(--md-on-error-container);
+  border: none;
 }
 
 .mono {
@@ -268,7 +267,7 @@
 }
 
 .secondary-cell {
-  color: #a1a1aa !important;
+  color: var(--md-on-surface-variant) !important;
 }
 
 /* Modal Styles */
@@ -276,7 +275,6 @@
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -284,11 +282,10 @@
 }
 
 .modal-card {
-  background: rgba(20, 20, 25, 0.7);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 16px;
   padding: 32px;
-  border-radius: 20px;
   width: 100%;
   max-width: 440px;
   box-shadow: 0 32px 80px rgba(0,0,0,0.8);
@@ -306,7 +303,7 @@
 .modal-form label {
   font-size: 14px;
   font-weight: 600;
-  color: #d4d4d8;
+  color: var(--md-on-surface-variant);
   display: flex;
   flex-direction: column;
   gap: 8px;
