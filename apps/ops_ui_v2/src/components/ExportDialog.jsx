@@ -33,12 +33,12 @@ export default function ExportDialog({ data, isOpen, onClose }) {
 
       {/* Dialog */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-sm w-full">
-          <div className="flex items-center justify-between p-6 border-b dark:border-gray-800">
+        <div className="bg-surface-container rounded-lg shadow-lg max-w-sm w-full">
+          <div className="flex items-center justify-between p-6 border-b border-outline-variant">
             <h2 className="text-lg font-semibold dark:text-white">Export Analytics</h2>
             <button
               onClick={onClose}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
+              className="p-1 hover:bg-surface-container-high rounded"
             >
               <X size={20} />
             </button>
@@ -46,13 +46,13 @@ export default function ExportDialog({ data, isOpen, onClose }) {
 
           <div className="p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-on-surface-variant mb-2">
                 Format
               </label>
               <select
                 value={format}
                 onChange={(e) => setFormat(e.target.value)}
-                className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                className="w-full px-3 py-2 border rounded bg-surface-variant text-on-surface border-outline-variant"
               >
                 <option value="csv">CSV (.csv)</option>
                 <option value="json">JSON (.json)</option>
@@ -64,7 +64,7 @@ export default function ExportDialog({ data, isOpen, onClose }) {
             </div>
           </div>
 
-          <div className="p-6 border-t dark:border-gray-800 flex gap-2 justify-end">
+          <div className="p-6 border-t border-outline-variant flex gap-2 justify-end">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>

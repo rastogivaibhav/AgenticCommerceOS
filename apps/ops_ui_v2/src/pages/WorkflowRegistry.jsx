@@ -228,7 +228,7 @@ export default function WorkflowRegistry() {
                       </tr>
                     ))
                   ) : filtered.length === 0 ? (
-                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">{apiError ? <span style={{color: '#ef4444'}}>API unavailable — check the Ops API</span> : 'No workflows deployed.'}</td></tr>
+                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">{apiError ? <span className="text-on-error-container">API unavailable — check the Ops API</span> : 'No workflows deployed.'}</td></tr>
                   ) : (
                     filtered.map(workflow => (
                       <tr
@@ -266,7 +266,7 @@ export default function WorkflowRegistry() {
               <div className="widget-header" style={{ flexShrink: 0 }}>
                 <div>
                   <div className="eyebrow">Visual Orchestrator</div>
-                  <h2 style={{color: '#fff', display: 'flex', alignItems: 'center', gap: 8}}>
+                  <h2 style={{display: 'flex', alignItems: 'center', gap: 8}} className="text-on-surface">
                     <GitBranch size={20} className="text-accent" />
                     {selectedWorkflow.name}
                   </h2>
@@ -278,11 +278,11 @@ export default function WorkflowRegistry() {
                 <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 16, background: 'rgba(0,0,0,0.2)' }}>
                    <div style={{ flex: 1 }}>
                      <span className="text-muted text-sm" style={{ display: 'block' }}>Active Version</span>
-                     <span className="mono" style={{ color: '#fff' }}>{selectedWorkflow.active_version || 'v1 (Draft)'}</span>
+                     <span className="mono text-on-surface">{selectedWorkflow.active_version || 'v1 (Draft)'}</span>
                    </div>
                    <div style={{ flex: 1 }}>
                      <span className="text-muted text-sm" style={{ display: 'block' }}>Environment</span>
-                     <span style={{ color: '#10b981' }}>Production (Active)</span>
+                     <span className="text-on-success-container">Production (Active)</span>
                    </div>
                    <div>
                      <button className="secondary-button compact"><Settings size={14} style={{ marginRight: 4 }} /> Settings</button>

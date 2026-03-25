@@ -18,7 +18,7 @@ export default function ChartPanel({ title, data, type = 'line', xKey, yKeys = [
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 p-6">
+    <div className="bg-surface-container rounded-2xl p-6">
       <h3 className="text-lg font-semibold dark:text-white mb-4">{title}</h3>
       <ResponsiveContainer width="100%" height={300}>
         {type === 'line' ? (

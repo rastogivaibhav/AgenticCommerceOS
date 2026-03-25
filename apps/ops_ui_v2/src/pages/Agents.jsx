@@ -167,7 +167,7 @@ export default function Agents() {
               )}
 
               <div className="lifecycle-options" style={{ marginTop: 24 }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#fff' }}>Deployment Lifecycle Timing</h4>
+                <h4 style={{ margin: '0 0 12px 0' }} className="text-on-surface">Deployment Lifecycle Timing</h4>
                 <div style={{ display: 'flex', gap: 24 }}>
                   <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                     <input type="radio" value="Immediate" checked={form.deploymentCycle === 'Immediate'} onChange={e => setForm({...form, deploymentCycle: e.target.value})} />
@@ -230,7 +230,7 @@ export default function Agents() {
                       </tr>
                     ))
                   ) : filtered.length === 0 ? (
-                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">{apiError ? <span style={{color: '#ef4444'}}>API unavailable — check that the Ops API is running on port 8081</span> : 'No agents found.'}</td></tr>
+                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">{apiError ? <span className="text-on-error-container">API unavailable — check that the Ops API is running on port 8081</span> : 'No agents found.'}</td></tr>
                   ) : (
                     filtered.map(agent => (
                       <tr 
@@ -265,7 +265,7 @@ export default function Agents() {
               <div className="widget-header">
                 <div>
                   <div className="eyebrow">Agent Editor</div>
-                  <h2 style={{color: '#fff'}}>{selectedAgent.name}</h2>
+                  <h2 className="text-on-surface">{selectedAgent.name}</h2>
                 </div>
                 <button className="close-btn" onClick={() => setSelectedAgentId(null)}>×</button>
               </div>
@@ -287,7 +287,7 @@ export default function Agents() {
                 </div>
 
                 <div className="widget-section">
-                  <h3 style={{color: '#fff'}}><Wrench size={16}/> Associated Skills</h3>
+                  <h3 className="text-on-surface"><Wrench size={16}/> Associated Skills</h3>
                   <div className="tag-cloud">
                     {selectedAgent.skills?.length > 0 ? selectedAgent.skills.map(skill => (
                       <span key={skill} className="skill-tag">{skill}</span>
@@ -297,7 +297,7 @@ export default function Agents() {
                 </div>
 
                 <div className="widget-section" style={{ flexGrow: 1 }}>
-                  <h3 style={{color: '#fff'}}><Clock size={16}/> Recent History</h3>
+                  <h3 className="text-on-surface"><Clock size={16}/> Recent History</h3>
                   <div className="history-list">
                     {selectedAgent.history?.length > 0 ? selectedAgent.history.map(run => (
                       <div key={run.id} className="history-item">
