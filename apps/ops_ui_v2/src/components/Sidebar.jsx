@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Activity, Users, Wrench, GitMerge, Zap, BarChart2, X } from 'lucide-react';
 
@@ -12,7 +13,7 @@ const navItems = [
 
 function RailLinks({ onClose }) {
   return (
-    <nav className="flex flex-col items-center gap-1 py-2 w-full">
+    <nav aria-label="Main navigation" className="flex flex-col items-center gap-1 py-2 w-full">
       {navItems.map(({ path, label, icon: Icon }) => (
         <NavLink
           key={path}
@@ -37,6 +38,15 @@ function RailLinks({ onClose }) {
 }
 
 export default function Sidebar({ isOpen, onClose }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <>
       {/* Desktop Navigation Rail */}
@@ -53,12 +63,13 @@ export default function Sidebar({ isOpen, onClose }) {
               <h2 className="font-medium text-on-surface">Menu</h2>
               <button
                 onClick={onClose}
+                aria-label="Close menu"
                 className="p-2 hover:bg-surface-variant rounded-full transition-colors text-on-surface"
               >
                 <X size={20} />
               </button>
             </div>
-            <nav className="p-2 flex flex-col gap-1">
+            <nav aria-label="Main navigation" className="p-2 flex flex-col gap-1">
               {navItems.map(({ path, label, icon: Icon }) => (
                 <NavLink
                   key={path}
