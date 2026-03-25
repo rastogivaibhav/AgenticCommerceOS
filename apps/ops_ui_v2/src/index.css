@@ -1,8 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@source "./**/*.{js,ts,jsx,tsx}";
+
+/* ── Tailwind v4: map M3 tokens to utility classes ── */
+@theme inline {
+  --color-primary:                var(--md-primary);
+  --color-on-primary:             var(--md-on-primary);
+  --color-primary-container:      var(--md-primary-container);
+  --color-on-primary-container:   var(--md-on-primary-container);
+  --color-secondary:              var(--md-secondary);
+  --color-on-secondary:           var(--md-on-secondary);
+  --color-secondary-container:    var(--md-secondary-container);
+  --color-on-secondary-container: var(--md-on-secondary-container);
+  --color-tertiary:               var(--md-tertiary);
+  --color-tertiary-container:     var(--md-tertiary-container);
+  --color-on-tertiary-container:  var(--md-on-tertiary-container);
+  --color-surface:                var(--md-surface);
+  --color-surface-variant:        var(--md-surface-variant);
+  --color-surface-container:      var(--md-surface-container);
+  --color-surface-container-high: var(--md-surface-container-high);
+  --color-on-surface:             var(--md-on-surface);
+  --color-on-surface-variant:     var(--md-on-surface-variant);
+  --color-outline:                var(--md-outline);
+  --color-outline-variant:        var(--md-outline-variant);
+  --color-error:                  var(--md-error);
+  --color-on-error:               var(--md-on-error);
+  --color-error-container:        var(--md-error-container);
+  --color-on-error-container:     var(--md-on-error-container);
+  --color-warning-container:      var(--md-warning-container);
+  --color-on-warning-container:   var(--md-on-warning-container);
+  --color-success-container:      var(--md-success-container);
+  --color-on-success-container:   var(--md-on-success-container);
+}
 
 /* ── M3 Purple Light ── */
 :root {
