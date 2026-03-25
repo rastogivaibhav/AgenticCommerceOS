@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { Activity, ShieldCheck, AlertTriangle, ChevronRight, Hash, Clock, Wrench } from 'lucide-react';
 import './Lists.css';
 
+const STATUS_CLASSES = {
+  healthy:  'bg-success-container text-on-success-container',
+  degraded: 'bg-warning-container text-on-warning-container',
+  disabled: 'bg-warning-container text-on-warning-container',
+  error:    'bg-error-container text-on-error-container',
+};
+
 export default function Agents() {
   const [agents, setAgents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,13 +25,14 @@ export default function Agents() {
     deploymentCycle: 'Immediate'
   });
   const [isDeploying, setIsDeploying] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   const fetchAgents = () => {
     setIsLoading(true);
-    fetch('http://localhost:8000/api/v1/agents')
+    fetch('http://localhost:8081/api/v1/agents')
       .then(res => res.json())
-      .then(data => setAgents(data.agents || []))
-      .catch(err => console.error('Failed to load agents:', err))
+      .then(data => { setAgents(data.agents || []); setApiError(null); })
+      .catch(err => { console.error('Failed to load agents:', err); setApiError(err.message); })
       .finally(() => setIsLoading(false));
   };
 
@@ -51,7 +59,7 @@ export default function Agents() {
       history: []
     };
     try {
-      await fetch('http://localhost:8000/api/v1/agents', {
+      await fetch('http://localhost:8081/api/v1/agents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAgent)
@@ -71,7 +79,7 @@ export default function Agents() {
     if (!selectedAgent) return;
     const newStatus = selectedAgent.status === 'degraded' ? 'healthy' : 'degraded';
     try {
-      await fetch(`http://localhost:8000/api/v1/agents/${selectedAgent.id}`, {
+      await fetch(`http://localhost:8081/api/v1/agents/${selectedAgent.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -222,7 +230,7 @@ export default function Agents() {
                       </tr>
                     ))
                   ) : filtered.length === 0 ? (
-                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">No agents found.</td></tr>
+                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">{apiError ? <span style={{color: '#ef4444'}}>API unavailable — check that the Ops API is running on port 8081</span> : 'No agents found.'}</td></tr>
                   ) : (
                     filtered.map(agent => (
                       <tr 
@@ -236,12 +244,9 @@ export default function Agents() {
                         </td>
                         <td><span className="tag-subsystem">{agent.subsystem}</span></td>
                         <td>
-                          <div className="status-cell">
-                            <div className={`status-dot ${agent.status}`}></div>
-                            <span style={{textTransform: 'capitalize'}}>
-                              {agent.status === 'degraded' ? 'Disabled' : agent.status === 'staged' ? 'Staged (Pending)' : 'Healthy'}
-                            </span>
-                          </div>
+                          <span className={`${STATUS_CLASSES[agent.status?.toLowerCase()] ?? 'bg-surface-variant text-on-surface-variant'} text-xs px-3 py-1 rounded-full font-medium`}>
+                            {agent.status}
+                          </span>
                         </td>
                         <td className="metric-cell">{agent.calls}</td>
                         <td><ChevronRight size={16} className="text-muted" /></td>
