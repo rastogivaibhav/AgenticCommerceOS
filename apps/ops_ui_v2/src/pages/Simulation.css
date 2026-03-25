@@ -62,10 +62,11 @@
 /* Mode Toggle */
 .mode-toggle {
   display: flex;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--md-surface-container-high);
   border-radius: 8px;
   padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface);
 }
 
 .toggle-btn {
@@ -105,8 +106,8 @@
   left: 16px;
   z-index: 5;
   width: 200px;
-  background: rgba(18, 18, 20, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
 }
 
 .toolbox h3 {
@@ -134,8 +135,8 @@
 }
 
 .draggable-agent:hover {
-  background: rgba(99, 102, 241, 0.15);
-  border-color: #6366f1;
+  background: var(--md-primary-container);
+  border-color: var(--md-primary);
 }
 
 .draggable-agent:active {
@@ -149,9 +150,9 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 5;
-  background: rgba(16, 185, 129, 0.2);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  color: #34d399;
+  background: var(--md-success-container);
+  border: 1px solid var(--md-on-success-container);
+  color: var(--md-on-success-container);
   padding: 8px 16px;
   border-radius: 20px;
   font-size: 13px;
@@ -165,7 +166,7 @@
 .live-dot {
   width: 8px;
   height: 8px;
-  background-color: #10b981;
+  background: var(--md-on-success-container);
   border-radius: 50%;
   box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
   animation: pulse 1.5s infinite;

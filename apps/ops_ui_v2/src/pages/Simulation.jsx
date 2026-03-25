@@ -71,14 +71,15 @@ export default function Simulation() {
         >
           <Background color="#555" gap={16} />
           <Controls />
-          <MiniMap 
+          <MiniMap
             nodeColor={(n) => {
               if (n.className === 'node-marketing') return '#ec4899';
               if (n.className === 'node-payment') return '#f59e0b';
               if (n.className === 'node-support') return '#6366f1';
               return '#10b981';
-            }} 
-            maskColor="rgba(0,0,0,0.6)" 
+            }}
+            maskColor="rgba(0,0,0,0.6)"
+            position="top-right"
           />
         </ReactFlow>
       </div>
