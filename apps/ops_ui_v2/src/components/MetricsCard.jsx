@@ -1,18 +1,26 @@
-export default function MetricsCard({ title, value, unit = '', trend = null, delay = 0 }) {
+const CARD_TOKENS = [
+  { bg: 'bg-primary-container',      text: 'text-on-primary-container' },
+  { bg: 'bg-secondary-container',    text: 'text-on-secondary-container' },
+  { bg: 'bg-warning-container',      text: 'text-on-warning-container' },
+  { bg: 'bg-surface-container-high', text: 'text-on-surface' },
+];
+
+export default function MetricsCard({ title, value, unit = '', trend = null, delay = 0, index = 0 }) {
+  const { bg, text } = CARD_TOKENS[index % 4];
   return (
     <div
-      className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 p-4 animate-fadeInUp transition-theme hover:shadow-lg dark:hover:shadow-lg dark:hover:shadow-gray-900"
+      className={`${bg} ${text} rounded-2xl p-5 animate-fadeInUp`}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+      <p className="text-sm font-medium uppercase tracking-wide opacity-80">{title}</p>
       <div className="mt-2 flex items-baseline gap-2">
-        <p className="text-3xl font-bold dark:text-white">
+        <p className="text-3xl font-bold">
           {typeof value === 'number' ? value.toFixed(1) : value}
         </p>
-        {unit && <p className="text-sm text-gray-500 dark:text-gray-400">{unit}</p>}
+        {unit && <p className="text-sm opacity-70">{unit}</p>}
       </div>
       {trend && (
-        <p className={`text-xs mt-2 transition-colors ${trend > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        <p className="text-xs mt-2 opacity-80">
           {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}% from last period
         </p>
       )}

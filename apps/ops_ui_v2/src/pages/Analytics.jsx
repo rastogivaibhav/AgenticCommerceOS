@@ -32,10 +32,10 @@ export default function Analytics() {
         <>
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricsCard title="Total Runs" value={metrics.totalRuns} trend={12} />
-            <MetricsCard title="Avg Score" value={metrics.avgScore} unit="/ 10" trend={5} />
-            <MetricsCard title="Total Cost" value={metrics.totalCost} unit="$" trend={-3} />
-            <MetricsCard title="Success Rate" value={metrics.successRate} unit="%" trend={8} />
+            <MetricsCard title="Total Runs" value={metrics.totalRuns} trend={12} index={0} />
+            <MetricsCard title="Avg Score" value={metrics.avgScore} unit="/ 10" trend={5} index={1} />
+            <MetricsCard title="Total Cost" value={metrics.totalCost} unit="$" trend={-3} index={2} />
+            <MetricsCard title="Success Rate" value={metrics.successRate} unit="%" trend={8} index={3} />
           </div>
 
           {/* Charts */}
