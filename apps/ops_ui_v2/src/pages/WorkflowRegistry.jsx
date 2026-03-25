@@ -6,12 +6,12 @@ import './Lists.css';
 import WorkflowCanvas from '../components/WorkflowCanvas';
 
 function request(path, options = {}) {
-  const url = path.startsWith('http') ? path : `http://localhost:8000${path}`
+  const url = path.startsWith('http') ? path : `http://localhost:8081${path}`
   return fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer demo-ops-token',
+      'Authorization': `Bearer ${localStorage.getItem('ops_token') || 'dev-ops-token'}`,
       ...(options.headers || {}),
     },
   })
@@ -26,6 +26,7 @@ export default function WorkflowRegistry() {
   const [wizardStep, setWizardStep] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState({ name: '', template: 'discovery', description: '' });
+  const [apiError, setApiError] = useState(null);
 
   const fetchWorkflows = async () => {
     setIsLoading(true);
@@ -34,9 +35,13 @@ export default function WorkflowRegistry() {
       if (res.ok) {
         const data = await res.json();
         setWorkflows(data.workflows || []);
+        setApiError(null);
+      } else {
+        setApiError('API returned ' + res.status);
       }
     } catch(e) {
       console.error(e);
+      setApiError(e.message);
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +126,7 @@ export default function WorkflowRegistry() {
     <div className="page-container list-view">
       {showCreateModal && (
         <div className="modal-overlay">
-          <div className="modal-card" style={{ maxWidth: 800 }}>
+          <div className="modal-card bg-surface-container border border-outline-variant rounded-2xl" style={{ maxWidth: 800 }}>
             {wizardStep === 1 ? (
               <>
                 <h2 style={{ fontSize: '24px', marginBottom: '8px' }}>Provision New Graph</h2>
@@ -129,25 +134,19 @@ export default function WorkflowRegistry() {
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
                   {templates.map(tpl => (
-                    <div 
+                    <div
                       key={tpl.id}
                       onClick={() => { setForm({...form, template: tpl.id}); setWizardStep(2); }}
-                      style={{ 
-                        background: '#151821', 
-                        border: '1px solid #374151', 
-                        borderRadius: '12px', 
-                        padding: '24px', 
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                      }}
-                      onMouseOver={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-                      onMouseOut={e => { e.currentTarget.style.borderColor = '#374151'; e.currentTarget.style.transform = 'translateY(0)' }}
+                      className={form.template === tpl.id
+                        ? 'bg-primary-container border border-primary rounded-2xl p-4 cursor-pointer'
+                        : 'bg-surface-container border border-transparent rounded-2xl p-4 cursor-pointer hover:border-outline-variant transition-colors'
+                      }
                     >
                       <div style={{ background: 'rgba(139, 92, 246, 0.1)', width: '48px', height: '48px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
                         {getTemplateIcon(tpl.id)}
                       </div>
-                      <h3 style={{ fontSize: '15px', color: '#fff', marginBottom: '8px' }}>{tpl.name}</h3>
-                      <p style={{ fontSize: '13px', color: '#9ca3af', lineHeight: 1.5 }}>{tpl.desc}</p>
+                      <h3 className="text-on-surface text-[15px] mb-2">{tpl.name}</h3>
+                      <p className="text-on-surface-variant text-[13px] leading-relaxed">{tpl.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -210,15 +209,15 @@ export default function WorkflowRegistry() {
       <div className={`content-split ${selectedWorkflow ? 'panel-open' : ''}`}>
         <div className="left-panel">
           <section className="transparent-panel">
-            <div className="table-wrap glass-table-wrap">
+            <div className="bg-surface-container rounded-2xl overflow-hidden">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Workflow</th>
-                    <th>Template Family</th>
-                    <th>Status</th>
-                    <th>Versions</th>
-                    <th></th>
+                    <th className="bg-surface-container-high text-on-surface-variant text-[11px] font-medium uppercase tracking-wide px-4 py-3">Workflow</th>
+                    <th className="bg-surface-container-high text-on-surface-variant text-[11px] font-medium uppercase tracking-wide px-4 py-3">Template Family</th>
+                    <th className="bg-surface-container-high text-on-surface-variant text-[11px] font-medium uppercase tracking-wide px-4 py-3">Status</th>
+                    <th className="bg-surface-container-high text-on-surface-variant text-[11px] font-medium uppercase tracking-wide px-4 py-3">Versions</th>
+                    <th className="bg-surface-container-high text-on-surface-variant text-[11px] font-medium uppercase tracking-wide px-4 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -229,12 +228,12 @@ export default function WorkflowRegistry() {
                       </tr>
                     ))
                   ) : filtered.length === 0 ? (
-                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">No workflows deployed.</td></tr>
+                     <tr><td colSpan="5" style={{textAlign: 'center', padding: '32px'}} className="muted">{apiError ? <span style={{color: '#ef4444'}}>API unavailable — check the Ops API</span> : 'No workflows deployed.'}</td></tr>
                   ) : (
                     filtered.map(workflow => (
-                      <tr 
-                        key={workflow.id} 
-                        className={`interactive-row ${selectedWorkflowId === workflow.id ? 'selected-row' : ''}`}
+                      <tr
+                        key={workflow.id}
+                        className={`interactive-row hover:bg-surface cursor-pointer transition-colors ${selectedWorkflowId === workflow.id ? 'selected-row' : ''}`}
                         onClick={() => setSelectedWorkflowId(workflow.id)}
                       >
                         <td>
