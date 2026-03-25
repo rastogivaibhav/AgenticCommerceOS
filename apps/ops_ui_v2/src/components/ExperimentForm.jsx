@@ -50,28 +50,28 @@ export default function ExperimentForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 rounded-lg border dark:border-gray-800 p-4 md:p-6 max-w-2xl animate-slideIn transition-theme">
-      <h2 className="text-xl md:text-2xl font-bold dark:text-white mb-6">Create Experiment</h2>
+    <form onSubmit={handleSubmit} className="bg-surface-container rounded-lg border border-outline-variant p-4 md:p-6 max-w-2xl animate-slideIn transition-theme">
+      <h2 className="text-xl md:text-2xl font-bold text-on-surface mb-6">Create Experiment</h2>
 
       <div className="space-y-4 mb-6">
         <div>
-          <label className="block text-sm font-medium dark:text-gray-300 mb-2">Experiment Name</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-2">Experiment Name</label>
           <input
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="e.g., Checkout Flow Test"
-            className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-surface-variant text-on-surface border-b border-outline focus:border-b-2 focus:border-primary rounded-t px-4 py-3 outline-none transition-colors"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium dark:text-gray-300 mb-2">Workflow</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-2">Workflow</label>
           <select
             value={formData.workflow}
             onChange={(e) => setFormData({ ...formData, workflow: e.target.value })}
-            className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-surface-variant text-on-surface border-b border-outline focus:border-b-2 focus:border-primary rounded-t px-4 py-3 outline-none transition-colors"
             required
           >
             <option value="">Select workflow</option>
@@ -81,13 +81,13 @@ export default function ExperimentForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium dark:text-gray-300 mb-2">Sample Size</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-2">Sample Size</label>
           <input
             type="number"
             value={formData.sampleSize}
             onChange={(e) => setFormData({ ...formData, sampleSize: parseInt(e.target.value) })}
             min="10"
-            className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-surface-variant text-on-surface border-b border-outline focus:border-b-2 focus:border-primary rounded-t px-4 py-3 outline-none transition-colors"
           />
         </div>
       </div>
@@ -96,10 +96,10 @@ export default function ExperimentForm() {
         {['a', 'b'].map((side, idx) => (
           <div
             key={side}
-            className="border rounded-lg p-4 dark:border-gray-700 animate-fadeInUp transition-theme"
+            className="border border-outline-variant rounded-lg p-4 animate-fadeInUp transition-theme"
             style={{ animationDelay: `${idx * 50}ms` }}
           >
-            <h3 className="font-semibold dark:text-white mb-4">Variant {side.toUpperCase()}</h3>
+            <h3 className="font-semibold text-on-surface mb-4">Variant {side.toUpperCase()}</h3>
             <div className="space-y-3">
               {variants[side].map((variant, idx) => (
                 <div key={idx} className="flex gap-2">
@@ -108,14 +108,14 @@ export default function ExperimentForm() {
                     placeholder="Key"
                     value={variant.key}
                     onChange={(e) => handleUpdateVariant(side, idx, 'key', e.target.value)}
-                    className="flex-1 px-2 py-1 border rounded text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-surface-variant text-on-surface border-b border-outline focus:border-b-2 focus:border-primary rounded-t px-4 py-3 outline-none transition-colors"
                   />
                   <input
                     type="text"
                     placeholder="Value"
                     value={variant.value}
                     onChange={(e) => handleUpdateVariant(side, idx, 'value', e.target.value)}
-                    className="flex-1 px-2 py-1 border rounded text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-surface-variant text-on-surface border-b border-outline focus:border-b-2 focus:border-primary rounded-t px-4 py-3 outline-none transition-colors"
                   />
                   {variants[side].length > 1 && (
                     <button
@@ -126,7 +126,7 @@ export default function ExperimentForm() {
                           [side]: prev[side].filter((_, i) => i !== idx),
                         }))
                       }
-                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded transition-colors"
+                      className="p-1 hover:bg-surface-container-high rounded transition-colors"
                     >
                       <X size={16} />
                     </button>
@@ -135,7 +135,7 @@ export default function ExperimentForm() {
               ))}
               <Button
                 type="button"
-                variant="ghost"
+                variant="text"
                 size="sm"
                 onClick={() => handleAddVariant(side)}
                 className="w-full"
@@ -147,7 +147,7 @@ export default function ExperimentForm() {
         ))}
       </div>
 
-      <Button type="submit" variant="default" className="w-full">
+      <Button type="submit" variant="filled" className="w-full">
         <Play size={16} /> Run Experiment
       </Button>
     </form>
