@@ -73,10 +73,10 @@ class TestExperimentsEndpoints:
         """Test POST /experiments endpoint."""
         payload = {
             "name": "Test Experiment",
-            "workflow_id": "test-workflow",
-            "variant_a": {"param": "value_a"},
-            "variant_b": {"param": "value_b"},
-            "sample_size": 100
+            "workflow_family": "discovery",
+            "customer_id": "cust-1",
+            "tenant_id": "default",
+            "message": "show me headphones",
         }
         response = client.post("/experiments", json=payload, headers=TEST_HEADERS)
         assert response.status_code in [200, 201, 401, 403]
