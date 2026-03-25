@@ -19,8 +19,8 @@ export default function MetricsCard({ title, value, unit = '', trend = null, del
         </p>
         {unit && <p className="text-sm opacity-70">{unit}</p>}
       </div>
-      {trend && (
-        <p className="text-xs mt-2 opacity-80">
+      {trend != null && (
+        <p className={`text-xs mt-2 font-medium ${trend > 0 ? 'text-on-success-container' : 'text-on-error-container'}`}>
           {trend > 0 ? '↑' : '↓'} {Math.abs(trend)}% from last period
         </p>
       )}

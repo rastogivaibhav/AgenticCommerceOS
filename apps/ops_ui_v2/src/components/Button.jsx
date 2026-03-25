@@ -3,19 +3,19 @@ import { cva } from 'class-variance-authority';
 import { cn } from '../lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 font-medium transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed',
+  'inline-flex items-center justify-center gap-2 rounded-[20px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
-        filled:      'bg-primary text-on-primary hover:opacity-90 rounded-[20px]',
-        tonal:       'bg-secondary-container text-on-secondary-container hover:opacity-90 rounded-[20px]',
-        outlined:    'border border-outline text-primary hover:bg-surface-variant rounded-[20px]',
-        text:        'text-primary hover:bg-surface-variant rounded-[20px]',
+        filled:      'bg-primary text-on-primary hover:opacity-90',
+        tonal:       'bg-secondary-container text-on-secondary-container hover:opacity-90',
+        outlined:    'border border-outline text-primary hover:bg-surface-variant',
+        text:        'text-primary hover:bg-surface-variant',
         // Legacy aliases so existing code using variant="default"/"ghost"/"outline" doesn't break
-        default:     'bg-primary text-on-primary hover:opacity-90 rounded-[20px]',
-        ghost:       'text-on-surface hover:bg-surface-variant rounded-[20px]',
-        outline:     'border border-outline text-primary hover:bg-surface-variant rounded-[20px]',
-        destructive: 'bg-error text-on-error hover:opacity-90 rounded-[20px]',
+        default:     'bg-primary text-on-primary hover:opacity-90',
+        ghost:       'text-on-surface hover:bg-surface-variant',
+        outline:     'border border-outline text-primary hover:bg-surface-variant',
+        destructive: 'bg-error text-on-error hover:opacity-90',
       },
       size: {
         sm: 'h-8 px-3 text-sm',
