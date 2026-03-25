@@ -15,23 +15,23 @@
 .page-header h1,
 .hero-panel h2 {
   margin: 0;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 2.2rem;
   letter-spacing: -0.02em;
-  color: var(--text-strong);
+  color: var(--md-on-surface);
 }
 
 .eyebrow {
   font-size: 0.75rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--accent-strong);
+  color: var(--md-primary);
   font-weight: 700;
   margin-bottom: 8px;
 }
 
 .muted {
-  color: var(--text-muted);
+  color: var(--md-on-surface-variant);
   line-height: 1.5;
 }
 
@@ -58,15 +58,15 @@
 }
 
 .environment-badge {
-  background: var(--surface-accent);
-  color: var(--accent-strong);
-  border: 1px solid var(--border-strong);
+  background: var(--md-primary-container);
+  color: var(--md-primary);
+  border: 1px solid var(--md-outline);
 }
 
 .tag {
-  background: var(--surface-subtle);
-  color: var(--text-strong);
-  border: 1px solid var(--border-subtle);
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-variant);
   text-transform: capitalize;
 }
 
@@ -87,10 +87,10 @@
 .panel,
 .login-card,
 .list-card {
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
   border-radius: 18px;
-  box-shadow: var(--shadow-soft);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
 .summary-card {
@@ -102,11 +102,11 @@
 
 .summary-card strong {
   font-size: 2rem;
-  color: var(--text-strong);
+  color: var(--md-on-surface);
 }
 
 .summary-label {
-  color: var(--text-muted);
+  color: var(--md-on-surface-variant);
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -141,11 +141,11 @@
 .panel-title,
 .primary-cell {
   font-weight: 700;
-  color: var(--text-strong);
+  color: var(--md-on-surface);
 }
 
 .secondary-cell {
-  color: var(--text-muted);
+  color: var(--md-on-surface-variant);
   font-size: 0.9rem;
 }
 
@@ -167,7 +167,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: var(--text-strong);
+  color: var(--md-on-surface);
   font-size: 0.92rem;
 }
 
@@ -179,7 +179,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: var(--text-strong);
+  color: var(--md-on-surface);
   font-size: 0.92rem;
 }
 
@@ -203,12 +203,19 @@ input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid var(--border-strong);
-  background: var(--surface-subtle);
-  color: var(--text-strong);
-  border-radius: 12px;
+  border: none;
+  border-bottom: 1px solid var(--md-outline);
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface);
+  border-radius: 4px 4px 0 0;
   padding: 12px 14px;
   box-sizing: border-box;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-bottom: 2px solid var(--md-primary);
 }
 
 textarea {
@@ -232,22 +239,22 @@ textarea {
 }
 
 .primary-button {
-  background: var(--accent);
+  background: var(--md-primary);
   color: white;
 }
 
 .secondary-button {
   background: transparent;
-  color: var(--text-strong);
+  color: var(--md-on-surface);
   border-color: rgba(255, 255, 255, 0.2);
 }
 
 .secondary-button:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--md-surface-variant);
 }
 
 .danger-button {
-  background: var(--danger);
+  background: var(--md-error);
   color: white;
 }
 
@@ -264,12 +271,12 @@ textarea {
 .data-table td {
   text-align: left;
   padding: 14px 12px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--md-outline-variant);
   vertical-align: top;
 }
 
 .data-table th {
-  color: var(--text-muted);
+  color: var(--md-on-surface-variant);
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -282,13 +289,11 @@ textarea {
 
 .data-table tbody tr:hover,
 .selected-row {
-  background: var(--surface-subtle);
+  background: var(--md-surface-variant);
 }
 
 .hero-panel {
-  background:
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 45%),
-    linear-gradient(180deg, rgba(22, 24, 29, 0.8) 0%, rgba(15, 17, 21, 0.9) 100%);
+  background: var(--md-surface-container);
 }
 
 .hero-meta,
@@ -296,7 +301,7 @@ textarea {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  color: var(--text-muted);
+  color: var(--md-on-surface-variant);
   font-size: 0.9rem;
 }
 
@@ -316,7 +321,7 @@ textarea {
 
 .detail-empty,
 .empty-state {
-  color: var(--text-muted);
+  color: var(--md-on-surface-variant);
 }
 
 .login-shell {
@@ -333,7 +338,7 @@ textarea {
 
 .login-card h1 {
   margin: 0 0 12px;
-  color: var(--text-strong);
+  color: var(--md-on-surface);
 }
 
 .login-form {
@@ -346,9 +351,9 @@ textarea {
 .error-banner {
   border-radius: 12px;
   padding: 12px 14px;
-  background: #fee4e2;
-  color: #b42318;
-  border: 1px solid #fecdca;
+  background: var(--md-error-container);
+  color: var(--md-on-error-container);
+  border: 1px solid var(--md-error-container);
 }
 
 .app-banner {
