@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,7 +20,12 @@ from acosplatform.db.repository import (
     get_runs_by_workflow,
     get_agents,
     get_skills,
+    get_graph_runs,
+    get_workflow_versions,
+    save_graph_run,
 )
+from acosplatform.temporal.client import get_run_status, start_graph_run
+from pydantic import BaseModel
 from acosplatform.evaluation.scorer import get_experiment_results
 from acosplatform.middleware.rate_limit import REPLAY_LIMIT, limiter, rate_limit_error_handler
 from acosplatform.models.workflows import (
@@ -352,6 +357,45 @@ def health():
         "environment": OPS_ENVIRONMENT,
         "version": APP_VERSION,
     }
+
+
+class WorkflowRunRequest(BaseModel):
+    ctx: dict = {}
+    tenant_id: str = "default"
+
+
+@app.post("/workflows/{workflow_id}/run", dependencies=[Depends(require_ops_token)])
+async def trigger_workflow_run(workflow_id: str, body: WorkflowRunRequest):
+    versions = get_workflow_versions(workflow_id)
+    if not versions:
+        raise HTTPException(status_code=404, detail="No versions found")
+    latest = sorted(versions, key=lambda v: v.get("created_at", ""))[-1]
+    graph  = latest.get("step_definitions") or {}
+    if not graph.get("nodes"):
+        raise HTTPException(
+            status_code=422,
+            detail="No canvas graph saved — open the editor and click Save Workflow first."
+        )
+    run_meta = await start_graph_run(
+        workflow_id=workflow_id,
+        graph=graph,
+        ctx={"tenant_id": body.tenant_id, **body.ctx},
+    )
+    save_graph_run(
+        run_id=run_meta["run_id"], workflow_id=workflow_id,
+        tenant_id=body.tenant_id, graph=graph, ctx=body.ctx,
+    )
+    return run_meta
+
+
+@app.get("/workflows/{workflow_id}/runs", dependencies=[Depends(require_ops_token)])
+async def list_workflow_runs(workflow_id: str, limit: int = 20):
+    return {"runs": get_graph_runs(workflow_id, limit=limit)}
+
+
+@app.get("/workflows/runs/{run_id}/status", dependencies=[Depends(require_ops_token)])
+async def poll_run_status(run_id: str):
+    return await get_run_status(run_id)
 
 
 @app.get("/", response_class=HTMLResponse)
