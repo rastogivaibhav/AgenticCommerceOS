@@ -1,122 +1,86 @@
 import React from 'react';
-import { Settings, Link2, Zap, Clock, Code, GitMerge, GitBranch, Terminal } from 'lucide-react';
+import {
+  PlayCircle, StopCircle, Zap, Clock, Cpu, Settings, Users,
+  Link2, GitBranch, Terminal,
+} from 'lucide-react';
 
-export default function NodeSidebar() {
-  const onDragStart = (event, nodeType, dataPayload) => {
+function DragItem({ nodeType, dataPayload, color, icon, label, sublabel }) {
+  const onDragStart = (event) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
-    event.dataTransfer.setData('application/json', JSON.stringify(dataPayload));
+    event.dataTransfer.setData('application/json', JSON.stringify({ label, ...dataPayload }));
     event.dataTransfer.effectAllowed = 'move';
   };
 
   return (
-    <div style={{ 
-      width: '260px', 
-      background: 'rgba(15, 17, 21, 0.95)', 
-      borderRight: '1px solid rgba(255,255,255,0.05)', 
-      padding: '16px', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      gap: '24px',
-      overflowY: 'auto'
+    <div
+      draggable
+      onDragStart={onDragStart}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '9px',
+        padding: '8px 10px', borderRadius: '7px', cursor: 'grab',
+        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: '5px', userSelect: 'none',
+      }}
+      onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+      onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
+    >
+      <div style={{ background: color, padding: '5px', borderRadius: '5px', display: 'flex', flexShrink: 0 }}>
+        {icon}
+      </div>
+      <div>
+        <div style={{ fontSize: '12px', color: '#f9fafb', fontWeight: 500 }}>{label}</div>
+        {sublabel && <div style={{ fontSize: '10px', color: '#6b7280' }}>{sublabel}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }) {
+  return (
+    <div style={{ marginBottom: '16px' }}>
+      <div style={{ fontSize: '10px', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '7px', paddingLeft: '2px' }}>
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export default function NodeSidebar() {
+  return (
+    <div style={{
+      width: '180px', flexShrink: 0, background: '#111318',
+      borderRight: '1px solid #1f2937', overflowY: 'auto',
+      padding: '14px 10px',
     }}>
-      
-      {/* TRIGGERS SECTION */}
-      <section>
-        <h3 style={{ color: '#fff', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px', opacity: 0.6 }}>Triggers</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          
-          <div 
-            onDragStart={(event) => onDragStart(event, 'triggerNode', { label: 'Webhook Trigger', type: 'webhook' })} 
-            draggable 
-            style={{ background: '#1e1e24', border: '1px solid #374151', padding: '10px 12px', borderRadius: '6px', cursor: 'grab', display: 'flex', alignItems: 'center', gap: '10px', transition: 'border 0.2s' }}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#8b5cf6'}
-            onMouseOut={e => e.currentTarget.style.borderColor = '#374151'}
-          >
-            <Zap size={16} color="#8b5cf6"/>
-            <span style={{ color: '#e5e7eb', fontSize: '13px' }}>Webhook Trigger</span>
-          </div>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', marginBottom: '14px', letterSpacing: '0.3px' }}>
+        Node Palette
+      </div>
 
-          <div 
-            onDragStart={(event) => onDragStart(event, 'triggerNode', { label: 'CRON Schedule', type: 'cron' })} 
-            draggable 
-            style={{ background: '#1e1e24', border: '1px solid #374151', padding: '10px 12px', borderRadius: '6px', cursor: 'grab', display: 'flex', alignItems: 'center', gap: '10px', transition: 'border 0.2s' }}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#8b5cf6'}
-            onMouseOut={e => e.currentTarget.style.borderColor = '#374151'}
-          >
-            <Clock size={16} color="#8b5cf6"/>
-            <span style={{ color: '#e5e7eb', fontSize: '13px' }}>CRON Schedule</span>
-          </div>
+      <Section title="Flow Control">
+        <DragItem nodeType="startNode" color="#22c55e" icon={<PlayCircle size={12} color="#fff" />} label="Start" sublabel="Entry point" dataPayload={{ triggerType: 'manual' }} />
+        <DragItem nodeType="endNode" color="#ef4444" icon={<StopCircle size={12} color="#fff" />} label="End" sublabel="Terminal node" dataPayload={{ outcomeType: 'success' }} />
+      </Section>
 
-        </div>
-      </section>
+      <Section title="Triggers">
+        <DragItem nodeType="triggerNode" color="#8b5cf6" icon={<Zap size={12} color="#fff" />} label="Webhook" sublabel="HTTP trigger" dataPayload={{ type: 'webhook' }} />
+        <DragItem nodeType="triggerNode" color="#8b5cf6" icon={<Clock size={12} color="#fff" />} label="CRON" sublabel="Schedule trigger" dataPayload={{ type: 'cron' }} />
+      </Section>
 
-      {/* AUTONOMOUS AGENTS SECTION */}
-      <section>
-        <h3 style={{ color: '#fff', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px', opacity: 0.6 }}>Agents</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div 
-            onDragStart={(event) => onDragStart(event, 'agentNode', { label: 'Agent Executor', agentId: '' })} 
-            draggable 
-            style={{ background: '#1e1e24', border: '1px solid #374151', padding: '10px 12px', borderRadius: '6px', cursor: 'grab', display: 'flex', alignItems: 'center', gap: '10px', transition: 'border 0.2s' }}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#3b82f6'}
-            onMouseOut={e => e.currentTarget.style.borderColor = '#374151'}
-          >
-            <Settings size={16} color="#3b82f6"/>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ color: '#e5e7eb', fontSize: '13px' }}>Autonomous Agent</span>
-              <span style={{ color: '#6b7280', fontSize: '11px' }}>Bind to systemic AI</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Section title="Agents">
+        <DragItem nodeType="orchestratorNode" color="#a855f7" icon={<Cpu size={12} color="#fff" />} label="Orchestrator" sublabel="Fan-out router" dataPayload={{}} />
+        <DragItem nodeType="agentNode" color="#3b82f6" icon={<Settings size={12} color="#fff" />} label="Agent" sublabel="Run an agent" dataPayload={{}} />
+        <DragItem nodeType="subAgentNode" color="#06b6d4" icon={<Users size={12} color="#fff" />} label="Sub-Agent" sublabel="Delegated agent" dataPayload={{}} />
+      </Section>
 
-      {/* INTEGRATIONS SECTION */}
-      <section>
-        <h3 style={{ color: '#fff', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px', opacity: 0.6 }}>Skills & APIs</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div 
-            onDragStart={(event) => onDragStart(event, 'integrationNode', { label: 'API Integration', skillId: '' })} 
-            draggable 
-            style={{ background: '#1e1e24', border: '1px solid #374151', padding: '10px 12px', borderRadius: '6px', cursor: 'grab', display: 'flex', alignItems: 'center', gap: '10px', transition: 'border 0.2s' }}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#10b981'}
-            onMouseOut={e => e.currentTarget.style.borderColor = '#374151'}
-          >
-            <Link2 size={16} color="#10b981"/>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ color: '#e5e7eb', fontSize: '13px' }}>Skill Integration</span>
-              <span style={{ color: '#6b7280', fontSize: '11px' }}>Execute deterministic task</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <Section title="Skills & APIs">
+        <DragItem nodeType="integrationNode" color="#10b981" icon={<Link2 size={12} color="#fff" />} label="Integration" sublabel="Skill / API call" dataPayload={{}} />
+      </Section>
 
-      {/* LOGIC & FORKS SECTION */}
-      <section>
-        <h3 style={{ color: '#fff', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px', opacity: 0.6 }}>Logic</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div 
-            onDragStart={(event) => onDragStart(event, 'logicNode', { logicType: 'switch' })} 
-            draggable 
-            style={{ background: '#1e1e24', border: '1px solid #374151', padding: '10px 12px', borderRadius: '6px', cursor: 'grab', display: 'flex', alignItems: 'center', gap: '10px', transition: 'border 0.2s' }}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#f59e0b'}
-            onMouseOut={e => e.currentTarget.style.borderColor = '#374151'}
-          >
-            <GitBranch size={16} color="#f59e0b"/>
-            <span style={{ color: '#e5e7eb', fontSize: '13px' }}>Switch / Conditional</span>
-          </div>
-          <div 
-            onDragStart={(event) => onDragStart(event, 'logicNode', { logicType: 'code' })} 
-            draggable 
-            style={{ background: '#1e1e24', border: '1px solid #374151', padding: '10px 12px', borderRadius: '6px', cursor: 'grab', display: 'flex', alignItems: 'center', gap: '10px', transition: 'border 0.2s' }}
-            onMouseOver={e => e.currentTarget.style.borderColor = '#f59e0b'}
-            onMouseOut={e => e.currentTarget.style.borderColor = '#374151'}
-          >
-            <Terminal size={16} color="#f59e0b"/>
-            <span style={{ color: '#e5e7eb', fontSize: '13px' }}>Custom Snippet</span>
-          </div>
-        </div>
-      </section>
-
+      <Section title="Logic">
+        <DragItem nodeType="logicNode" color="#f59e0b" icon={<GitBranch size={12} color="#fff" />} label="Condition" sublabel="Switch / branch" dataPayload={{ logicType: 'switch' }} />
+        <DragItem nodeType="logicNode" color="#f59e0b" icon={<Terminal size={12} color="#fff" />} label="Code" sublabel="Custom snippet" dataPayload={{ logicType: 'code' }} />
+      </Section>
     </div>
   );
 }

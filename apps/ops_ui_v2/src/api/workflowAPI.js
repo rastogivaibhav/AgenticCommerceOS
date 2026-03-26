@@ -39,3 +39,24 @@ export async function saveWorkflowDraft(workflowId, steps, edges) {
     edges: edges,
   });
 }
+
+export async function runWorkflow(id, ctx = {}) {
+  const res = await fetch(`${API_BASE}/workflows/${id}/run`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('ops_token') || 'dev-ops-token'}`,
+    },
+    body: JSON.stringify({ ctx }),
+  });
+  if (!res.ok) throw new Error(`Run failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getWorkflowRuns(id) {
+  const res = await fetch(`${API_BASE}/workflows/${id}/runs`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('ops_token') || 'dev-ops-token'}` },
+  });
+  if (!res.ok) return { runs: [] };
+  return res.json();
+}
