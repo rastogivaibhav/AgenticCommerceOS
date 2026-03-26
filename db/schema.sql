@@ -124,3 +124,17 @@ CREATE TABLE IF NOT EXISTS skills (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- Temporal graph execution runs
+CREATE TABLE IF NOT EXISTS workflow_graph_runs (
+    id           TEXT PRIMARY KEY,
+    workflow_id  TEXT NOT NULL,
+    tenant_id    TEXT NOT NULL DEFAULT 'default',
+    status       TEXT NOT NULL DEFAULT 'running',
+    graph        JSONB NOT NULL DEFAULT '{}',
+    ctx          JSONB NOT NULL DEFAULT '{}',
+    result       JSONB,
+    started_at   TIMESTAMP NOT NULL DEFAULT NOW(),
+    finished_at  TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_wgr_workflow ON workflow_graph_runs(workflow_id);

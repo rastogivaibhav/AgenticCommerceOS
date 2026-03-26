@@ -924,3 +924,60 @@ def get_skills():
         except Exception as e:
             logger.warning(f"get_skills DB error: {e}")
     return sorted(list(_fallback_skills), key=lambda x: x.get("name", ""))
+
+
+# ── Temporal graph run history ────────────────────────────────────────────────
+
+def save_graph_run(run_id: str, workflow_id: str, tenant_id: str,
+                   graph: dict, ctx: dict, status: str = "running") -> dict:
+    if not _use_db():
+        return {"id": run_id, "workflow_id": workflow_id, "status": status}
+    try:
+        with transaction() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """INSERT INTO workflow_graph_runs
+                           (id, workflow_id, tenant_id, graph, ctx, status)
+                       VALUES (%s,%s,%s,%s,%s,%s)
+                       ON CONFLICT (id) DO UPDATE SET status=EXCLUDED.status
+                       RETURNING *""",
+                    (run_id, workflow_id, tenant_id,
+                     json.dumps(graph), json.dumps(ctx), status),
+                )
+                return dict(cur.fetchone())
+    except Exception as e:
+        logger.warning("save_graph_run failed: %s", e)
+        return {"id": run_id, "workflow_id": workflow_id, "status": status}
+
+
+def update_graph_run(run_id: str, status: str, result: dict | None = None) -> None:
+    if not _use_db():
+        return
+    try:
+        with transaction() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """UPDATE workflow_graph_runs
+                       SET status=%s, result=%s, finished_at=NOW()
+                       WHERE id=%s""",
+                    (status, json.dumps(result) if result else None, run_id),
+                )
+    except Exception as e:
+        logger.warning("update_graph_run failed: %s", e)
+
+
+def get_graph_runs(workflow_id: str, limit: int = 25) -> list[dict]:
+    if not _use_db():
+        return []
+    try:
+        with transaction() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """SELECT * FROM workflow_graph_runs
+                       WHERE workflow_id=%s ORDER BY started_at DESC LIMIT %s""",
+                    (workflow_id, limit),
+                )
+                return [dict(r) for r in cur.fetchall()]
+    except Exception as e:
+        logger.warning("get_graph_runs failed: %s", e)
+        return []
