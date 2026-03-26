@@ -52,5 +52,45 @@ services:
       timeout: 3s
       retries: 10
 
+  temporal:
+    image: temporalio/auto-setup:1.25.1
+    ports:
+      - "7233:7233"
+    environment:
+      - DB=postgresql12
+      - DB_PORT=5432
+      - POSTGRES_USER=acos
+      - POSTGRES_PWD=${DB_PASSWORD}
+      - POSTGRES_SEEDS=db
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  temporal-ui:
+    image: temporalio/ui:2.31.2
+    ports:
+      - "8088:8080"
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:8088
+    depends_on:
+      - temporal
+    restart: unless-stopped
+
+  temporal-worker:
+    build: .
+    command: python -m acosplatform.temporal.worker
+    depends_on:
+      - temporal
+      - db
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - DATABASE_URL=postgresql://acos:${DB_PASSWORD}@db:5432/acos
+      - DB_POOL_MAX=${DB_POOL_MAX:-10}
+      - PYTHONPATH=/app
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    restart: unless-stopped
+
 volumes:
   pgdata:
