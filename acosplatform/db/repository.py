@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import UTC, datetime
 
-from acosplatform.db.connection import get_connection, transaction
+from acosplatform.db.connection import is_pool_available, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +14,7 @@ _fallback_workflow_versions = []
 _fallback_workflow_versions = []
 _fallback_workflow_promotions = []
 _fallback_audit_events = []
+_fallback_orders = []
 _fallback_agents = [
     {
         "id": "ag_marketing",
@@ -140,11 +141,16 @@ _JSON_KEYS = {
     "skills",
     "history",
     "linterWarnings",
+    "promo_rules",
+    "features",
+    "connector_routes",
 }
+
+_fallback_tenants = []
 
 
 def _use_db():
-    return get_connection() is not None
+    return is_pool_available()
 
 
 def _serialize_record(row):
@@ -924,3 +930,300 @@ def get_skills():
         except Exception as e:
             logger.warning(f"get_skills DB error: {e}")
     return sorted(list(_fallback_skills), key=lambda x: x.get("name", ""))
+
+
+_fallback_products = []
+
+
+def save_product(product_data):
+    record = {
+        "id": product_data["id"],
+        "name": product_data["name"],
+        "category": product_data["category"],
+        "base_price": product_data["base_price"],
+        "description": product_data.get("description", ""),
+        "tags": product_data.get("tags", []),
+    }
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO products (id, name, category, base_price, description, tags)
+                           VALUES (%s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET name=EXCLUDED.name,
+                               category=EXCLUDED.category,
+                               base_price=EXCLUDED.base_price,
+                               description=EXCLUDED.description,
+                               tags=EXCLUDED.tags,
+                               updated_at=NOW()""",
+                        (
+                            record["id"],
+                            record["name"],
+                            record["category"],
+                            record["base_price"],
+                            record["description"],
+                            json.dumps(record["tags"]),
+                        ),
+                    )
+            return record
+        except Exception as e:
+            logger.warning(f"save_product DB error: {e}")
+    return _append_or_replace(_fallback_products, record, "id")
+
+
+def get_products(category=None, limit=100):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    if category:
+                        cur.execute(
+                            "SELECT * FROM products WHERE category=%s ORDER BY id LIMIT %s",
+                            (category, limit),
+                        )
+                    else:
+                        cur.execute(
+                            "SELECT * FROM products ORDER BY id LIMIT %s",
+                            (limit,),
+                        )
+                    rows = cur.fetchall()
+                    return [_serialize_record(r) for r in rows]
+        except Exception as e:
+            logger.warning(f"get_products DB error: {e}")
+    if category:
+        return [p for p in _fallback_products if p.get("category") == category]
+    return list(_fallback_products)
+
+
+def get_product_by_id(product_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM products WHERE id=%s", (product_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _serialize_record(row)
+        except Exception as e:
+            logger.warning(f"get_product_by_id DB error: {e}")
+    for p in _fallback_products:
+        if p.get("id") == product_id:
+            return p
+    return None
+
+
+def search_products(query, category=None):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    like = f"%{query}%"
+                    if category:
+                        cur.execute(
+                            """SELECT * FROM products
+                               WHERE (name ILIKE %s OR description ILIKE %s)
+                               AND category=%s
+                               ORDER BY id""",
+                            (like, like, category),
+                        )
+                    else:
+                        cur.execute(
+                            """SELECT * FROM products
+                               WHERE name ILIKE %s OR description ILIKE %s
+                               ORDER BY id""",
+                            (like, like),
+                        )
+                    return [_serialize_record(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"search_products DB error: {e}")
+    q = query.lower()
+    results = [
+        p for p in _fallback_products
+        if q in p.get("name", "").lower() or q in p.get("description", "").lower()
+    ]
+    if category:
+        results = [p for p in results if p.get("category") == category]
+    return results
+
+
+def _normalize_order(row):
+    """Ensure order dicts always have 'order_id' key (DB uses 'id' as PK)."""
+    r = dict(row)
+    if "order_id" not in r:
+        r["order_id"] = r.get("id")
+    return r
+
+
+def save_order(order_data):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO orders (
+                               id, customer_id, tenant_id, items, total, status,
+                               placed_at, shipped_at, delivered_at
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET status=EXCLUDED.status,
+                               items=EXCLUDED.items,
+                               total=EXCLUDED.total,
+                               shipped_at=EXCLUDED.shipped_at,
+                               delivered_at=EXCLUDED.delivered_at""",
+                        (
+                            order_data["order_id"],
+                            order_data["customer_id"],
+                            order_data.get("tenant_id", "default"),
+                            json.dumps(order_data.get("items", [])),
+                            order_data.get("total", 0.0),
+                            order_data.get("status", "placed"),
+                            order_data.get("placed_at"),
+                            order_data.get("shipped_at"),
+                            order_data.get("delivered_at"),
+                        ),
+                    )
+            return order_data
+        except Exception as e:
+            logger.warning(f"save_order DB error: {e}")
+    return _append_or_replace(_fallback_orders, order_data, "order_id")
+
+
+def get_orders_for_customer(customer_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT * FROM orders WHERE customer_id=%s ORDER BY placed_at DESC",
+                        (customer_id,),
+                    )
+                    return [_normalize_order(_serialize_record(r)) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"get_orders_for_customer DB error: {e}")
+    return [o for o in _fallback_orders if o.get("customer_id") == customer_id]
+
+
+def get_order_by_id(order_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM orders WHERE id=%s", (order_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_order(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_order_by_id DB error: {e}")
+    for order in _fallback_orders:
+        if order.get("order_id") == order_id:
+            return order
+    return None
+
+
+def save_tenant(tenant_data):
+    record = {
+        "id": tenant_data["id"],
+        "name": tenant_data["name"],
+        "currency": tenant_data.get("currency", "USD"),
+        "tax_rate": tenant_data.get("tax_rate", 0.08),
+        "promo_rules": tenant_data.get("promo_rules", {}),
+        "features": tenant_data.get("features", {}),
+        "connectors": tenant_data.get("connectors", tenant_data.get("connector_routes", {})),
+    }
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO tenants (id, name, currency, tax_rate, promo_rules, features, connector_routes)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET name=EXCLUDED.name,
+                               currency=EXCLUDED.currency,
+                               tax_rate=EXCLUDED.tax_rate,
+                               promo_rules=EXCLUDED.promo_rules,
+                               features=EXCLUDED.features,
+                               connector_routes=EXCLUDED.connector_routes,
+                               updated_at=NOW()""",
+                        (
+                            record["id"],
+                            record["name"],
+                            record["currency"],
+                            record["tax_rate"],
+                            json.dumps(record["promo_rules"]),
+                            json.dumps(record["features"]),
+                            json.dumps(record["connectors"]),
+                        ),
+                    )
+            return record
+        except Exception as e:
+            logger.warning(f"save_tenant DB error: {e}")
+    return _append_or_replace(_fallback_tenants, record, "id")
+
+
+def get_tenant(tenant_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM tenants WHERE id=%s", (tenant_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _serialize_record(row)
+        except Exception as e:
+            logger.warning(f"get_tenant DB error: {e}")
+    for t in _fallback_tenants:
+        if t.get("id") == tenant_id:
+            return t
+    return None
+
+
+def get_all_tenants():
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM tenants ORDER BY id")
+                    return [_serialize_record(r) for r in cur.fetchall()]
+        except Exception as e:
+            logger.warning(f"get_all_tenants DB error: {e}")
+    return list(_fallback_tenants)
+
+
+_fallback_loyalty = {}
+
+
+def save_loyalty_points(customer_id: str, points: int):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "INSERT INTO loyalty_points (customer_id, points) VALUES (%s, %s) "
+                        "ON CONFLICT (customer_id) DO UPDATE SET points=EXCLUDED.points, updated_at=NOW()",
+                        (customer_id, points),
+                    )
+            return
+        except Exception as e:
+            logger.warning(f"save_loyalty_points DB error: {e}")
+    _fallback_loyalty[customer_id] = points
+
+
+def get_loyalty_points(customer_id: str):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT points FROM loyalty_points WHERE customer_id=%s",
+                        (customer_id,),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        return row["points"]
+                    return None
+        except Exception as e:
+            logger.warning(f"get_loyalty_points DB error: {e}")
+    return _fallback_loyalty.get(customer_id)

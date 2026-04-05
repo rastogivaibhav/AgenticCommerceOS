@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Button from './Button';
 import { useExperimentStore } from '../store/experimentStore';
+import { canOperate, isAnalyst } from '../lib/rbac';
 import { Play } from 'lucide-react';
 
 const WORKFLOW_FAMILIES = [
@@ -12,6 +13,8 @@ const WORKFLOW_FAMILIES = [
 ];
 
 export default function ExperimentForm() {
+  const allowRun = canOperate();
+  const analystMode = isAnalyst();
   const { createExperiment, isRunning } = useExperimentStore();
   const [formData, setFormData] = useState({
     name: '',
@@ -25,6 +28,7 @@ export default function ExperimentForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!allowRun) return;
     await createExperiment({
       name: formData.name,
       workflow_family: formData.workflow_family,
@@ -43,6 +47,11 @@ export default function ExperimentForm() {
       className="bg-surface-container rounded-lg border border-outline-variant p-4 md:p-6 max-w-2xl animate-slideIn transition-theme"
     >
       <h2 className="text-xl md:text-2xl font-bold text-on-surface mb-6">Create Experiment</h2>
+      {analystMode && (
+        <p className="text-sm text-on-surface-variant mb-4">
+          Analyst role: experiment execution is disabled.
+        </p>
+      )}
 
       <div className="space-y-4 mb-6">
         <div>
@@ -55,6 +64,7 @@ export default function ExperimentForm() {
             onChange={(e) => set('name', e.target.value)}
             placeholder="e.g., Headphones Discovery Test"
             className={inputCls}
+            disabled={!allowRun}
             required
           />
         </div>
@@ -67,6 +77,7 @@ export default function ExperimentForm() {
             value={formData.workflow_family}
             onChange={(e) => set('workflow_family', e.target.value)}
             className={inputCls}
+            disabled={!allowRun}
             required
           >
             <option value="">Select workflow family</option>
@@ -88,6 +99,7 @@ export default function ExperimentForm() {
             onChange={(e) => set('message', e.target.value)}
             placeholder="e.g., show me noise-cancelling headphones"
             className={inputCls}
+            disabled={!allowRun}
             required
           />
         </div>
@@ -102,6 +114,7 @@ export default function ExperimentForm() {
             onChange={(e) => set('customer_id', e.target.value)}
             placeholder="cust-1"
             className={inputCls}
+            disabled={!allowRun}
           />
         </div>
 
@@ -123,9 +136,9 @@ export default function ExperimentForm() {
         </div>
       </div>
 
-      <Button type="submit" variant="filled" className="w-full" disabled={isRunning}>
+      <Button type="submit" variant="filled" className="w-full" disabled={isRunning || !allowRun}>
         <Play size={16} />
-        {isRunning ? 'Running…' : 'Run Experiment'}
+        {!allowRun ? 'Run Experiment (Ops/Admin only)' : isRunning ? 'Running…' : 'Run Experiment'}
       </Button>
     </form>
   );

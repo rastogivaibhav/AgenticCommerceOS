@@ -1,6 +1,8 @@
-"""Orders plugin – mock order history with status tracking."""
+"""Orders plugin with mock + DB tracking and connector routing."""
 
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
+
+from integrations.connectors import ConnectorContract, execute_connector
 
 _MOCK_ORDERS = {
     "cust-1": [
@@ -56,34 +58,84 @@ _MOCK_ORDERS = {
     ],
 }
 
+_ORDERS_CONNECTOR = ConnectorContract(
+    name="orders",
+    required_request_fields=("tenant_id", "customer_id"),
+    required_response_any_fields=("orders", "order"),
+)
+
+
+def save_order(order_data):
+    """Save an order to the repository."""
+    from acosplatform.db.repository import save_order as _repo_save_order
+
+    return _repo_save_order(order_data)
+
 
 def run(ctx):
-    """Get order history for a customer.
+    """Get order history for a customer or a single order."""
+    tenant_config = ctx.get("tenant_config") or {}
+    connector_result = execute_connector(
+        contract=_ORDERS_CONNECTOR,
+        payload={
+            "tenant_id": ctx.get("tenant_id", "default"),
+            "customer_id": ctx.get("customer_id", "anon"),
+            "order_id": ctx.get("order_id"),
+        },
+        tenant_config=tenant_config,
+        local_handler=_local_orders_run,
+    )
+    return connector_result.as_dict()
 
-    ctx keys:
-        customer_id: str
-        order_id: str (optional, fetch single order)
-    """
+
+def _local_orders_run(ctx):
     customer_id = ctx.get("customer_id", "anon")
     order_id = ctx.get("order_id")
-
-    orders = _MOCK_ORDERS.get(customer_id, [])
+    mock_orders = _MOCK_ORDERS.get(customer_id, [])
 
     if order_id:
-        for o in orders:
-            if o["order_id"] == order_id:
-                return {"order": o, "found": True}
+        try:
+            from acosplatform.db.repository import get_order_by_id
+
+            db_order = get_order_by_id(order_id)
+            if db_order:
+                return {"order": db_order, "found": True}
+        except Exception:
+            pass
+        for order in mock_orders:
+            if order["order_id"] == order_id:
+                return {"order": order, "found": True}
         return {"order": None, "found": False, "message": f"Order {order_id} not found"}
 
+    db_orders = []
+    try:
+        from acosplatform.db.repository import get_orders_for_customer
+
+        db_orders = get_orders_for_customer(customer_id) or []
+    except Exception:
+        pass
+
+    merged = {order["order_id"]: order for order in mock_orders}
+    for order in db_orders:
+        merged[order["order_id"]] = order
+    orders = list(merged.values())
     return {"orders": orders, "total": len(orders), "customer_id": customer_id}
 
 
 def get_order(order_id):
     """Find an order across all customers."""
-    for customer_id, orders in _MOCK_ORDERS.items():
-        for o in orders:
-            if o["order_id"] == order_id:
-                return o
+    try:
+        from acosplatform.db.repository import get_order_by_id
+
+        db_order = get_order_by_id(order_id)
+        if db_order:
+            return db_order
+    except Exception:
+        pass
+    for customer_orders in _MOCK_ORDERS.values():
+        for order in customer_orders:
+            if order["order_id"] == order_id:
+                return order
     return None
 
 

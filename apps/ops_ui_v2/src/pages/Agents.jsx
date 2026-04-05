@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Activity, ShieldCheck, AlertTriangle, ChevronRight, Hash, Clock, Wrench } from 'lucide-react';
+import { apiFetch } from '../api/client';
+import { canOperate, isAnalyst } from '../lib/rbac';
 import './Lists.css';
 
 const STATUS_CLASSES = {
@@ -10,6 +12,8 @@ const STATUS_CLASSES = {
 };
 
 export default function Agents() {
+  const allowMutations = canOperate();
+  const analystMode = isAnalyst();
   const [agents, setAgents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAgentId, setSelectedAgentId] = useState(null);
@@ -29,7 +33,7 @@ export default function Agents() {
 
   const fetchAgents = () => {
     setIsLoading(true);
-    fetch('http://localhost:8081/api/v1/agents')
+    apiFetch('/api/v1/agents')
       .then(res => res.json())
       .then(data => { setAgents(data.agents || []); setApiError(null); })
       .catch(err => { console.error('Failed to load agents:', err); setApiError(err.message); })
@@ -42,6 +46,9 @@ export default function Agents() {
 
   const handleDeploy = async (e) => {
     e.preventDefault();
+    if (!allowMutations) {
+      return;
+    }
     setIsDeploying(true);
     const newId = 'ag_' + form.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const newAgent = {
@@ -59,7 +66,7 @@ export default function Agents() {
       history: []
     };
     try {
-      await fetch('http://localhost:8081/api/v1/agents', {
+      await apiFetch('/api/v1/agents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newAgent)
@@ -77,9 +84,10 @@ export default function Agents() {
 
   const toggleStatus = async () => {
     if (!selectedAgent) return;
+    if (!allowMutations) return;
     const newStatus = selectedAgent.status === 'degraded' ? 'healthy' : 'degraded';
     try {
-      await fetch(`http://localhost:8081/api/v1/agents/${selectedAgent.id}`, {
+      await apiFetch(`/api/v1/agents/${selectedAgent.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -196,6 +204,11 @@ export default function Agents() {
           <div className="eyebrow">ACOS Ecosystem</div>
           <h1>System Agents</h1>
           <p className="muted">Monitor and manage the autonomous agents across diverse operational domains.</p>
+          {analystMode && (
+            <p className="muted" style={{ marginTop: 8 }}>
+              Analyst role: read-only mode is active on this screen.
+            </p>
+          )}
         </div>
         <div className="header-actions">
           <input 
@@ -204,7 +217,14 @@ export default function Agents() {
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
-          <button className="primary-button" onClick={() => setShowDeployModal(true)}>Create Agent</button>
+          <button
+            className="primary-button"
+            onClick={() => setShowDeployModal(true)}
+            disabled={!allowMutations}
+            title={!allowMutations ? 'Read-only for analyst role' : ''}
+          >
+            Create Agent
+          </button>
         </div>
       </header>
 
@@ -293,7 +313,7 @@ export default function Agents() {
                       <span key={skill} className="skill-tag">{skill}</span>
                     )) : <span className="text-muted text-sm">No skills associated</span>}
                   </div>
-                  <button className="secondary-button compact mt-3">+ Bind Skill</button>
+                  <button className="secondary-button compact mt-3" disabled={!allowMutations}>+ Bind Skill</button>
                 </div>
 
                 <div className="widget-section" style={{ flexGrow: 1 }}>
@@ -316,8 +336,8 @@ export default function Agents() {
               </div>
               
               <div className="widget-footer">
-                <button className="primary-button">Save Configuration</button>
-                <button className={`danger-button outline ${selectedAgent.status === 'degraded' ? 'enable-btn' : ''}`} onClick={toggleStatus}>
+                <button className="primary-button" disabled={!allowMutations}>Save Configuration</button>
+                <button className={`danger-button outline ${selectedAgent.status === 'degraded' ? 'enable-btn' : ''}`} onClick={toggleStatus} disabled={!allowMutations}>
                   {selectedAgent.status === 'degraded' ? 'Enable Agent' : 'Disable Agent'}
                 </button>
               </div>

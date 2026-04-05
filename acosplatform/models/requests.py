@@ -5,7 +5,13 @@ from typing import Optional, Literal
 
 
 # ── Valid tenant IDs ───────────────────────────────────────────────────────────
-VALID_TENANTS = {"default", "eu-store", "jp-store", "in-store"}
+def get_valid_tenants() -> set:
+    """Return current set of valid tenant IDs. Evaluated lazily at validation time."""
+    try:
+        from acosplatform.tenancy.manager import list_tenants
+        return {t["id"] for t in list_tenants()}
+    except Exception:
+        return {"default", "eu-store", "jp-store", "in-store"}
 
 
 class JourneyRequest(BaseModel):
@@ -28,8 +34,9 @@ class JourneyRequest(BaseModel):
     @field_validator("tenant_id")
     @classmethod
     def tenant_must_be_valid(cls, v: str) -> str:
-        if v not in VALID_TENANTS:
-            raise ValueError(f"tenant_id must be one of {sorted(VALID_TENANTS)}")
+        valid = get_valid_tenants()
+        if v not in valid:
+            raise ValueError(f"tenant_id must be one of {sorted(valid)}")
         return v
 
     @field_validator("message")

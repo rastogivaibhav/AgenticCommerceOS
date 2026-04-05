@@ -1,0 +1,107 @@
+<h2>How should connector labels work?</h2>
+<p class="subtitle">When you draw an edge between nodes, what level of control do you want over the condition on that connection?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f1117;padding:16px;border-radius:8px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;font-size:11px">
+        <!-- Node A -->
+        <div style="background:#8b5cf620;border:1px solid #8b5cf6;border-radius:6px;padding:6px 20px;color:#a78bfa">Orchestrator</div>
+        <!-- 3 edges with preset labels -->
+        <div style="display:flex;gap:16px;width:100%;justify-content:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="background:#10b98120;border:1px solid #10b981;border-radius:10px;padding:2px 8px;color:#34d399;font-size:10px">on_success</div>
+            <div style="width:1px;height:12px;background:#10b981"></div>
+            <div style="background:#3b82f620;border:1px solid #3b82f6;border-radius:5px;padding:4px 10px;color:#60a5fa;font-size:10px">Agent A</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="background:#ef444420;border:1px solid #ef4444;border-radius:10px;padding:2px 8px;color:#f87171;font-size:10px">on_failure</div>
+            <div style="width:1px;height:12px;background:#ef4444"></div>
+            <div style="background:#3b82f620;border:1px solid #3b82f6;border-radius:5px;padding:4px 10px;color:#60a5fa;font-size:10px">Agent B</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="background:#f59e0b20;border:1px solid #f59e0b;border-radius:10px;padding:2px 8px;color:#fbbf24;font-size:10px">on_timeout</div>
+            <div style="width:1px;height:12px;background:#f59e0b"></div>
+            <div style="background:#3b82f620;border:1px solid #3b82f6;border-radius:5px;padding:4px 10px;color:#60a5fa;font-size:10px">Agent C</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Preset Labels Only</h3>
+      <p>Click an edge to pick from a fixed list: <strong>on_success</strong>, <strong>on_failure</strong>, <strong>on_timeout</strong>, <strong>always</strong>. Color-coded automatically. No free text.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f1117;padding:16px;border-radius:8px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;font-size:11px">
+        <div style="background:#8b5cf620;border:1px solid #8b5cf6;border-radius:6px;padding:6px 20px;color:#a78bfa">Orchestrator</div>
+        <div style="display:flex;gap:16px;width:100%;justify-content:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="background:#10b98120;border:1px solid #10b981;border-radius:10px;padding:2px 8px;color:#34d399;font-size:10px">on_success</div>
+            <div style="width:1px;height:12px;background:#10b981"></div>
+            <div style="background:#3b82f620;border:1px solid #3b82f6;border-radius:5px;padding:4px 10px;color:#60a5fa;font-size:10px">Agent A</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="background:#6366f120;border:1px solid #6366f1;border-radius:10px;padding:2px 8px;color:#818cf8;font-size:10px">score &gt; 0.8</div>
+            <div style="width:1px;height:12px;background:#6366f1"></div>
+            <div style="background:#3b82f620;border:1px solid #3b82f6;border-radius:5px;padding:4px 10px;color:#60a5fa;font-size:10px">Agent B</div>
+          </div>
+        </div>
+        <!-- Edge popover -->
+        <div style="background:#1a1d26;border:1px solid #374151;border-radius:6px;padding:8px;width:100%;margin-top:4px">
+          <div style="color:#9ca3af;font-size:10px;margin-bottom:4px">Edge condition</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <select style="background:#111318;border:1px solid #374151;color:#e5e7eb;padding:3px 6px;border-radius:4px;font-size:10px;flex:0 0 auto">
+              <option>on_success</option>
+            </select>
+            <span style="color:#6b7280;font-size:10px">or custom:</span>
+            <div style="background:#111318;border:1px solid #374151;border-radius:4px;padding:3px 8px;color:#818cf8;font-size:10px;flex:1">score &gt; 0.8</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Preset + Free Text</h3>
+      <p>Preset dropdown (<em>on_success</em>, <em>on_failure</em>, etc.) <strong>plus</strong> an optional free-text expression field for custom conditions like <code>score &gt; 0.8</code> or <code>status == "escalated"</code>.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f1117;padding:16px;border-radius:8px">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;font-size:11px">
+        <div style="background:#8b5cf620;border:1px solid #8b5cf6;border-radius:6px;padding:6px 20px;color:#a78bfa">Orchestrator</div>
+        <div style="display:flex;gap:16px;width:100%;justify-content:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="background:#10b98115;border:1px solid #10b981;border-radius:6px;padding:3px 8px;color:#34d399;font-size:9px;text-align:center">output.score &gt; 0.8</div>
+            <div style="width:1px;height:10px;background:#10b981"></div>
+            <div style="background:#3b82f620;border:1px solid #3b82f6;border-radius:5px;padding:4px 10px;color:#60a5fa;font-size:10px">Agent A</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="background:#ef444415;border:1px solid #ef4444;border-radius:6px;padding:3px 8px;color:#f87171;font-size:9px;text-align:center">output.status == "fail"</div>
+            <div style="width:1px;height:10px;background:#ef4444"></div>
+            <div style="background:#3b82f620;border:1px solid #3b82f6;border-radius:5px;padding:4px 10px;color:#60a5fa;font-size:10px">Agent B</div>
+          </div>
+        </div>
+        <!-- Full builder -->
+        <div style="background:#1a1d26;border:1px solid #374151;border-radius:6px;padding:8px;width:100%;margin-top:4px">
+          <div style="color:#9ca3af;font-size:10px;margin-bottom:6px">Condition builder</div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <div style="background:#111318;border:1px solid #374151;border-radius:4px;padding:3px 6px;color:#e5e7eb;font-size:10px">output.score</div>
+            <select style="background:#111318;border:1px solid #374151;color:#e5e7eb;padding:3px 4px;border-radius:4px;font-size:10px">&gt;</select>
+            <div style="background:#111318;border:1px solid #374151;border-radius:4px;padding:3px 6px;color:#fbbf24;font-size:10px">0.8</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Visual Condition Builder</h3>
+      <p>Structured builder: left field, operator (==, !=, &gt;, &lt;, contains…), right value. Generates expressions like <code>output.score &gt; 0.8</code>. No free typing — prevents typos.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">Click your pick and reply in terminal.</p>

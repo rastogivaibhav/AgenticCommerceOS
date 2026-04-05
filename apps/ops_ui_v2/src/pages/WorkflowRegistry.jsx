@@ -1,26 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, GitBranch, Play, Settings, ChevronRight, Copy, Search, Sparkles, MessageCircle, ShoppingBag, ShieldAlert, Cpu } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { GitBranch, ChevronRight, Sparkles, MessageCircle, ShoppingBag, ShieldAlert, Cpu, ExternalLink } from 'lucide-react';
+import { apiFetch } from '../api/client';
+import { canOperate, isAnalyst } from '../lib/rbac';
 import '../App.css';
 import './Lists.css';
 
-import WorkflowCanvas from '../components/WorkflowCanvas';
-
 function request(path, options = {}) {
-  const url = path.startsWith('http') ? path : `http://localhost:8081${path}`
-  return fetch(url, {
+  return apiFetch(path, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('ops_token') || 'dev-ops-token'}`,
       ...(options.headers || {}),
     },
   })
 }
 
 export default function WorkflowRegistry() {
+  const allowMutations = canOperate();
+  const analystMode = isAnalyst();
+  const navigate = useNavigate();
   const [workflows, setWorkflows] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
@@ -53,6 +54,9 @@ export default function WorkflowRegistry() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!allowMutations) {
+      return;
+    }
     setIsCreating(true);
     try {
       const res = await request('/workflows', {
@@ -66,14 +70,15 @@ export default function WorkflowRegistry() {
           change_summary: 'Initial template generation',
         })
       });
+      const data = await res.json();
       setShowCreateModal(false);
       setWizardStep(1);
       setForm({ name: '', template: 'discovery', description: '' });
       await fetchWorkflows();
-      
-      // Auto-Transition to visual canvas
-      if (res && res.workflow && res.workflow.id) {
-        setSelectedWorkflowId(res.workflow.id);
+
+      // Open full-screen editor for the new workflow
+      if (data?.workflow?.id) {
+        navigate(`/workflows/${data.workflow.id}/editor`);
       }
     } catch(e) {
       console.error(e);
@@ -102,25 +107,6 @@ export default function WorkflowRegistry() {
   ];
 
   const filtered = workflows.filter(w => w.name.toLowerCase().includes(searchTerm.toLowerCase()) || w.workflow_family.toLowerCase().includes(searchTerm.toLowerCase()));
-  const selectedWorkflow = workflows.find(w => w.id === selectedWorkflowId);
-
-  const handleDeployArchitecture = async () => {
-    if (!selectedWorkflowId || !window.serializeWorkflowGraph) return;
-    try {
-      const graphData = window.serializeWorkflowGraph();
-      await request(`/workflows/${selectedWorkflowId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          name: selectedWorkflow.name,
-          step_definitions: graphData
-        })
-      });
-      // In a real app we'd show a toast, simply re-fetching to implicitly verify
-      fetchWorkflows();
-    } catch(err) {
-      console.error(err);
-    }
-  };
 
   return (
     <div className="page-container list-view">
@@ -180,7 +166,7 @@ export default function WorkflowRegistry() {
                 <div className="modal-actions" style={{ marginTop: 32 }}>
                   <button type="button" className="secondary-button" onClick={() => setWizardStep(1)}>Back to Templates</button>
                   <button type="submit" className="primary-button" disabled={isCreating || !form.name.trim()}>
-                    {isCreating ? 'Provisioning Environment...' : 'Deploy to Canvas'}
+                    {isCreating ? 'Provisioning...' : 'Create & Open Editor'}
                   </button>
                 </div>
               </form>
@@ -194,6 +180,11 @@ export default function WorkflowRegistry() {
           <div className="eyebrow">ACOS Control Plane</div>
           <h1>Orchestration Workflows</h1>
           <p className="muted">Govern active graphical pipelines, templates, and execution contexts.</p>
+          {analystMode && (
+            <p className="muted" style={{ marginTop: 8 }}>
+              Analyst role: workflow creation is disabled (read-only).
+            </p>
+          )}
         </div>
         <div className="header-actions">
           <input 
@@ -202,12 +193,19 @@ export default function WorkflowRegistry() {
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
-          <button className="primary-button" onClick={() => setShowCreateModal(true)}>Create Workflow</button>
+          <button
+            className="primary-button"
+            onClick={() => setShowCreateModal(true)}
+            disabled={!allowMutations}
+            title={!allowMutations ? 'Read-only for analyst role' : ''}
+          >
+            Create Workflow
+          </button>
         </div>
       </header>
 
-      <div className={`content-split ${selectedWorkflow ? 'panel-open' : ''}`}>
-        <div className="left-panel">
+      <div className="content-split">
+        <div className="left-panel" style={{ maxWidth: '100%' }}>
           <section className="transparent-panel">
             <div className="bg-surface-container rounded-2xl overflow-hidden">
               <table className="data-table">
@@ -233,24 +231,27 @@ export default function WorkflowRegistry() {
                     filtered.map(workflow => (
                       <tr
                         key={workflow.id}
-                        className={`interactive-row hover:bg-surface cursor-pointer transition-colors ${selectedWorkflowId === workflow.id ? 'selected-row' : ''}`}
-                        onClick={() => setSelectedWorkflowId(workflow.id)}
+                        className="interactive-row hover:bg-surface cursor-pointer transition-colors"
+                        onClick={() => navigate(`/workflows/${workflow.id}/editor`)}
                       >
                         <td>
                           <div className="primary-cell">{workflow.name}</div>
                           <div className="secondary-cell mono">{workflow.id}</div>
                         </td>
-                        <td><span className={`tag-subsystem`}>{workflow.workflow_family}</span></td>
+                        <td><span className="tag-subsystem">{workflow.workflow_family}</span></td>
                         <td>
                           <div className="status-cell">
                             <div className={`status-dot ${workflow.status === 'active' ? 'healthy' : 'degraded'}`}></div>
-                            <span style={{textTransform: 'capitalize'}}>
-                              {workflow.status}
-                            </span>
+                            <span style={{textTransform: 'capitalize'}}>{workflow.status}</span>
                           </div>
                         </td>
                         <td className="metric-cell">{workflow.version_count || 1}</td>
-                        <td><ChevronRight size={16} className="text-muted" /></td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280' }}>
+                            <ExternalLink size={14} />
+                            <span style={{ fontSize: '12px' }}>Open Editor</span>
+                          </div>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -259,48 +260,6 @@ export default function WorkflowRegistry() {
             </div>
           </section>
         </div>
-
-        {selectedWorkflow && (
-          <div className="right-panel">
-            <div className="editor-widget glass-card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              <div className="widget-header" style={{ flexShrink: 0 }}>
-                <div>
-                  <div className="eyebrow">Visual Orchestrator</div>
-                  <h2 style={{display: 'flex', alignItems: 'center', gap: 8}} className="text-on-surface">
-                    <GitBranch size={20} className="text-accent" />
-                    {selectedWorkflow.name}
-                  </h2>
-                </div>
-                <button className="close-btn" onClick={() => setSelectedWorkflowId(null)}>×</button>
-              </div>
-              
-              <div className="widget-content" style={{ flexGrow: 1, padding: 0, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 16, background: 'rgba(0,0,0,0.2)' }}>
-                   <div style={{ flex: 1 }}>
-                     <span className="text-muted text-sm" style={{ display: 'block' }}>Active Version</span>
-                     <span className="mono text-on-surface">{selectedWorkflow.active_version || 'v1 (Draft)'}</span>
-                   </div>
-                   <div style={{ flex: 1 }}>
-                     <span className="text-muted text-sm" style={{ display: 'block' }}>Environment</span>
-                     <span className="text-on-success-container">Production (Active)</span>
-                   </div>
-                   <div>
-                     <button className="secondary-button compact"><Settings size={14} style={{ marginRight: 4 }} /> Settings</button>
-                   </div>
-                </div>
-
-                <div className="canvas-container" style={{ flexGrow: 1, background: '#111318', position: 'relative' }}>
-                  <WorkflowCanvas />
-                </div>
-              </div>
-              
-              <div className="widget-footer" style={{ flexShrink: 0 }}>
-                <button className="primary-button" onClick={handleDeployArchitecture}><Play size={16} style={{ marginRight: 6 }}/> Deploy Architecture</button>
-                <button className="secondary-button text-muted"><Copy size={16} style={{ marginRight: 6 }}/> Duplicate Pipeline</button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

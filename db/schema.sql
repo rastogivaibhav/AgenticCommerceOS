@@ -89,6 +89,56 @@ CREATE TABLE IF NOT EXISTS audit_events (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS context_sessions (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL DEFAULT 'default',
+    customer_id TEXT NOT NULL DEFAULT 'anon',
+    channel TEXT NOT NULL DEFAULT 'journey',
+    status TEXT NOT NULL DEFAULT 'active',
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_by TEXT NOT NULL DEFAULT 'system',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    ended_at TIMESTAMP DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS context_events (
+    id BIGSERIAL PRIMARY KEY,
+    session_id TEXT NOT NULL REFERENCES context_sessions(id) ON DELETE CASCADE,
+    tenant_id TEXT NOT NULL DEFAULT 'default',
+    event_type TEXT NOT NULL,
+    payload JSONB NOT NULL DEFAULT '{}',
+    actor TEXT NOT NULL DEFAULT 'system',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS context_memory (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id TEXT NOT NULL DEFAULT 'default',
+    customer_id TEXT NOT NULL DEFAULT 'anon',
+    memory_key TEXT NOT NULL,
+    memory_value JSONB NOT NULL DEFAULT '{}',
+    source TEXT NOT NULL DEFAULT 'runtime',
+    freshness_score DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    expires_at TIMESTAMP DEFAULT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id, customer_id, memory_key)
+);
+
+CREATE TABLE IF NOT EXISTS governance_decisions (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL DEFAULT 'default',
+    subject TEXT NOT NULL DEFAULT 'system',
+    action TEXT NOT NULL,
+    resource TEXT NOT NULL DEFAULT '*',
+    decision TEXT NOT NULL,
+    reason TEXT NOT NULL DEFAULT '',
+    policy_source TEXT NOT NULL DEFAULT 'builtin-rbac-v1',
+    obligations JSONB NOT NULL DEFAULT '[]',
+    context JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_runs_tenant ON runs(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_runs_customer ON runs(customer_id);
 CREATE INDEX IF NOT EXISTS idx_runs_workflow ON runs(workflow_id);
@@ -97,6 +147,134 @@ CREATE INDEX IF NOT EXISTS idx_workflows_tenant ON workflows(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_versions_workflow ON workflow_versions(workflow_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_promotions_lookup ON workflow_promotions(workflow_id, target_environment, is_active);
 CREATE INDEX IF NOT EXISTS idx_audit_events_lookup ON audit_events(resource_type, resource_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_context_sessions_tenant_customer ON context_sessions(tenant_id, customer_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_context_events_session ON context_events(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_context_memory_lookup ON context_memory(tenant_id, customer_id, updated_at);
+CREATE INDEX IF NOT EXISTS idx_governance_decisions_lookup ON governance_decisions(tenant_id, action, created_at);
+
+ALTER TABLE context_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE context_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE context_memory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE governance_decisions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE context_sessions FORCE ROW LEVEL SECURITY;
+ALTER TABLE context_events FORCE ROW LEVEL SECURITY;
+ALTER TABLE context_memory FORCE ROW LEVEL SECURITY;
+ALTER TABLE governance_decisions FORCE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'context_sessions'
+          AND policyname = 'tenant_isolation_context_sessions'
+    ) THEN
+        CREATE POLICY tenant_isolation_context_sessions ON context_sessions
+            USING (
+                current_setting('app.tenant_id', true) IS NULL
+                OR tenant_id = current_setting('app.tenant_id', true)
+            )
+            WITH CHECK (
+                current_setting('app.tenant_id', true) IS NULL
+                OR tenant_id = current_setting('app.tenant_id', true)
+            );
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'context_events'
+          AND policyname = 'tenant_isolation_context_events'
+    ) THEN
+        CREATE POLICY tenant_isolation_context_events ON context_events
+            USING (
+                current_setting('app.tenant_id', true) IS NULL
+                OR tenant_id = current_setting('app.tenant_id', true)
+            )
+            WITH CHECK (
+                current_setting('app.tenant_id', true) IS NULL
+                OR tenant_id = current_setting('app.tenant_id', true)
+            );
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'context_memory'
+          AND policyname = 'tenant_isolation_context_memory'
+    ) THEN
+        CREATE POLICY tenant_isolation_context_memory ON context_memory
+            USING (
+                current_setting('app.tenant_id', true) IS NULL
+                OR tenant_id = current_setting('app.tenant_id', true)
+            )
+            WITH CHECK (
+                current_setting('app.tenant_id', true) IS NULL
+                OR tenant_id = current_setting('app.tenant_id', true)
+            );
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'governance_decisions'
+          AND policyname = 'tenant_isolation_governance_decisions'
+    ) THEN
+        CREATE POLICY tenant_isolation_governance_decisions ON governance_decisions
+            USING (
+                current_setting('app.tenant_id', true) IS NULL
+                OR tenant_id = current_setting('app.tenant_id', true)
+            )
+            WITH CHECK (
+                current_setting('app.tenant_id', true) IS NULL
+                OR tenant_id = current_setting('app.tenant_id', true)
+            );
+    END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    customer_id TEXT NOT NULL,
+    tenant_id TEXT NOT NULL DEFAULT 'default',
+    items JSONB NOT NULL DEFAULT '[]',
+    total DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    status TEXT NOT NULL DEFAULT 'placed',
+    placed_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    shipped_at TIMESTAMP DEFAULT NULL,
+    delivered_at TIMESTAMP DEFAULT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
+
+CREATE TABLE IF NOT EXISTS loyalty_points (
+    customer_id TEXT PRIMARY KEY,
+    points INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tenants (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    tax_rate DOUBLE PRECISION NOT NULL DEFAULT 0.08,
+    promo_rules JSONB NOT NULL DEFAULT '{}',
+    features JSONB NOT NULL DEFAULT '{}',
+    connector_routes JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE tenants ADD COLUMN IF NOT EXISTS connector_routes JSONB NOT NULL DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS agents (
     id TEXT PRIMARY KEY,
@@ -124,3 +302,16 @@ CREATE TABLE IF NOT EXISTS skills (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS products (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    base_price DOUBLE PRECISION NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    tags JSONB NOT NULL DEFAULT '[]',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);

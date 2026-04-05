@@ -5,6 +5,11 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/ui/',
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8081',
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

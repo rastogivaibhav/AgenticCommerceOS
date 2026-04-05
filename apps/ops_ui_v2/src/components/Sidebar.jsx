@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, Users, Wrench, GitMerge, Zap, BarChart2, X } from 'lucide-react';
+import { Activity, Users, Wrench, GitMerge, Zap, BarChart2, Building2, X } from 'lucide-react';
 
 const navItems = [
   { path: '/agents',      label: 'Agents',      icon: Users },
@@ -9,6 +9,7 @@ const navItems = [
   { path: '/simulation',  label: 'Simulation',  icon: Activity },
   { path: '/experiments', label: 'Experiments', icon: Zap },
   { path: '/analytics',   label: 'Analytics',   icon: BarChart2 },
+  { path: '/tenants',     label: 'Tenants',     icon: Building2 },
 ];
 
 function RailLinks({ onClose }) {

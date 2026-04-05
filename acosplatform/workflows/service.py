@@ -192,6 +192,47 @@ def create_workflow_version(workflow_id: str, payload, actor: str, environment: 
     return version
 
 
+def approve_workflow_version(
+    workflow_id: str,
+    version: str,
+    actor: str,
+    environment: str = "dev",
+    approval_note: str = "",
+):
+    workflow = get_workflow(workflow_id)
+    workflow_version = get_workflow_version(workflow_id, version)
+    if not workflow or not workflow_version:
+        raise ValueError("Workflow version not found")
+
+    if workflow_version.get("validation_status") == "approved":
+        return {"version": workflow_version, "already_approved": True}
+
+    approved = save_workflow_version(
+        workflow_id=workflow_id,
+        version=version,
+        change_summary=workflow_version.get("change_summary") or "Approved workflow version",
+        validation_status="approved",
+        lifecycle_state="approved",
+        created_by=workflow_version.get("created_by", actor),
+        input_schema=workflow_version.get("input_schema"),
+        output_schema=workflow_version.get("output_schema"),
+        step_definitions=workflow_version.get("step_definitions"),
+        agent_bindings=workflow_version.get("agent_bindings"),
+        policy_bindings=workflow_version.get("policy_bindings"),
+        approved_by=actor,
+    )
+    _write_audit(
+        actor=actor,
+        action="workflow.version_approved",
+        resource_type="workflow",
+        resource_id=workflow_id,
+        tenant_id=workflow["tenant_id"],
+        environment_id=environment,
+        payload={"version": version, "approval_note": approval_note},
+    )
+    return {"version": approved, "already_approved": False}
+
+
 def promote_workflow_version(
     workflow_id: str,
     version: str,
@@ -248,6 +289,113 @@ def promote_workflow_version(
         payload={"version": version, "source_environment": source_environment, "target_environment": target_environment},
     )
     return {"promotion": promotion, "version": updated_version}
+
+
+def rollback_workflow_version(
+    workflow_id: str,
+    target_environment: str,
+    actor: str,
+    to_version: Optional[str] = None,
+    reason: str = "",
+):
+    workflow = get_workflow(workflow_id)
+    if not workflow:
+        raise ValueError("Workflow not found")
+
+    promotions = get_workflow_promotions(workflow_id=workflow_id, environment=target_environment)
+    active = next((p for p in promotions if p.get("is_active")), None)
+    if not active:
+        raise RuntimeError("No active promotion exists to roll back")
+
+    current_version = active.get("version")
+    rollback_version = to_version
+
+    if rollback_version:
+        candidate = get_workflow_version(workflow_id, rollback_version)
+        if not candidate:
+            raise ValueError("Rollback target version not found")
+        if candidate.get("validation_status") != "approved":
+            raise RuntimeError("Rollback target must be an approved version")
+    else:
+        candidate = next(
+            (p for p in promotions if p.get("version") != current_version),
+            None,
+        )
+        if not candidate:
+            raise RuntimeError("No previous version available for rollback")
+        rollback_version = candidate["version"]
+
+    promotion = save_workflow_promotion(
+        workflow_id=workflow_id,
+        version=rollback_version,
+        source_environment=target_environment,
+        target_environment=target_environment,
+        requested_by=actor,
+        approved_by=actor,
+        note=reason or f"Rollback from {current_version} to {rollback_version}",
+        status="rolled_back",
+    )
+    updated_version = save_workflow_version(
+        workflow_id=workflow_id,
+        version=rollback_version,
+        change_summary=f"Rollback activation ({target_environment})",
+        validation_status="approved",
+        lifecycle_state="active",
+        created_by=actor,
+        approved_by=actor,
+    )
+
+    _write_audit(
+        actor=actor,
+        action="workflow.rolled_back",
+        resource_type="workflow",
+        resource_id=workflow_id,
+        tenant_id=workflow["tenant_id"],
+        environment_id=target_environment,
+        payload={
+            "from_version": current_version,
+            "to_version": rollback_version,
+            "target_environment": target_environment,
+            "reason": reason,
+        },
+    )
+    return {
+        "rollback": promotion,
+        "version": updated_version,
+        "from_version": current_version,
+        "to_version": rollback_version,
+    }
+
+
+def archive_workflow(
+    workflow_id: str,
+    actor: str,
+    environment: str = "dev",
+    reason: str = "",
+):
+    workflow = get_workflow(workflow_id)
+    if not workflow:
+        raise ValueError("Workflow not found")
+
+    archived = save_workflow(
+        workflow_id=workflow["id"],
+        tenant_id=workflow["tenant_id"],
+        name=workflow["name"],
+        workflow_family=workflow["workflow_family"],
+        description=workflow.get("description", ""),
+        business_owner=workflow.get("business_owner", "acos-team"),
+        status="archived",
+    )
+    _write_audit(
+        actor=actor,
+        action="workflow.archived",
+        resource_type="workflow",
+        resource_id=workflow_id,
+        tenant_id=workflow["tenant_id"],
+        environment_id=environment,
+        payload={"reason": reason, "status": "archived"},
+    )
+    return {"workflow": archived, "status": "archived"}
 
 
 def resolve_execution_workflow(tenant_id: str, workflow_family: str, environment: str = "dev"):

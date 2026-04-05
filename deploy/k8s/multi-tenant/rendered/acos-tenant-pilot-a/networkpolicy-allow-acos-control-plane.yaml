@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acos-control-plane-egress
+  namespace: acos-tenant-pilot-a
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              acos.io/system: control-plane
+      ports:
+        - protocol: TCP
+          port: 8000
+        - protocol: TCP
+          port: 443
+

@@ -223,8 +223,9 @@ LOG_LEVEL=INFO
 
 # Security & Authentication
 ALLOWED_ORIGINS=https://example.com,https://api.example.com
-JWT_SECRET=generate-with-openssl-rand-hex-32
 OPS_JWT_SECRET=generate-with-openssl-rand-hex-32
+SHOPPER_API_KEYS=key1_replace_me,key2_replace_me
+ALLOW_INSECURE_DEV_AUTH=0
 
 # Shopping Agent (Optional)
 SHOPPING_AGENT_MODEL=claude-opus-4-6
@@ -239,6 +240,15 @@ SENTRY_DSN=https://xxx@sentry.io/project
 See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete configuration reference and security best practices.
 
 ## API Usage
+
+### Local Ops Role Testing
+
+```powershell
+$env:OPS_JWT_SECRET="local-dev-secret"
+.\scripts\switch_ops_role.ps1 -Role admin
+```
+
+The helper mints a JWT for the selected role, opens `/dev/auth/bootstrap`, stores `ops_token` in browser localStorage, and redirects to `/ui/agents`.
 
 ### Workflow Operations
 

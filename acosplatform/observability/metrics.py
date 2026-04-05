@@ -1,13 +1,7 @@
-"""Prometheus metrics for ACOS — FIX-18.
+"""Prometheus metrics for ACOS."""
 
-Exposes /metrics endpoint on the Ops API using prometheus_client.
-Tracks journey counts, latency, billing costs, and error rates.
-"""
-
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 from fastapi import Response
-
-# ── Metrics ────────────────────────────────────────────────────────────────────
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
 
 journey_requests_total = Counter(
     "acos_journey_requests_total",
@@ -18,7 +12,7 @@ journey_requests_total = Counter(
 journey_duration_seconds = Histogram(
     "acos_journey_duration_seconds",
     "Journey execution time in seconds",
-    ["journey_type"],
+    ["journey_type", "tenant_id"],
     buckets=[0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
 )
 
@@ -47,29 +41,41 @@ loyalty_points_redeemed_total = Counter(
 )
 
 
-# ── FastAPI endpoint ───────────────────────────────────────────────────────────
-
 def metrics_endpoint():
-    """Prometheus scrape endpoint — no auth (Prometheus scrapes from internal network)."""
+    """Prometheus scrape endpoint."""
     return Response(
         content=generate_latest(),
         media_type=CONTENT_TYPE_LATEST,
     )
 
 
-# ── Helper functions for use in journey engine ─────────────────────────────────
-
-def record_journey(journey_type: str, tenant_id: str, duration: float,
-                   cost: float, success: bool, points_redeemed: int = 0):
+def record_journey(
+    journey_type: str,
+    tenant_id: str,
+    duration: float,
+    cost: float,
+    success: bool,
+    points_redeemed: int = 0,
+):
     """Record metrics for a completed journey."""
     status = "success" if success else "error"
     journey_requests_total.labels(
-        journey_type=journey_type, tenant_id=tenant_id, status=status
+        journey_type=journey_type,
+        tenant_id=tenant_id,
+        status=status,
     ).inc()
-    journey_duration_seconds.labels(journey_type=journey_type).observe(duration)
+    journey_duration_seconds.labels(
+        journey_type=journey_type,
+        tenant_id=tenant_id,
+    ).observe(max(duration, 0))
     if cost > 0:
         journey_cost_dollars.labels(
-            journey_type=journey_type, tenant_id=tenant_id
+            journey_type=journey_type,
+            tenant_id=tenant_id,
         ).observe(cost)
     if points_redeemed > 0:
         loyalty_points_redeemed_total.labels(tenant_id=tenant_id).inc(points_redeemed)
+
+
+def record_api_error(error_type: str, endpoint: str):
+    api_errors_total.labels(error_type=error_type, endpoint=endpoint).inc()

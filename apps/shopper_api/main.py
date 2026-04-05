@@ -13,11 +13,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from acosplatform.auth.api_key import require_api_key
+from acosplatform.config.startup_validation import validate_auth_configuration
 from acosplatform.models.requests import JourneyRequest
-from acosplatform.db.connection import ensure_schema
+from acosplatform.db.connection import ensure_schema, check_connection
 from acosplatform.journey.engine import run_journey
 from acosplatform.middleware.rate_limit import limiter, rate_limit_error_handler, JOURNEY_LIMIT
-from acosplatform.observability.metrics import metrics_endpoint
+from acosplatform.observability.metrics import metrics_endpoint, record_api_error
 from acosplatform.workflows.service import ensure_default_workflow_registry
 from slowapi.errors import RateLimitExceeded
 
@@ -56,6 +57,7 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled exception on {request.url.path}: {exc}", exc_info=True)
+    record_api_error(exc.__class__.__name__, request.url.path)
     return JSONResponse(
         status_code=500,
         content={"error": "Internal server error"},
@@ -65,6 +67,10 @@ async def generic_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 def startup():
     logger.info("Shopper API starting up...")
+    validate_auth_configuration(
+        service="shopper-api",
+        environment=os.environ.get("OPS_ENVIRONMENT", "dev"),
+    )
     ensure_schema()
     ensure_default_workflow_registry(environment=os.environ.get("OPS_ENVIRONMENT", "dev"))
     logger.info("Shopper API ready")
@@ -98,8 +104,7 @@ def shopper_metrics():
 @app.get("/health")
 def health():
     """Shallow health check — no auth required."""
-    from acosplatform.db.connection import get_connection
-    db_ok = get_connection() is not None
+    db_ok = check_connection()
     return {
         "status": "ok" if db_ok else "degraded",
         "db": "connected" if db_ok else "unavailable",

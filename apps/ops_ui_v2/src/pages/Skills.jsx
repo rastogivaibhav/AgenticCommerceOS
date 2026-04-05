@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Database, Zap, Lock, Globe, ChevronRight, Play, AlertOctagon } from 'lucide-react';
 import Editor from '@monaco-editor/react';
+import { apiFetch } from '../api/client';
+import { canOperate, isAnalyst } from '../lib/rbac';
 import './Lists.css';
 
 const TYPE_CLASSES = {
@@ -9,6 +11,8 @@ const TYPE_CLASSES = {
 };
 
 export default function Skills() {
+  const allowMutations = canOperate();
+  const analystMode = isAnalyst();
   const [skills, setSkills] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSkillId, setSelectedSkillId] = useState(null);
@@ -27,7 +31,7 @@ export default function Skills() {
 
   const fetchSkills = () => {
     setIsLoading(true);
-    fetch('http://localhost:8081/api/v1/skills')
+    apiFetch('/api/v1/skills')
       .then(res => res.json())
       .then(data => { setSkills(data.skills || []); setApiError(null); })
       .catch(err => { console.error('Failed to load skills:', err); setApiError(err.message); })
@@ -40,6 +44,9 @@ export default function Skills() {
 
   const handleAuthor = async (e) => {
     e.preventDefault();
+    if (!allowMutations) {
+      return;
+    }
     setIsDeploying(true);
     const newId = 'sk_' + form.name.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const newSkill = {
@@ -54,7 +61,7 @@ export default function Skills() {
       linterWarnings: []
     };
     try {
-      await fetch('http://localhost:8081/api/v1/skills', {
+      await apiFetch('/api/v1/skills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSkill)
@@ -183,6 +190,11 @@ export default function Skills() {
           <div className="eyebrow">ACOS Capabilities</div>
           <h1>Skill Library</h1>
           <p className="muted">Browse and manage pluggable skills, API integrations, and utilities used by agents.</p>
+          {analystMode && (
+            <p className="muted" style={{ marginTop: 8 }}>
+              Analyst role: write actions are disabled on this screen.
+            </p>
+          )}
         </div>
         <div className="header-actions">
           <input 
@@ -191,7 +203,14 @@ export default function Skills() {
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
-          <button className="primary-button" onClick={() => setShowAuthorModal(true)}>Create Skill</button>
+          <button
+            className="primary-button"
+            onClick={() => setShowAuthorModal(true)}
+            disabled={!allowMutations}
+            title={!allowMutations ? 'Read-only for analyst role' : ''}
+          >
+            Create Skill
+          </button>
         </div>
       </header>
 
@@ -299,10 +318,10 @@ export default function Skills() {
               
               <div className="widget-footer">
                 <div style={{display: 'flex', gap: '8px'}}>
-                  <button className="primary-button compact">Commit Code</button>
-                  <button className="secondary-button compact"><Play size={14} style={{marginRight: '6px'}}/> Test Run</button>
+                  <button className="primary-button compact" disabled={!allowMutations}>Commit Code</button>
+                  <button className="secondary-button compact" disabled={!allowMutations}><Play size={14} style={{marginRight: '6px'}}/> Test Run</button>
                 </div>
-                <button className="danger-button compact outline enable-btn">Disable Skill</button>
+                <button className="danger-button compact outline enable-btn" disabled={!allowMutations}>Disable Skill</button>
               </div>
             </div>
           </div>

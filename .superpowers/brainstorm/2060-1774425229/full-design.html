@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACOS — Material 3 Design Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --md-primary: #6750A4; --md-on-primary: #FFFFFF;
+    --md-primary-container: #EADDFF; --md-on-primary-container: #21005D;
+    --md-secondary: #625B71; --md-secondary-container: #E8DEF8;
+    --md-on-secondary-container: #1D192B;
+    --md-surface: #FFFBFE; --md-surface-variant: #E7E0EC;
+    --md-surface-container: #F3EDF7; --md-surface-container-high: #ECE6F0;
+    --md-on-surface: #1C1B1F; --md-on-surface-variant: #49454F;
+    --md-outline-variant: #CAC4D0;
+    --md-green: #198A56; --md-green-container: #C8F0DA;
+    --md-orange: #B45309; --md-orange-container: #FDE8C9;
+  }
+  body { font-family: Roboto, sans-serif; background: var(--md-surface); color: var(--md-on-surface); height: 100vh; display: flex; flex-direction: column; padding-bottom: 72px; }
+  .top-app-bar { height: 64px; background: var(--md-surface-container); display: flex; align-items: center; padding: 0 16px 0 0; gap: 8px; flex-shrink: 0; border-bottom: 1px solid var(--md-outline-variant); }
+  .logo { width: 80px; height: 64px; background: var(--md-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .logo span { color: white; font-size: 18px; font-weight: 700; }
+  .bar-title { font-size: 22px; font-weight: 400; flex: 1; padding-left: 8px; }
+  .search-box { display: flex; align-items: center; background: var(--md-surface-variant); border-radius: 28px; padding: 0 16px; height: 40px; gap: 8px; min-width: 220px; }
+  .search-box input { background: none; border: none; outline: none; font-family: Roboto, sans-serif; font-size: 14px; color: var(--md-on-surface); width: 100%; }
+  .avatar { width: 36px; height: 36px; background: var(--md-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; font-size: 14px; }
+  .layout { display: flex; flex: 1; overflow: hidden; }
+  .nav-rail { width: 80px; background: var(--md-surface-container-high); display: flex; flex-direction: column; align-items: center; padding: 12px 0; gap: 4px; flex-shrink: 0; border-right: 1px solid var(--md-outline-variant); }
+  .nav-item { width: 64px; display: flex; flex-direction: column; align-items: center; padding: 6px 0; border-radius: 16px; gap: 3px; text-decoration: none; }
+  .nav-item.active { background: var(--md-secondary-container); }
+  .nav-icon { width: 40px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 14px; }
+  .nav-label { font-size: 11px; font-weight: 500; color: var(--md-on-surface-variant); text-align: center; }
+  .nav-item.active .nav-label { color: var(--md-primary); font-weight: 600; }
+  .main { flex: 1; overflow-y: auto; padding: 24px; }
+  .eyebrow { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--md-primary); margin-bottom: 4px; }
+  .page-title { font-size: 28px; font-weight: 400; margin-bottom: 4px; }
+  .page-sub { font-size: 14px; color: var(--md-on-surface-variant); margin-bottom: 24px; }
+  .summary-row { display: flex; gap: 12px; margin-bottom: 24px; }
+  .scard { flex: 1; border-radius: 16px; padding: 16px; }
+  .scard-val { font-size: 24px; font-weight: 500; }
+  .scard-label { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+  .action-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .chips { display: flex; gap: 8px; }
+  .chip { padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; border: 1px solid var(--md-outline-variant); color: var(--md-on-surface-variant); cursor: pointer; }
+  .chip.active { background: var(--md-secondary-container); border-color: var(--md-primary); color: var(--md-on-secondary-container); }
+  .fab { display: flex; align-items: center; gap: 8px; padding: 0 20px; height: 40px; background: var(--md-primary); color: #fff; border-radius: 20px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .card { background: var(--md-surface-container); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; border: 1px solid transparent; cursor: pointer; transition: box-shadow 0.2s; }
+  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); border-color: var(--md-outline-variant); }
+  .card-top { display: flex; align-items: flex-start; gap: 14px; }
+  .card-avatar { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+  .card-name { font-size: 16px; font-weight: 500; }
+  .card-id { font-size: 11px; color: var(--md-primary); font-family: 'Roboto Mono', monospace; margin-top: 2px; }
+  .card-mid { display: flex; align-items: center; justify-content: space-between; }
+  .status { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .status.healthy { background: var(--md-green-container); color: var(--md-green); }
+  .status.disabled { background: var(--md-surface-variant); color: var(--md-on-surface-variant); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .subsystem { font-size: 12px; color: var(--md-on-surface-variant); background: var(--md-surface-variant); padding: 4px 10px; border-radius: 8px; }
+  .stats { display: flex; gap: 16px; padding-top: 12px; border-top: 1px solid var(--md-outline-variant); }
+  .stat-val { font-size: 14px; font-weight: 600; }
+  .stat-lbl { font-size: 11px; color: var(--md-on-surface-variant); }
+  .bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fffbfe; border-top: 1px solid #cac4d0; padding: 14px 24px; display: flex; gap: 12px; align-items: center; justify-content: center; z-index: 100; font-family: Roboto, sans-serif; }
+  .btn-approve { background: #6750a4; color: #fff; border: none; padding: 8px 20px; border-radius: 20px; font-family: Roboto, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .btn-dark { background: #ece6f0; color: #21005d; border: none; padding: 8px 20px; border-radius: 20px; font-family: Roboto, sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="top-app-bar">
+  <div class="logo"><span>ACOS</span></div>
+  <div class="bar-title">Control Plane</div>
+  <div class="search-box">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input placeholder="Search agents, skills, workflows…" />
+  </div>
+  <div style="width:8px;"></div>
+  <div class="avatar">A</div>
+</div>
+
+<div class="layout">
+  <nav class="nav-rail">
+    <a class="nav-item active">
+      <div class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="#6750A4"><circle cx="12" cy="8" r="4"/><path d="M20 21v-2a8 8 0 00-16 0v2"/></svg></div>
+      <span class="nav-label">Agents</span>
+    </a>
+    <a class="nav-item">
+      <div class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="1.8"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+      <span class="nav-label">Skills</span>
+    </a>
+    <a class="nav-item">
+      <div class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="1.8"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg></div>
+      <span class="nav-label">Workflows</span>
+    </a>
+    <a class="nav-item">
+      <div class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <span class="nav-label">Simulation</span>
+    </a>
+    <a class="nav-item">
+      <div class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="1.8"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+      <span class="nav-label">Experiments</span>
+    </a>
+    <a class="nav-item">
+      <div class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#49454F" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+      <span class="nav-label">Analytics</span>
+    </a>
+  </nav>
+
+  <main class="main">
+    <div class="eyebrow">ACOS Ecosystem</div>
+    <div class="page-title">System Agents</div>
+    <div class="page-sub">Monitor and manage the autonomous agents across diverse operational domains.</div>
+
+    <div class="summary-row">
+      <div class="scard" style="background:var(--md-primary-container); color:var(--md-on-primary-container);">
+        <div class="scard-val">5</div><div class="scard-label">Total Agents</div>
+      </div>
+      <div class="scard" style="background:var(--md-secondary-container); color:var(--md-on-secondary-container);">
+        <div class="scard-val">4</div><div class="scard-label">Healthy</div>
+      </div>
+      <div class="scard" style="background:var(--md-orange-container); color:var(--md-orange);">
+        <div class="scard-val">1</div><div class="scard-label">Degraded</div>
+      </div>
+      <div class="scard" style="background:var(--md-surface-container-high); color:var(--md-on-surface);">
+        <div class="scard-val">12.4k</div><div class="scard-label">Avg. Volume</div>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <div class="chips">
+        <div class="chip active">All</div>
+        <div class="chip">Healthy</div>
+        <div class="chip">Degraded</div>
+      </div>
+      <button class="fab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Create Agent
+      </button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-top">
+          <div class="card-avatar" style="background:var(--md-primary-container);color:var(--md-on-primary-container);">CM</div>
+          <div><div class="card-name">Campaign Manager</div><div class="card-id">ag_marketing</div></div>
+        </div>
+        <div class="card-mid">
+          <span class="status healthy"><span class="status-dot"></span>Healthy</span>
+          <span class="subsystem">Marketing</span>
+        </div>
+        <div class="stats">
+          <div><div class="stat-val">12.4k</div><div class="stat-lbl">Volume</div></div>
+          <div><div class="stat-val">99.9%</div><div class="stat-lbl">Uptime</div></div>
+          <div><div class="stat-val">A+</div><div class="stat-lbl">Grade</div></div>
+          <div><div class="stat-val">110ms</div><div class="stat-lbl">Latency</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <div class="card-avatar" style="background:var(--md-orange-container);color:var(--md-orange);">ED</div>
+          <div><div class="card-name">Escalation Desk</div><div class="card-id">ag_support_l2</div></div>
+        </div>
+        <div class="card-mid">
+          <span class="status disabled"><span class="status-dot"></span>Disabled</span>
+          <span class="subsystem">Customer Service</span>
+        </div>
+        <div class="stats">
+          <div><div class="stat-val">2.1k</div><div class="stat-lbl">Volume</div></div>
+          <div><div class="stat-val">87.2%</div><div class="stat-lbl">Uptime</div></div>
+          <div><div class="stat-val">B</div><div class="stat-lbl">Grade</div></div>
+          <div><div class="stat-val">340ms</div><div class="stat-lbl">Latency</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <div class="card-avatar" style="background:var(--md-primary-container);color:var(--md-on-primary-container);">FS</div>
+          <div><div class="card-name">Frontline Support</div><div class="card-id">ag_support_l1</div></div>
+        </div>
+        <div class="card-mid">
+          <span class="status healthy"><span class="status-dot"></span>Healthy</span>
+          <span class="subsystem">Customer Service</span>
+        </div>
+        <div class="stats">
+          <div><div class="stat-val">45.1k</div><div class="stat-lbl">Volume</div></div>
+          <div><div class="stat-val">99.7%</div><div class="stat-lbl">Uptime</div></div>
+          <div><div class="stat-val">A</div><div class="stat-lbl">Grade</div></div>
+          <div><div class="stat-val">95ms</div><div class="stat-lbl">Latency</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <div class="card-avatar" style="background:#C8F5E8;color:#198A56;">LR</div>
+          <div><div class="card-name">Logistics Router</div><div class="card-id">ag_fulfillment</div></div>
+        </div>
+        <div class="card-mid">
+          <span class="status healthy"><span class="status-dot"></span>Healthy</span>
+          <span class="subsystem">Fulfillment</span>
+        </div>
+        <div class="stats">
+          <div><div class="stat-val">8.3k</div><div class="stat-lbl">Volume</div></div>
+          <div><div class="stat-val">98.1%</div><div class="stat-lbl">Uptime</div></div>
+          <div><div class="stat-val">A-</div><div class="stat-lbl">Grade</div></div>
+          <div><div class="stat-val">210ms</div><div class="stat-lbl">Latency</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <div class="card-avatar" style="background:#FFD8E4;color:#7E5260;">RP</div>
+          <div><div class="card-name">Returns Processor</div><div class="card-id">ag_returns</div></div>
+        </div>
+        <div class="card-mid">
+          <span class="status healthy"><span class="status-dot"></span>Healthy</span>
+          <span class="subsystem">Reverse Logistics</span>
+        </div>
+        <div class="stats">
+          <div><div class="stat-val">1.2k</div><div class="stat-lbl">Volume</div></div>
+          <div><div class="stat-val">99.5%</div><div class="stat-lbl">Uptime</div></div>
+          <div><div class="stat-val">A</div><div class="stat-lbl">Grade</div></div>
+          <div><div class="stat-val">180ms</div><div class="stat-lbl">Latency</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="bottom-bar">
+  <span style="font-size:14px;color:#49454f;">Does this design direction feel right?</span>
+  <button class="btn-approve" id="btn-yes">Yes, looks great</button>
+  <button class="btn-dark" id="btn-dark">Show dark mode variant</button>
+</div>
+
+<script>
+(function() {
+  function recordChoice(choice, label) {
+    if (window.__selectChoice) { window.__selectChoice(choice, label); }
+  }
+  document.getElementById('btn-yes').addEventListener('click', function() {
+    recordChoice('approved', 'Approved — looks great');
+  });
+  document.getElementById('btn-dark').addEventListener('click', function() {
+    recordChoice('dark-mode', 'Show dark mode variant');
+  });
+})();
+</script>
+</body>
+</html>

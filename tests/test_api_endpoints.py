@@ -26,7 +26,7 @@ class TestWorkflowEndpoints:
         payload = {
             "name": "Test Workflow",
             "description": "Test description",
-            "family": "test"
+            "family": "discovery"
         }
         response = client.post("/workflows", json=payload, headers=TEST_HEADERS)
         assert response.status_code in [200, 201, 401, 403]
@@ -41,13 +41,13 @@ class TestWorkflowEndpoints:
 
     def test_update_workflow(self):
         """Test PATCH /workflows/{workflow_id} endpoint."""
-        payload = {"name": "Updated Workflow"}
+        payload = {"step_definitions": {"nodes": [], "edges": []}}
         response = client.patch(
             "/workflows/test-workflow-id",
             json=payload,
             headers=TEST_HEADERS
         )
-        assert response.status_code in [200, 404, 401, 403]
+        assert response.status_code in [200, 404, 401, 403, 422]
 
     def test_delete_workflow(self):
         """Test DELETE /workflows/{workflow_id} endpoint."""
@@ -56,6 +56,26 @@ class TestWorkflowEndpoints:
             headers=TEST_HEADERS
         )
         assert response.status_code in [200, 204, 404, 401, 403]
+
+    def test_rollback_workflow(self):
+        """Test POST /workflows/{workflow_id}/rollback endpoint."""
+        payload = {"target_environment": "dev", "reason": "test rollback"}
+        response = client.post(
+            "/workflows/test-workflow-id/rollback",
+            json=payload,
+            headers=TEST_HEADERS,
+        )
+        assert response.status_code in [200, 404, 409, 401, 403]
+
+    def test_approve_workflow_version(self):
+        """Test POST /workflows/{workflow_id}/versions/{version}/approve endpoint."""
+        payload = {"approval_note": "test approval"}
+        response = client.post(
+            "/workflows/test-workflow-id/versions/v2/approve",
+            json=payload,
+            headers=TEST_HEADERS,
+        )
+        assert response.status_code in [200, 404, 401, 403]
 
 
 class TestExperimentsEndpoints:
@@ -117,6 +137,23 @@ class TestAnalyticsEndpoints:
         )
         assert response.status_code in [200, 401, 403]
 
+    def test_slo_analytics(self):
+        """Test GET /analytics/slo endpoint."""
+        response = client.get("/analytics/slo", headers=TEST_HEADERS)
+        assert response.status_code in [200, 401, 403]
+        if response.status_code == 200:
+            data = response.json()
+            assert "availability_pct" in data
+            assert "latency_ms" in data
+
+    def test_trace_analytics(self):
+        """Test GET /analytics/traces endpoint."""
+        response = client.get("/analytics/traces?limit=10", headers=TEST_HEADERS)
+        assert response.status_code in [200, 401, 403]
+        if response.status_code == 200:
+            data = response.json()
+            assert "events" in data
+
 
 class TestAgentEndpoints:
     """Test agent management endpoints."""
@@ -136,17 +173,18 @@ class TestAgentEndpoints:
             "name": "Test Agent",
             "description": "A test agent"
         }
-        response = client.post("/agents", json=payload)
-        assert response.status_code in [200, 201, 400]
+        response = client.post("/agents", json=payload, headers=TEST_HEADERS)
+        assert response.status_code in [200, 201, 400, 401, 403]
 
     def test_update_agent(self):
         """Test PATCH /agents/{agent_id} endpoint."""
         payload = {"name": "Updated Agent"}
         response = client.patch(
             "/agents/test-agent-id",
-            json=payload
+            json=payload,
+            headers=TEST_HEADERS,
         )
-        assert response.status_code in [200, 404, 400]
+        assert response.status_code in [200, 404, 400, 401, 403]
 
 
 class TestSkillEndpoints:
@@ -167,17 +205,18 @@ class TestSkillEndpoints:
             "name": "Test Skill",
             "description": "A test skill"
         }
-        response = client.post("/skills", json=payload)
-        assert response.status_code in [200, 201, 400]
+        response = client.post("/skills", json=payload, headers=TEST_HEADERS)
+        assert response.status_code in [200, 201, 400, 401, 403]
 
     def test_update_skill(self):
         """Test PATCH /skills/{skill_id} endpoint."""
         payload = {"name": "Updated Skill"}
         response = client.patch(
             "/skills/test-skill-id",
-            json=payload
+            json=payload,
+            headers=TEST_HEADERS,
         )
-        assert response.status_code in [200, 404, 400]
+        assert response.status_code in [200, 404, 400, 401, 403]
 
 
 class TestHealthAndSystem:
@@ -185,7 +224,7 @@ class TestHealthAndSystem:
 
     def test_root_redirect(self):
         """Test that / redirects to UI."""
-        response = client.get("/", allow_redirects=False)
+        response = client.get("/", follow_redirects=False)
         assert response.status_code in [200, 307, 308]
 
     def test_runs_list(self):

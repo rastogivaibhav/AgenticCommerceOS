@@ -35,8 +35,9 @@ OPS_ENVIRONMENT=production
 ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com
 
 # Security
-JWT_SECRET=your-very-secure-secret-key-change-this
-API_KEY_PREFIX=sk-
+OPS_JWT_SECRET=your-very-secure-secret-key-change-this
+SHOPPER_API_KEYS=replace-with-comma-separated-api-keys
+ALLOW_INSECURE_DEV_AUTH=0
 
 # Optional: Analytics and Monitoring
 SENTRY_DSN=https://your-sentry-key@sentry.io/project
@@ -95,7 +96,7 @@ python -c "from acosplatform.db.connection import ensure_schema; ensure_schema()
 export APP_VERSION="1.0.0"
 export OPS_ENVIRONMENT="production"
 export ALLOWED_ORIGINS="https://your-domain.com"
-export JWT_SECRET="your-secret-key"
+export OPS_JWT_SECRET="your-secret-key"
 
 uvicorn apps.ops_api.main:app \
   --host 0.0.0.0 \
@@ -153,7 +154,9 @@ aws s3 sync apps/ops_ui_v2/dist s3://your-bucket/acos/
 | `APP_VERSION` | Application version | `1.0.0` |
 | `OPS_ENVIRONMENT` | Environment type | `production`, `staging`, `dev` |
 | `ALLOWED_ORIGINS` | CORS-allowed origins | `https://example.com,https://app.example.com` |
-| `JWT_SECRET` | JWT signing key (dev mode only) | `your-secret-key` |
+| `OPS_JWT_SECRET` | JWT signing key for Ops API bearer tokens | `your-secret-key` |
+| `SHOPPER_API_KEYS` | Comma-separated valid API keys for Shopper API | `key1,key2` |
+| `ALLOW_INSECURE_DEV_AUTH` | Dev-only auth bypass toggle (must be 0 in prod) | `0` |
 
 ### Optional Variables
 
@@ -168,12 +171,42 @@ aws s3 sync apps/ops_ui_v2/dist s3://your-bucket/acos/
 ### Security Best Practices
 
 1. **Never commit `.env` files** - Use `.env.example` template instead
-2. **Rotate secrets regularly** - Update JWT_SECRET and API keys quarterly
+2. **Rotate secrets regularly** - Update OPS_JWT_SECRET and SHOPPER_API_KEYS quarterly
 3. **Use strong passwords** - Database password minimum 20 characters
 4. **Enable HTTPS** - Always use HTTPS in production (not HTTP)
 5. **Restrict CORS origins** - Don't use `*` in ALLOWED_ORIGINS
 6. **Implement authentication** - Use OAuth, API keys, or JWT
 7. **Monitor logs** - Set up centralized logging and alerting
+
+### RBAC Claims for Ops Tokens
+
+Ops endpoints now enforce role-based authorization from JWT claims. Include one of these claims in issued tokens:
+
+- `role` (single role string), or
+- `roles` (array or comma-separated string), or
+- `realm_access.roles` (array)
+
+Supported roles:
+
+- `admin`: full access including tenant mutation
+- `ops`: operational read/write access
+- `analyst`: read-only analytics and run visibility
+
+For local role testing, generate tokens with:
+
+```bash
+python scripts/mint_dev_jwt.py --all --secret "$OPS_JWT_SECRET"
+```
+
+For one-command role switching in local UI testing:
+
+```powershell
+.\scripts\switch_ops_role.ps1 -Role admin
+.\scripts\switch_ops_role.ps1 -Role ops
+.\scripts\switch_ops_role.ps1 -Role analyst
+```
+
+This opens `/dev/auth/bootstrap`, writes `ops_token` into browser local storage, then redirects to the requested `/ui/*` path.
 
 ## Database Migration
 
@@ -199,6 +232,13 @@ psql -U acos_user -h localhost acos_db < backup.sql
 ### Run Backend Tests
 ```bash
 pytest tests/ -v --cov=acosplatform --cov-report=html
+```
+
+### Run Postgres RLS Migration Validation
+```bash
+# Local-only DB bind (127.0.0.1) is configured in docker-compose.yml
+docker compose up -d db
+pytest tests/test_postgres_rls_migrations.py -q -rs
 ```
 
 ### Run Frontend Tests
@@ -295,7 +335,7 @@ curl -i http://localhost:8000/ui/
 
 ### API Returns 403 Forbidden
 - Check Authorization header is present
-- Verify JWT_SECRET matches (if using JWT)
+- Verify OPS_JWT_SECRET matches the token issuer configuration
 - Check API key format and prefix
 - Ensure token isn't expired
 

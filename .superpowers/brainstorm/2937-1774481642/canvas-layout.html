@@ -1,0 +1,89 @@
+<h2>Where should the Workflow Canvas live?</h2>
+<p class="subtitle">Right now the canvas is a side panel inside the Workflows list. Should we change where/how it opens?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f1117;padding:12px;border-radius:8px;font-size:11px;color:#9ca3af">
+      <div style="display:flex;height:180px;gap:8px">
+        <div style="width:38%;background:#1a1d26;border-radius:6px;padding:8px">
+          <div style="background:#2a2d3a;height:12px;border-radius:3px;margin-bottom:6px;width:80%"></div>
+          <div style="background:#2a2d3a;height:10px;border-radius:3px;margin-bottom:4px;width:100%"></div>
+          <div style="background:#2a2d3a;height:10px;border-radius:3px;margin-bottom:4px;width:90%"></div>
+          <div style="background:#3b82f620;height:10px;border-radius:3px;margin-bottom:4px;width:100%;border:1px solid #3b82f6"></div>
+          <div style="background:#2a2d3a;height:10px;border-radius:3px;margin-bottom:4px;width:85%"></div>
+        </div>
+        <div style="flex:1;background:#111318;border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:6px;justify-content:flex-end">
+            <div style="background:#374151;height:20px;width:60px;border-radius:4px"></div>
+            <div style="background:#8b5cf6;height:20px;width:80px;border-radius:4px"></div>
+          </div>
+          <div style="flex:1;border:1px dashed #374151;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#4b5563;font-size:10px">ReactFlow Canvas</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Side Panel (current)</h3>
+      <p>List on the left, canvas slides in on the right when you click a workflow. Both visible at the same time.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f1117;padding:12px;border-radius:8px;font-size:11px;color:#9ca3af">
+      <div style="height:180px;background:#111318;border-radius:6px;padding:8px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px;background:#1a1d26;padding:6px 8px;border-radius:4px">
+          <div style="background:#374151;height:14px;width:14px;border-radius:3px"></div>
+          <div style="background:#374151;height:10px;width:120px;border-radius:3px"></div>
+          <div style="flex:1"></div>
+          <div style="background:#374151;height:10px;width:60px;border-radius:3px"></div>
+          <div style="background:#8b5cf6;height:20px;width:80px;border-radius:4px"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex:1">
+          <div style="width:160px;background:#1a1d26;border-radius:4px;padding:6px">
+            <div style="background:#2a2d3a;height:10px;border-radius:3px;margin-bottom:5px;width:70%"></div>
+            <div style="background:#2a2d3a;height:24px;border-radius:4px;margin-bottom:4px"></div>
+            <div style="background:#2a2d3a;height:24px;border-radius:4px;margin-bottom:4px"></div>
+            <div style="background:#10b98130;height:24px;border-radius:4px;margin-bottom:4px;border:1px solid #10b981"></div>
+          </div>
+          <div style="flex:1;border:1px dashed #374151;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#4b5563;font-size:10px">Canvas fills page</div>
+          <div style="width:140px;background:#1a1d26;border-radius:4px;padding:6px">
+            <div style="background:#2a2d3a;height:10px;border-radius:3px;margin-bottom:5px;width:70%"></div>
+            <div style="background:#2a2d3a;height:50px;border-radius:4px;margin-bottom:4px"></div>
+            <div style="background:#2a2d3a;height:30px;border-radius:4px;margin-bottom:4px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Full-Screen Editor (like n8n / Figma)</h3>
+      <p>Clicking a workflow navigates to a dedicated full-page canvas. Node palette left, canvas center, config panel right. Maximum real estate.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f1117;padding:12px;border-radius:8px;font-size:11px;color:#9ca3af">
+      <div style="height:180px;position:relative;display:flex;align-items:center;justify-content:center">
+        <div style="background:#1a1d26;border-radius:6px;padding:8px;opacity:0.4;position:absolute;inset:0"></div>
+        <div style="background:#111318;border:1px solid #374151;border-radius:8px;width:85%;height:80%;z-index:1;padding:8px;display:flex;flex-direction:column;gap:6px;box-shadow:0 8px 32px rgba(0,0,0,0.5)">
+          <div style="display:flex;align-items:center;gap:8px;padding:4px">
+            <div style="background:#2a2d3a;height:10px;width:120px;border-radius:3px"></div>
+            <div style="flex:1"></div>
+            <div style="background:#374151;height:18px;width:18px;border-radius:3px;font-size:10px;display:flex;align-items:center;justify-content:center">✕</div>
+          </div>
+          <div style="flex:1;border:1px dashed #374151;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#4b5563;font-size:10px">Canvas inside modal</div>
+          <div style="display:flex;gap:6px;justify-content:flex-end">
+            <div style="background:#374151;height:20px;width:60px;border-radius:4px"></div>
+            <div style="background:#8b5cf6;height:20px;width:80px;border-radius:4px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Expanded Modal</h3>
+      <p>Canvas opens in a large modal overlay (90% of viewport). Keeps the list visible underneath. Good for quick edits.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:16px">Click an option to select it, then reply in the terminal.</p>

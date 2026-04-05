@@ -1,3 +1,9 @@
+import logging
+
+from integrations.connectors import ConnectorContract, execute_connector
+
+logger = logging.getLogger(__name__)
+
 PRODUCTS = [
     {"id": "prod-001", "name": "UltraBook Pro 15", "category": "electronics", "base_price": 1299.99, "description": "15-inch laptop with M3 chip, 16GB RAM, 512GB SSD", "tags": ["laptop", "portable", "premium"]},
     {"id": "prod-002", "name": "Wireless Noise-Cancelling Headphones", "category": "electronics", "base_price": 349.99, "description": "Over-ear headphones with 30-hour battery and ANC", "tags": ["audio", "wireless", "noise-cancelling"]},
@@ -23,37 +29,72 @@ PRODUCTS = [
 
 CATEGORIES = list(set(p["category"] for p in PRODUCTS))
 
+_CATALOG_CONNECTOR = ConnectorContract(
+    name="catalog",
+    required_request_fields=("tenant_id",),
+    required_response_fields=("products",),
+)
+
 
 def run(ctx):
     """Return product catalog, optionally filtered by category or search query."""
+    tenant_config = ctx.get("tenant_config") or {}
+    connector_payload = {
+        "tenant_id": ctx.get("tenant_id", "default"),
+        "category": ctx.get("category"),
+        "query": ctx.get("query", ""),
+        "tags": ctx.get("tags", []),
+    }
+    connector_result = execute_connector(
+        contract=_CATALOG_CONNECTOR,
+        payload=connector_payload,
+        tenant_config=tenant_config,
+        local_handler=_local_catalog_run,
+    )
+    return connector_result.as_dict()
+
+
+def _local_catalog_run(ctx):
+    """Local catalog implementation used by connector fallback."""
     category = ctx.get("category")
     query = ctx.get("query", "").lower()
     tags = ctx.get("tags", [])
 
-    results = PRODUCTS
-
-    if category:
-        results = [p for p in results if p["category"] == category]
-
-    if query:
-        results = [
-            p for p in results
-            if query in p["name"].lower()
-            or query in p["description"].lower()
-            or any(query in t for t in p["tags"])
-        ]
+    try:
+        from acosplatform.db.repository import get_products, search_products
+        if query:
+            results = search_products(query, category=category)
+        else:
+            results = get_products(category=category)
+        if not results:
+            raise ValueError("empty")
+    except Exception:
+        results = PRODUCTS
+        if category:
+            results = [p for p in results if p["category"] == category]
+        if query:
+            results = [
+                p for p in results
+                if query in p["name"].lower()
+                or query in p["description"].lower()
+                or any(query in t for t in p["tags"])
+            ]
 
     if tags:
-        results = [
-            p for p in results
-            if any(t in p["tags"] for t in tags)
-        ]
+        results = [p for p in results if any(t in p.get("tags", []) for t in tags)]
 
     return {"products": results, "total": len(results), "categories": CATEGORIES}
 
 
 def get_product(product_id):
     """Get a single product by ID."""
+    try:
+        from acosplatform.db.repository import get_product_by_id
+        result = get_product_by_id(product_id)
+        if result:
+            return result
+    except Exception:
+        pass
     for p in PRODUCTS:
         if p["id"] == product_id:
             return p
@@ -62,11 +103,25 @@ def get_product(product_id):
 
 def search(query):
     """Search products by name, description, or tags."""
+    try:
+        from acosplatform.db.repository import search_products
+        results = search_products(query)
+        if results:
+            return {"products": results, "total": len(results), "categories": CATEGORIES}
+    except Exception:
+        pass
     return run({"query": query})
 
 
 def get_by_category(category):
     """Get products in a category."""
+    try:
+        from acosplatform.db.repository import get_products
+        results = get_products(category=category)
+        if results:
+            return {"products": results, "total": len(results), "categories": CATEGORIES}
+    except Exception:
+        pass
     return run({"category": category})
 
 
@@ -78,17 +133,23 @@ def recommend(ctx):
     preferred_categories = preferences.get("categories", [])
     preferred_tags = preferences.get("tags", [])
 
+    try:
+        from acosplatform.db.repository import get_products
+        product_list = get_products() or PRODUCTS
+    except Exception:
+        product_list = PRODUCTS
+
     # Score products based on preference match
     scored = []
     purchased_ids = {item.get("product_id") for item in history}
 
-    for p in PRODUCTS:
+    for p in product_list:
         if p["id"] in purchased_ids:
             continue
         score = 0
         if p["category"] in preferred_categories:
             score += 3
-        for tag in p["tags"]:
+        for tag in p.get("tags", []):
             if tag in preferred_tags:
                 score += 1
         scored.append((score, p))
@@ -98,6 +159,24 @@ def recommend(ctx):
     top = [item[1] for item in scored[:5]]
 
     if not top:
-        top = PRODUCTS[:5]
+        top = product_list[:5]
 
     return {"recommendations": top, "total": len(top)}
+
+
+def _ensure_products_seeded():
+    try:
+        from acosplatform.db.repository import get_products, save_product
+        existing = get_products(limit=1)
+        if not existing:
+            for product in PRODUCTS:
+                save_product(product)
+            logger.info("Seeded %d products into DB", len(PRODUCTS))
+    except Exception as e:
+        logger.warning("Product seeding skipped: %s", e)
+
+
+try:
+    _ensure_products_seeded()
+except Exception:
+    pass

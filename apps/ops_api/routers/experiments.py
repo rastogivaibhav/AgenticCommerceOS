@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from acosplatform.auth.api_key import require_ops_token
+from acosplatform.auth.api_key import require_ops_roles
 from acosplatform.db.repository import get_experiments
 from acosplatform.evaluation.scorer import run_ab_test
 from acosplatform.journey.engine import run_journey
 
 router = APIRouter(prefix="/experiments", tags=["experiments"])
+READ_ACCESS = require_ops_roles("admin", "ops", "analyst")
+OPERATE_ACCESS = require_ops_roles("admin", "ops")
 
 
 class ExperimentRequest(BaseModel):
@@ -18,12 +20,12 @@ class ExperimentRequest(BaseModel):
 
 
 @router.get("")
-def list_experiments():
+def list_experiments(_claims: dict = Depends(READ_ACCESS)):
     return {"experiments": get_experiments()}
 
 
 @router.post("")
-def create_experiment(body: ExperimentRequest, _token: dict = Depends(require_ops_token)):
+def create_experiment(body: ExperimentRequest, _claims: dict = Depends(OPERATE_ACCESS)):
     name = body.name
     payload = {
         "message": body.message,
@@ -39,7 +41,7 @@ def create_experiment(body: ExperimentRequest, _token: dict = Depends(require_op
 
 
 @router.get("/{experiment_id}/results")
-def get_experiment_results(experiment_id: str):
+def get_experiment_results(experiment_id: str, _claims: dict = Depends(READ_ACCESS)):
     try:
         eid = int(experiment_id)
     except ValueError:

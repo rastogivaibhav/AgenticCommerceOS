@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-
-const API = 'http://localhost:8081';
-const getToken = () => localStorage.getItem('ops_token') || 'dev-ops-token';
+import { apiFetch } from '../api/client';
 
 export const useExperimentStore = create((set, get) => ({
   experiments: [],
@@ -10,9 +8,7 @@ export const useExperimentStore = create((set, get) => ({
 
   fetchExperiments: async () => {
     try {
-      const res = await fetch(`${API}/experiments`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await apiFetch('/experiments');
       if (!res.ok) return;
       const data = await res.json();
       set({ experiments: data.experiments || [] });
@@ -24,12 +20,9 @@ export const useExperimentStore = create((set, get) => ({
   createExperiment: async (formData) => {
     set({ isRunning: true });
     try {
-      const res = await fetch(`${API}/experiments`, {
+      const res = await apiFetch('/experiments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
       if (!res.ok) {

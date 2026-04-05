@@ -1,5 +1,7 @@
 """Loyalty plugin – points system with tiers and discount conversion."""
 
+from acosplatform.db.repository import get_loyalty_points, save_loyalty_points
+
 TIERS = [
     {"name": "Bronze", "min_points": 0, "discount_rate": 0.00},
     {"name": "Silver", "min_points": 100, "discount_rate": 0.03},
@@ -31,7 +33,11 @@ def run(ctx):
     subtotal = ctx.get("subtotal", 0)
     points_to_redeem = ctx.get("points_to_redeem", 0)
 
-    current_points = _customer_points.get(customer_id, 0)
+    db_points = get_loyalty_points(customer_id)
+    if db_points is not None:
+        current_points = db_points
+    else:
+        current_points = _customer_points.get(customer_id, 0)
 
     # Determine tier
     tier = TIERS[0]
@@ -52,6 +58,10 @@ def run(ctx):
     # Points earned from this purchase (on subtotal before discounts)
     points_earned = int(subtotal * POINTS_PER_DOLLAR)
 
+    new_points_balance = current_points - redeemable + points_earned
+    save_loyalty_points(customer_id, new_points_balance)
+    _customer_points[customer_id] = new_points_balance
+
     return {
         "customer_id": customer_id,
         "current_points": current_points,
@@ -62,7 +72,7 @@ def run(ctx):
         "points_discount": points_discount,
         "total_loyalty_discount": total_discount,
         "points_earned": points_earned,
-        "new_points_balance": current_points - redeemable + points_earned,
+        "new_points_balance": new_points_balance,
     }
 
 
@@ -74,4 +84,5 @@ def get_status(customer_id):
 def add_points(customer_id, points):
     """Add points to a customer's balance."""
     _customer_points[customer_id] = _customer_points.get(customer_id, 0) + points
+    save_loyalty_points(customer_id, _customer_points[customer_id])
     return _customer_points[customer_id]

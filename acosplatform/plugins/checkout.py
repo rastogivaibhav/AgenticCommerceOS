@@ -1,7 +1,10 @@
 """Checkout plugin – cart simulation with totals."""
 
+import logging
 import uuid
 from datetime import datetime, UTC
+
+logger = logging.getLogger(__name__)
 
 TAX_RATE = 0.08  # 8% default tax
 
@@ -51,7 +54,7 @@ def run(ctx):
 
     cart_id = "cart-" + uuid.uuid4().hex[:8]
 
-    return {
+    result = {
         "cart_id": cart_id,
         "customer_id": customer_id,
         "items": cart_items,
@@ -67,3 +70,18 @@ def run(ctx):
         "points_earned": loyalty.get("points_earned", 0),
         "created_at": datetime.now(UTC).isoformat(),
     }
+
+    try:
+        from acosplatform.db.repository import save_order
+        save_order({
+            "order_id": cart_id,
+            "customer_id": customer_id,
+            "tenant_id": ctx.get("tenant_id", "default"),
+            "items": cart_items,
+            "total": total,
+            "status": "placed",
+        })
+    except Exception as e:
+        logger.warning("save_order failed, continuing: %s", e)
+
+    return result
