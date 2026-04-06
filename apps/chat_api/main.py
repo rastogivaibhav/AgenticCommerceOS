@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from apps.chat_api.config import config
-from apps.chat_api.routers import message, jobs
+from apps.chat_api.routers import message, jobs, workflows
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -57,6 +57,7 @@ def startup():
 # Include routers
 app.include_router(message.router)
 app.include_router(jobs.router)
+app.include_router(workflows.router)
 
 
 @app.get("/health")
