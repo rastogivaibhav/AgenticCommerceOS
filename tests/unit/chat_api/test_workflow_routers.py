@@ -89,19 +89,15 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        # Mock the job queue service to avoid Redis connection
-        with patch("apps.chat_api.routers.workflows._async_executor.job_queue_service") as mock_service:
-            mock_job = Mock()
-            mock_job.id = "job_123"
-            mock_service.create_job.return_value = mock_job
+        response = client.post("/api/workflows/wf_test/execute-async", json=request_body)
 
-            response = client.post("/api/workflows/wf_test/execute-async", json=request_body)
-
-            # Response should be successful
-            # Could be 200 or 202 depending on implementation
-            assert response.status_code in (200, 202)
-            result = response.json()
-            assert isinstance(result, dict)
+        # Response should be successful
+        # Could be 200 or 202 depending on implementation
+        assert response.status_code in (200, 202)
+        result = response.json()
+        assert isinstance(result, dict)
+        # Legacy endpoint returns dict with status
+        assert "status" in result
 
     def test_auto_execution_uses_sync_for_fast_workflow(self, client):
         """Test that auto execution uses sync for timeout <= 2."""
@@ -131,18 +127,13 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        with patch("apps.chat_api.routers.workflows._async_executor.job_queue_service") as mock_service:
-            mock_job = Mock()
-            mock_job.id = "job_xyz"
-            mock_service.create_job.return_value = mock_job
+        response = client.post("/api/workflows/wf_slow/execute", json=request_body)
 
-            response = client.post("/api/workflows/wf_slow/execute", json=request_body)
-
-            # Should be successful
-            assert response.status_code in (200, 202)
-            result = response.json()
-            # Auto-routed to async, should have job_id
-            # Note: depending on mock, might have job_id
+        # Should be successful
+        assert response.status_code in (200, 202)
+        result = response.json()
+        # Auto-routed to async, should have status
+        assert "status" in result
 
     def test_execute_endpoint_with_missing_timeout_defaults_to_2(self, client):
         """Test that missing timeout_seconds defaults to 2."""

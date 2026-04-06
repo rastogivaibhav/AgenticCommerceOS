@@ -1,349 +1,609 @@
-"""Tests for workflow execution handlers (Task 5)."""
+"""Tests for workflow execution handlers (Task 5).
+
+Tests the chat pipeline integration with message handlers.
+Handlers receive normalized ChatMessage objects, session_id, and request_id.
+"""
 
 import pytest
 from datetime import datetime, UTC
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock, patch, call
 import uuid
 
-from apps.chat_api.handlers.sync_executor import SyncExecutor
-from apps.chat_api.handlers.async_executor import AsyncExecutor
+from apps.chat_api.handlers.base import BaseHandler
+from apps.chat_api.handlers.sync import SyncHandler
+from apps.chat_api.handlers.async_handler import AsyncHandler
+from apps.chat_api.handlers.router import HandlerRouter
+from apps.chat_api.models.chat import ChatMessage
+from acosplatform.session.models import ChatSession, MessageRole
 from acosplatform.job_queue.models import Job, JobStatus
 
 
-class TestSyncExecutor:
-    """Test suite for synchronous workflow execution."""
+# ============================================================================
+# Fixtures
+# ============================================================================
+
+
+@pytest.fixture
+def normalized_message():
+    """Normalized message from SlackAdapter."""
+    return ChatMessage(
+        id="1234567890.000001",
+        channel_id="C123ABC",
+        user_id="U456DEF",
+        text="show me blue dresses",
+        timestamp=datetime.now(UTC),
+        thread_ts=None,
+        reactions=None,
+    )
+
+
+@pytest.fixture
+def session_id():
+    """Session identifier."""
+    return "sess_test_" + str(uuid.uuid4())
+
+
+@pytest.fixture
+def request_id():
+    """Request tracking identifier."""
+    return "req_test_" + str(uuid.uuid4())
+
+
+@pytest.fixture
+def mock_workflow():
+    """Mock workflow from registry."""
+    return {
+        "workflow_id": "wf-discovery",
+        "workflow_name": "Discovery Concierge",
+        "timeout_seconds": 2,
+        "steps": [
+            {
+                "step_id": "step_1",
+                "agent": "search_agent",
+                "input": {},
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def mock_workflow_long_running():
+    """Mock long-running workflow."""
+    return {
+        "workflow_id": "wf-complex",
+        "workflow_name": "Complex Analysis",
+        "timeout_seconds": 30,
+        "steps": [
+            {
+                "step_id": "step_1",
+                "agent": "analysis_agent",
+                "input": {},
+            }
+        ],
+    }
+
+
+@pytest.fixture
+def mock_chat_session():
+    """Mock chat session."""
+    session = ChatSession(
+        user_id="U456DEF",
+    )
+    return session
+
+
+@pytest.fixture
+def mock_session_store():
+    """Mock SessionStore."""
+    store = Mock()
+    store.get_session = Mock()
+    store.add_message = Mock()
+    store.update_context = Mock()
+    return store
+
+
+@pytest.fixture
+def mock_workflow_service():
+    """Mock WorkflowService."""
+    service = Mock()
+    return service
+
+
+@pytest.fixture
+def mock_job_queue_service():
+    """Mock JobQueueService."""
+    return Mock()
+
+
+# ============================================================================
+# Test BaseHandler
+# ============================================================================
+
+
+class TestBaseHandler:
+    """Test abstract base handler."""
+
+    def test_base_handler_is_abstract(self):
+        """BaseHandler should be abstract and not instantiable."""
+        with pytest.raises(TypeError):
+            BaseHandler(session_store=Mock())
+
+    def test_base_handler_defines_execute_signature(self):
+        """BaseHandler should define execute method signature."""
+        # Verify the method exists in the class
+        assert hasattr(BaseHandler, 'execute')
+
+
+# ============================================================================
+# Test SyncHandler
+# ============================================================================
+
+
+class TestSyncHandler:
+    """Test synchronous workflow handler."""
 
     @pytest.fixture
-    def sync_executor(self):
-        """Create a SyncExecutor instance."""
-        return SyncExecutor()
-
-    @pytest.fixture
-    def sample_workflow(self):
-        """Sample workflow definition for testing."""
-        return {
-            "workflow_id": "wf_test_123",
-            "workflow_name": "Test Workflow",
-            "timeout_seconds": 2,
-            "steps": [
-                {
-                    "step_id": "step_1",
-                    "agent": "search_agent",
-                    "input": {"query": "blue dresses"},
-                }
-            ],
-        }
-
-    def test_sync_executor_init(self, sync_executor):
-        """Test SyncExecutor initialization."""
-        assert sync_executor is not None
-
-    def test_execute_workflow_success(self, sync_executor, sample_workflow):
-        """Test successful workflow execution (sync)."""
-        # Given a valid workflow
-        # When we execute it
-        result = sync_executor.execute(
-            workflow=sample_workflow,
-            input_data={"query": "blue dresses"},
+    def sync_handler(self, mock_session_store, mock_workflow_service):
+        """Create SyncHandler instance."""
+        return SyncHandler(
+            session_store=mock_session_store,
+            workflow_service=mock_workflow_service,
         )
 
-        # Then we should get a dict result
+    def test_sync_handler_init(self, sync_handler):
+        """Test SyncHandler initialization."""
+        assert sync_handler is not None
+        assert sync_handler.session_store is not None
+        assert sync_handler.workflow_service is not None
+
+    def test_execute_requires_normalized_message(
+        self, sync_handler, normalized_message, session_id, request_id, mock_workflow, mock_chat_session, mock_session_store
+    ):
+        """Execute accepts normalized ChatMessage, session_id, request_id."""
+        # Setup mocks
+        mock_session_store.get_session.return_value = mock_chat_session
+        sync_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow
+
+        # When calling execute with correct signature
+        result = sync_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
+
+        # Then result should be dict
         assert isinstance(result, dict)
         assert "status" in result
-        assert result["status"] in ("success", "completed")
-        assert "result" in result or "output" in result
 
-    def test_execute_workflow_timeout_respected(self, sync_executor):
-        """Test that timeout_seconds is respected."""
-        workflow = {
-            "workflow_id": "wf_timeout_test",
-            "workflow_name": "Timeout Test",
-            "timeout_seconds": 1,  # 1 second timeout
-            "steps": [],
-        }
-        # Should not raise an exception, just return result within timeout
-        result = sync_executor.execute(workflow=workflow, input_data={})
-        assert isinstance(result, dict)
+    def test_execute_gets_session(
+        self, sync_handler, normalized_message, session_id, request_id, mock_workflow, mock_chat_session, mock_session_store
+    ):
+        """Execute retrieves session from SessionStore."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        sync_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow
 
-    def test_execute_workflow_missing_timeout_defaults_to_2(self, sync_executor):
-        """Test that missing timeout_seconds defaults to 2."""
-        workflow = {
-            "workflow_id": "wf_no_timeout",
-            "workflow_name": "No Timeout",
-            # No timeout_seconds key
-            "steps": [],
-        }
-        # Should use default of 2 seconds
-        result = sync_executor.execute(workflow=workflow, input_data={})
-        assert isinstance(result, dict)
-
-    def test_execute_workflow_returns_dict_result(self, sync_executor, sample_workflow):
-        """Test that execution returns dict results."""
-        result = sync_executor.execute(
-            workflow=sample_workflow,
-            input_data={"query": "test"},
+        # Execute
+        sync_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
         )
-        # Result should be a dict, not a Job object or other type
-        assert isinstance(result, dict)
-        # Should have meaningful content
-        assert len(result) > 0
 
-    def test_execute_workflow_includes_execution_time(self, sync_executor, sample_workflow):
-        """Test that result includes execution_time_ms."""
-        result = sync_executor.execute(
-            workflow=sample_workflow,
-            input_data={"query": "test"},
-        )
-        # Should include execution time information
-        assert isinstance(result, dict)
-        # May have execution_time_ms or similar
-        assert "execution_time_ms" in result or "execution_time" in result or "duration" in result
+        # Verify
+        mock_session_store.get_session.assert_called_with(session_id)
 
-    def test_execute_workflow_includes_status(self, sync_executor, sample_workflow):
-        """Test that result includes execution status."""
-        result = sync_executor.execute(
-            workflow=sample_workflow,
-            input_data={"query": "test"},
+    def test_execute_adds_message_to_session(
+        self, sync_handler, normalized_message, session_id, request_id, mock_workflow, mock_chat_session, mock_session_store
+    ):
+        """Execute adds normalized_message to conversation history."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        sync_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow
+
+        # Execute
+        sync_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
         )
+
+        # Verify message was added
+        mock_session_store.add_message.assert_called_once()
+        call_kwargs = mock_session_store.add_message.call_args.kwargs
+        assert call_kwargs.get("session_id") == session_id
+
+    def test_execute_detects_workflow_from_message(
+        self, sync_handler, normalized_message, session_id, request_id, mock_workflow, mock_chat_session, mock_session_store
+    ):
+        """Execute detects workflow_id from normalized_message."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        sync_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow
+
+        # Execute
+        sync_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
+
+        # Verify workflow was resolved
+        sync_handler.workflow_service.resolve_execution_workflow.assert_called_once()
+
+    def test_execute_returns_dict_with_status(
+        self, sync_handler, normalized_message, session_id, request_id, mock_workflow, mock_chat_session, mock_session_store
+    ):
+        """Execute returns dict with status field."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        sync_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow
+
+        # Execute
+        result = sync_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
+
+        # Verify
+        assert isinstance(result, dict)
         assert "status" in result
-        assert result["status"] in ("success", "completed", "failed")
+        assert result["status"] in ("success", "failed")
+
+    def test_execute_includes_result_on_success(
+        self, sync_handler, normalized_message, session_id, request_id, mock_workflow, mock_chat_session, mock_session_store
+    ):
+        """Execute includes result in response on success."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        sync_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow
+
+        # Execute
+        result = sync_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
+
+        # Verify
+        assert "result" in result or "error" in result
+        if result["status"] == "success":
+            assert "result" in result
+
+    def test_execute_includes_execution_time(
+        self, sync_handler, normalized_message, session_id, request_id, mock_workflow, mock_chat_session, mock_session_store
+    ):
+        """Execute includes execution time in result."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        sync_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow
+
+        # Execute
+        result = sync_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
+
+        # Verify
+        assert "execution_time_ms" in result
 
 
-class TestAsyncExecutor:
-    """Test suite for asynchronous workflow execution."""
+# ============================================================================
+# Test AsyncHandler
+# ============================================================================
+
+
+class TestAsyncHandler:
+    """Test asynchronous workflow handler."""
 
     @pytest.fixture
-    def mock_job_queue_service(self):
-        """Mock JobQueueService."""
-        return Mock()
+    def async_handler(self, mock_session_store, mock_workflow_service, mock_job_queue_service):
+        """Create AsyncHandler instance."""
+        return AsyncHandler(
+            session_store=mock_session_store,
+            workflow_service=mock_workflow_service,
+            job_queue_service=mock_job_queue_service,
+        )
 
-    @pytest.fixture
-    def async_executor(self, mock_job_queue_service):
-        """Create AsyncExecutor instance with mocked job queue."""
-        executor = AsyncExecutor(job_queue_service=mock_job_queue_service)
-        return executor
+    def test_async_handler_init(self, async_handler):
+        """Test AsyncHandler initialization."""
+        assert async_handler is not None
+        assert async_handler.session_store is not None
+        assert async_handler.workflow_service is not None
+        assert async_handler.job_queue_service is not None
 
-    @pytest.fixture
-    def sample_workflow(self):
-        """Sample workflow for testing."""
-        return {
-            "workflow_id": "wf_async_123",
-            "workflow_name": "Async Test Workflow",
-            "timeout_seconds": 30,
-            "steps": [
-                {
-                    "step_id": "step_1",
-                    "agent": "search_agent",
-                    "input": {"query": "blue dresses"},
-                }
-            ],
-        }
-
-    def test_async_executor_init_with_service(self, mock_job_queue_service):
-        """Test AsyncExecutor initialization with service."""
-        executor = AsyncExecutor(job_queue_service=mock_job_queue_service)
-        assert executor.job_queue_service == mock_job_queue_service
-
-    def test_async_executor_init_creates_default_service(self):
-        """Test AsyncExecutor creates default service if not provided."""
-        executor = AsyncExecutor()
-        assert executor.job_queue_service is not None
-
-    def test_enqueue_workflow_creates_job(self, async_executor, sample_workflow, mock_job_queue_service):
-        """Test that enqueue creates a job and returns job ID."""
-        # Setup mock
+    def test_execute_requires_normalized_message(
+        self, async_handler, normalized_message, session_id, request_id, mock_workflow_long_running, mock_chat_session, mock_session_store, mock_job_queue_service
+    ):
+        """Execute accepts normalized ChatMessage, session_id, request_id."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        async_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow_long_running
         mock_job = Mock(spec=Job)
         mock_job.id = "job_test_123"
-        mock_job.status = JobStatus.QUEUED
         mock_job_queue_service.create_job.return_value = mock_job
 
-        # When we enqueue a workflow
-        result = async_executor.enqueue(
-            workflow=sample_workflow,
-            input_data={"query": "test"},
-            tenant_id="test_tenant",
+        # Execute
+        result = async_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
         )
 
-        # Then a job should be created
-        assert "job_id" in result
-        assert result["job_id"] == "job_test_123"
-        mock_job_queue_service.create_job.assert_called_once()
+        # Verify
+        assert isinstance(result, dict)
+        assert "status" in result
 
-    def test_enqueue_calls_job_queue_service_create_job(
-        self, async_executor, sample_workflow, mock_job_queue_service
+    def test_execute_gets_session(
+        self, async_handler, normalized_message, session_id, request_id, mock_workflow_long_running, mock_chat_session, mock_session_store, mock_job_queue_service
     ):
-        """Test that enqueue calls JobQueueService.create_job()."""
+        """Execute retrieves session from SessionStore."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        async_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow_long_running
         mock_job = Mock(spec=Job)
-        mock_job.id = "job_abc"
-        mock_job.status = JobStatus.QUEUED
+        mock_job.id = "job_test_123"
         mock_job_queue_service.create_job.return_value = mock_job
 
-        async_executor.enqueue(
-            workflow=sample_workflow,
-            input_data={"test": "data"},
-            tenant_id="tenant_123",
+        # Execute
+        async_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
         )
 
-        # Should call create_job with workflow info
-        mock_job_queue_service.create_job.assert_called_once()
-        call_args = mock_job_queue_service.create_job.call_args
-        assert call_args[1]["workflow_id"] == "wf_async_123"
-        assert call_args[1]["workflow_name"] == "Async Test Workflow"
-        assert call_args[1]["tenant_id"] == "tenant_123"
+        # Verify
+        mock_session_store.get_session.assert_called_with(session_id)
 
-    def test_enqueue_returns_dict_result(self, async_executor, sample_workflow, mock_job_queue_service):
-        """Test that enqueue returns dict result, not Job object."""
-        mock_job = Mock(spec=Job)
-        mock_job.id = "job_xyz"
-        mock_job.status = JobStatus.QUEUED
-        mock_job_queue_service.create_job.return_value = mock_job
-
-        result = async_executor.enqueue(
-            workflow=sample_workflow,
-            input_data={},
-            tenant_id="tenant",
-        )
-
-        # Result should be a dict
-        assert isinstance(result, dict)
-        # Should contain status info
-        assert "status" in result
-        assert result["status"] in ("queued", "accepted", "created")
-        # Should have job_id
-        assert "job_id" in result
-
-    def test_enqueue_includes_polling_endpoint(
-        self, async_executor, sample_workflow, mock_job_queue_service
+    def test_execute_adds_message_to_session(
+        self, async_handler, normalized_message, session_id, request_id, mock_workflow_long_running, mock_chat_session, mock_session_store, mock_job_queue_service
     ):
-        """Test that enqueue result includes polling endpoint."""
+        """Execute adds normalized_message to conversation history."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        async_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow_long_running
         mock_job = Mock(spec=Job)
-        mock_job.id = "job_poll_123"
-        mock_job.status = JobStatus.QUEUED
+        mock_job.id = "job_test_123"
         mock_job_queue_service.create_job.return_value = mock_job
 
-        result = async_executor.enqueue(
-            workflow=sample_workflow,
-            input_data={},
+        # Execute
+        async_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
         )
 
-        # Should include polling endpoint
-        assert "polling_endpoint" in result or "status_url" in result
+        # Verify
+        mock_session_store.add_message.assert_called_once()
 
-    def test_execute_workflow_calls_enqueue(self, async_executor, sample_workflow, mock_job_queue_service):
-        """Test that execute() method calls enqueue internally."""
+    def test_execute_returns_job_id(
+        self, async_handler, normalized_message, session_id, request_id, mock_workflow_long_running, mock_chat_session, mock_session_store, mock_job_queue_service
+    ):
+        """Execute returns dict with job_id."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        async_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow_long_running
         mock_job = Mock(spec=Job)
-        mock_job.id = "job_exec_123"
-        mock_job.status = JobStatus.QUEUED
+        mock_job.id = "job_abc_123"
         mock_job_queue_service.create_job.return_value = mock_job
 
-        result = async_executor.execute(
-            workflow=sample_workflow,
-            input_data={"query": "test"},
-            tenant_id="test_tenant",
+        # Execute
+        result = async_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
         )
 
-        # Should call create_job
-        mock_job_queue_service.create_job.assert_called_once()
-        # Should return job dict
+        # Verify
         assert "job_id" in result
+        assert result["job_id"] == "job_abc_123"
 
-    def test_get_job_status(self, async_executor, mock_job_queue_service):
-        """Test getting job status."""
+    def test_execute_returns_status_queued(
+        self, async_handler, normalized_message, session_id, request_id, mock_workflow_long_running, mock_chat_session, mock_session_store, mock_job_queue_service
+    ):
+        """Execute returns status: queued for async operations."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        async_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow_long_running
         mock_job = Mock(spec=Job)
-        mock_job.id = "job_status_123"
-        mock_job.status = JobStatus.PROCESSING
-        mock_job.workflow_id = "wf_test"
-        mock_job.workflow_name = "Test"
-        mock_job.created_at = None
-        mock_job.started_at = None
-        mock_job.completed_at = None
-        mock_job.error = None
-        mock_job_queue_service.get_job.return_value = mock_job
+        mock_job.id = "job_test_123"
+        mock_job_queue_service.create_job.return_value = mock_job
 
-        result = async_executor.get_job_status("job_status_123")
+        # Execute
+        result = async_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
 
-        assert isinstance(result, dict)
-        assert "status" in result
-        assert result["status"] == "processing"
+        # Verify
+        assert result["status"] == "queued"
 
-    def test_get_job_result(self, async_executor, mock_job_queue_service):
-        """Test getting job result."""
+    def test_execute_includes_polling_endpoint(
+        self, async_handler, normalized_message, session_id, request_id, mock_workflow_long_running, mock_chat_session, mock_session_store, mock_job_queue_service
+    ):
+        """Execute includes polling endpoint in response."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+        async_handler.workflow_service.resolve_execution_workflow.return_value = mock_workflow_long_running
         mock_job = Mock(spec=Job)
-        mock_job.id = "job_result_123"
-        mock_job.status = JobStatus.COMPLETED
-        mock_job.result = {"products": ["product_1", "product_2"]}
-        mock_job.workflow_id = "wf_test"
-        mock_job.workflow_name = "Test"
-        mock_job.created_at = None
-        mock_job.started_at = None
-        mock_job.completed_at = None
-        mock_job.error = None
-        mock_job_queue_service.get_job.return_value = mock_job
+        mock_job.id = "job_test_123"
+        mock_job_queue_service.create_job.return_value = mock_job
 
-        result = async_executor.get_job_result("job_result_123")
+        # Execute
+        result = async_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
 
-        assert isinstance(result, dict)
-        assert "status" in result
-        assert result["status"] == "completed"
-        assert "result" in result
+        # Verify
+        assert "polling_endpoint" in result
 
 
-class TestExecutorIntegration:
-    """Integration tests for sync and async executors working together."""
+# ============================================================================
+# Test HandlerRouter
+# ============================================================================
 
-    def test_both_executors_return_dicts(self):
-        """Test that both executors always return dicts."""
-        sync_executor = SyncExecutor()
-        async_executor = AsyncExecutor()
 
-        workflow = {
-            "workflow_id": "wf_integration",
-            "workflow_name": "Integration Test",
+class TestHandlerRouter:
+    """Test routing logic between sync and async handlers."""
+
+    @pytest.fixture
+    def router(self, mock_session_store, mock_workflow_service, mock_job_queue_service):
+        """Create HandlerRouter instance."""
+        return HandlerRouter(
+            session_store=mock_session_store,
+            workflow_service=mock_workflow_service,
+            job_queue_service=mock_job_queue_service,
+        )
+
+    def test_router_init(self, router):
+        """Test HandlerRouter initialization."""
+        assert router is not None
+        assert router.sync_handler is not None
+        assert router.async_handler is not None
+
+    def test_router_uses_sync_for_fast_workflows(
+        self, router, normalized_message, session_id, request_id, mock_workflow, mock_chat_session, mock_session_store
+    ):
+        """Router uses SyncHandler for workflows with timeout <= 2 seconds."""
+        # Setup: fast workflow (timeout = 2)
+        mock_session_store.get_session.return_value = mock_chat_session
+        router.workflow_service.resolve_execution_workflow.return_value = mock_workflow
+
+        # Router should use sync handler
+        with patch.object(router.sync_handler, 'execute', return_value={"status": "success"}) as mock_sync:
+            router.route(
+                normalized_message=normalized_message,
+                session_id=session_id,
+                request_id=request_id,
+            )
+            mock_sync.assert_called_once()
+
+    def test_router_uses_async_for_slow_workflows(
+        self, router, normalized_message, session_id, request_id, mock_workflow_long_running, mock_chat_session, mock_session_store
+    ):
+        """Router uses AsyncHandler for workflows with timeout > 2 seconds."""
+        # Setup: slow workflow (timeout = 30)
+        mock_session_store.get_session.return_value = mock_chat_session
+        router.workflow_service.resolve_execution_workflow.return_value = mock_workflow_long_running
+
+        # Router should use async handler
+        with patch.object(router.async_handler, 'execute', return_value={"status": "queued", "job_id": "job_123"}) as mock_async:
+            router.route(
+                normalized_message=normalized_message,
+                session_id=session_id,
+                request_id=request_id,
+            )
+            mock_async.assert_called_once()
+
+    def test_router_threshold_is_2_seconds(self, router):
+        """Router threshold for sync vs async is 2 seconds."""
+        assert hasattr(router, 'SYNC_THRESHOLD_SECONDS')
+        assert router.SYNC_THRESHOLD_SECONDS == 2
+
+    def test_router_respects_workflow_timeout(
+        self, router, normalized_message, session_id, request_id, mock_chat_session, mock_session_store
+    ):
+        """Router respects timeout_seconds from workflow definition."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+
+        # Test with exactly 2 seconds (should use sync)
+        workflow_2s = {
+            "workflow_id": "wf-test",
+            "workflow_name": "Test",
             "timeout_seconds": 2,
             "steps": [],
         }
+        router.workflow_service.resolve_execution_workflow.return_value = workflow_2s
 
-        sync_result = sync_executor.execute(workflow=workflow, input_data={})
-        async_result = async_executor.execute(workflow=workflow, input_data={})
+        with patch.object(router.sync_handler, 'execute', return_value={"status": "success"}) as mock_sync:
+            router.route(
+                normalized_message=normalized_message,
+                session_id=session_id,
+                request_id=request_id,
+            )
+            mock_sync.assert_called_once()
+
+
+# ============================================================================
+# Integration Tests
+# ============================================================================
+
+
+class TestHandlerIntegration:
+    """Integration tests for handlers working together."""
+
+    def test_sync_and_async_handlers_both_accept_message_signature(
+        self, mock_session_store, mock_workflow_service, mock_job_queue_service, normalized_message, session_id, request_id, mock_workflow, mock_workflow_long_running, mock_chat_session
+    ):
+        """Both handlers accept (normalized_message, session_id, request_id) signature."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
+
+        sync_handler = SyncHandler(
+            session_store=mock_session_store,
+            workflow_service=mock_workflow_service,
+        )
+        async_handler = AsyncHandler(
+            session_store=mock_session_store,
+            workflow_service=mock_workflow_service,
+            job_queue_service=mock_job_queue_service,
+        )
+
+        # Setup workflow service
+        mock_workflow_service.resolve_execution_workflow.return_value = mock_workflow
+
+        # Mock job service
+        mock_job = Mock(spec=Job)
+        mock_job.id = "job_123"
+        mock_job_queue_service.create_job.return_value = mock_job
+
+        # Both should accept the same signature
+        sync_result = sync_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
+
+        # Reset mocks
+        mock_session_store.reset_mock()
+        mock_workflow_service.resolve_execution_workflow.return_value = mock_workflow_long_running
+        mock_session_store.get_session.return_value = mock_chat_session
+
+        async_result = async_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
 
         assert isinstance(sync_result, dict)
         assert isinstance(async_result, dict)
 
-    def test_workflow_decision_sync_vs_async(self):
-        """Test decision logic: fast workflows use sync, slow use async."""
-        from unittest.mock import Mock, patch
+    def test_handler_workflow_detection_from_message_content(
+        self, mock_session_store, mock_workflow_service, normalized_message, session_id, request_id, mock_workflow, mock_chat_session
+    ):
+        """Handlers detect workflow from message content or intent."""
+        # Setup
+        mock_session_store.get_session.return_value = mock_chat_session
 
-        sync_executor = SyncExecutor()
+        sync_handler = SyncHandler(
+            session_store=mock_session_store,
+            workflow_service=mock_workflow_service,
+        )
 
-        # Mock job queue service for async executor
-        mock_job_queue = Mock()
-        mock_job = Mock(spec=Job)
-        mock_job.id = "job_123"
-        mock_job.status = JobStatus.QUEUED
-        mock_job_queue.create_job.return_value = mock_job
+        mock_workflow_service.resolve_execution_workflow.return_value = mock_workflow
 
-        async_executor = AsyncExecutor(job_queue_service=mock_job_queue)
+        # Execute with normalized message
+        sync_handler.execute(
+            normalized_message=normalized_message,
+            session_id=session_id,
+            request_id=request_id,
+        )
 
-        # Fast workflow (< 2s)
-        fast_workflow = {
-            "workflow_id": "wf_fast",
-            "workflow_name": "Fast Lookup",
-            "timeout_seconds": 1,
-            "steps": [],
-        }
-
-        # Slow workflow (> 2s)
-        slow_workflow = {
-            "workflow_id": "wf_slow",
-            "workflow_name": "Complex Analysis",
-            "timeout_seconds": 30,
-            "steps": [],
-        }
-
-        # Fast workflow can use sync
-        fast_result = sync_executor.execute(workflow=fast_workflow, input_data={})
-        assert fast_result["status"] in ("success", "completed")
-
-        # Slow workflow should use async
-        slow_result = async_executor.execute(workflow=slow_workflow, input_data={})
-        assert "job_id" in slow_result
+        # Verify workflow service was called to resolve workflow
+        mock_workflow_service.resolve_execution_workflow.assert_called()
