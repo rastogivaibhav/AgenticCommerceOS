@@ -51,7 +51,7 @@ from acosplatform.workflows.service import (
     promote_workflow_version,
     rollback_workflow_version,
 )
-from apps.ops_api.routers import experiments, analytics, workflows, promotions, runs, approvals
+from apps.ops_api.routers import experiments, analytics, workflows, promotions, runs, approvals, incidents
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -97,6 +97,7 @@ app.include_router(promotions.approvals_router)
 app.include_router(promotions.audit_router)
 app.include_router(runs.router)
 app.include_router(approvals.router)
+app.include_router(incidents.router)
 
 
 @app.exception_handler(Exception)
