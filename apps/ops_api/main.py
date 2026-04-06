@@ -51,7 +51,7 @@ from acosplatform.workflows.service import (
     promote_workflow_version,
     rollback_workflow_version,
 )
-from apps.ops_api.routers import experiments, analytics
+from apps.ops_api.routers import experiments, analytics, workflows
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -91,6 +91,7 @@ app.add_middleware(
 # Include routers
 app.include_router(experiments.router)
 app.include_router(analytics.router)
+app.include_router(workflows.router)
 
 
 @app.exception_handler(Exception)
