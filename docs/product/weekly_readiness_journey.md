@@ -9,14 +9,14 @@
 6. Week 6: Done (draft/approve/promote/rollback/archive lifecycle implemented with audit coverage and tests).
 7. Week 7: Done (network-policy-enforcing CNI path validated; tenant isolation evidence passing).
 8. Week 8: Done (catalog/pricing/promotions/orders connector contract runtime with retry/timeout/fallback and tests).
-9. Week 9: Done baseline (trace envelope with tenant_id/run_id/workflow_id and SLO snapshot + dashboard seed).
-10. Weeks 10-12: Not started.
+9. Week 9: Done (Grafana dashboard ConfigMap wiring + Prometheus alert rules + evidence artifact).
+10. Week 10: Done (tenant quota/rate-limit + noisy-neighbor baseline controls with tests; integration evidence in deploy/k8s/observability/evidence/week10-quota-*.json).
+11. Weeks 11-12: Not started.
 
 ## Hard Gates Still Open
-1. Week-9 SLO dashboard deployment to Grafana + alert rules.
-2. Week-10 quota/rate-limit + noisy-neighbor controls.
-3. Week-11 pilot UAT evidence.
-4. Week-12 production gate evidence pack.
+1. Week-10 quota/rate-limit + noisy-neighbor controls (load/perf baselining still open).
+2. Week-11 pilot UAT evidence.
+3. Week-12 production gate evidence pack.
 
 ## Week-7 Evidence
 1. 2026-04-05T21:37:49Z
@@ -27,3 +27,9 @@
    Evidence file: `deploy/k8s/multi-tenant/evidence/acos-tenant-pilot-a-20260405-230120.json`
    Result: `dns_allowed=true`, `internet_denied=true`, `overall_pass=true`
    Notes: rerun on network-policy-enforcing CNI path (Calico) with the same verifier script; Week-7 runtime validation is now closed.
+
+## Week-9 Evidence
+1. 2026-04-05T22:47:10Z
+   Evidence file: `deploy/k8s/observability/evidence/week9-observability-20260405-224710.json`
+   Result: `overall_pass=true`
+   Notes: dashboard source panel coverage verified, kustomize wiring present, and alert rule pack includes availability/latency/error budget alerts.
