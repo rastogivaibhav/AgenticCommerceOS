@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-04-06T09:28:19.593Z",
+  "overall_pass": true,
+  "tenants_tested": [
+    "default",
+    "eu-store"
+  ],
+  "middleware_wired": true,
+  "shopper_api_accessible": true,
+  "metrics_endpoint": "http://localhost:8080/metrics",
+  "unit_test_ref": "tests/test_tenant_traffic_controls.py",
+  "notes": "Both tenant journey requests allowed through; noisy-neighbor isolation confirmed."
+}

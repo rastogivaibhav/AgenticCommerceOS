@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: observability
+resources:
+  - prometheus-rule-slo-alerts.yaml
+configMapGenerator:
+  - name: grafana-dashboard-acos-slo
+    files:
+      - acos_slo_dashboard.json=../../../docs/observability/grafana_slo_dashboard.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+generatorOptions:
+  disableNameSuffixHash: true

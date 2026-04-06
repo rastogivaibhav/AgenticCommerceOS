@@ -18,7 +18,12 @@ from acosplatform.models.requests import JourneyRequest
 from acosplatform.db.connection import ensure_schema, check_connection
 from acosplatform.journey.engine import run_journey
 from acosplatform.middleware.rate_limit import limiter, rate_limit_error_handler, JOURNEY_LIMIT
-from acosplatform.observability.metrics import metrics_endpoint, record_api_error
+from acosplatform.observability.metrics import (
+    metrics_endpoint,
+    record_api_error,
+    record_tenant_limit_rejection,
+)
+from acosplatform.tenancy.traffic_control import TenantQuotaExceeded, tenant_traffic_guard
 from acosplatform.workflows.service import ensure_default_workflow_registry
 from slowapi.errors import RateLimitExceeded
 
@@ -92,7 +97,22 @@ def journey(
     500 chars, customer_id/order_id must be alphanumeric, tenant_id must be a
     known tenant.
     """
-    return run_journey(payload.model_dump())
+    try:
+        with tenant_traffic_guard(payload.tenant_id):
+            return run_journey(payload.model_dump())
+    except TenantQuotaExceeded as exc:
+        record_tenant_limit_rejection(exc.tenant_id, exc.limit_type)
+        return JSONResponse(
+            status_code=429,
+            content={
+                "error": "Tenant traffic limit exceeded",
+                "tenant_id": exc.tenant_id,
+                "limit_type": exc.limit_type,
+                "limit": exc.limit_value,
+                "retry_after_seconds": exc.retry_after_seconds,
+            },
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        )
 
 
 @app.get("/metrics")

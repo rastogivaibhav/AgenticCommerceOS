@@ -107,7 +107,22 @@
       "Bash(mkdir -p \"C:\\\\Users\\\\vrast\\\\.config\\\\superpowers\\\\worktrees\\\\acos\\\\temporal-engine\\\\acosplatform\\\\temporal\")",
       "Bash(\"C:\\\\Users\\\\vrast\\\\.config\\\\superpowers\\\\worktrees\\\\acos\\\\temporal-engine\\\\db\\\\schema.sql\":*)",
       "Bash(gh pr:*)",
-      "Bash(grep -r \"TODO\\\\|STUB\\\\|FIXME\\\\|placeholder\\\\|mock\\\\|fake\" C:UsersvrastOneDriveAppsDocumentsacosacosplatform --include=*.py)"
+      "Bash(grep -r \"TODO\\\\|STUB\\\\|FIXME\\\\|placeholder\\\\|mock\\\\|fake\" C:UsersvrastOneDriveAppsDocumentsacosacosplatform --include=*.py)",
+      "Bash(find C:/Users/vrast/OneDrive/Apps/Documents/acos/apps/ops_ui_v2 -maxdepth 3 -type f -name *.tsx -not -path */node_modules/*)",
+      "Bash(node --input-type=module:*)",
+      "Bash(docker compose:*)",
+      "Bash(git worktree:*)",
+      "Bash(pytest tests/ -v --tb=short)",
+      "Bash(pytest tests/integration/ -v --tb=short)",
+      "Bash(pytest tests/integration/ -v --co)",
+      "Bash(find /c/Users/vrast/OneDrive/Apps/Documents/acos/.claude/worktrees/agent-a7d673f4 -name *week11* -o -name *go-live*)",
+      "Bash(xargs grep:*)",
+      "Bash(git checkout:*)",
+      "Bash(pytest tests/integration/test_uat_week11_journeys.py::TestOperatorJourney1WorkflowInventory -v)",
+      "Bash(pytest tests/integration/test_uat_week11_journeys.py::TestOperatorJourney2WorkflowPromotion -v)",
+      "Bash(pytest tests/integration/test_uat_week11_journeys.py --collect-only)",
+      "Bash(grep -n \"def client\" \"/c/Users/vrast/OneDrive/Apps/Documents/acos/tests/integration\"/*)",
+      "Bash(find /c/Users/vrast/OneDrive/Apps/Documents/acos/tests -name *workflow* -type f)"
     ]
   }
 }

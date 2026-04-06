@@ -40,6 +40,12 @@ loyalty_points_redeemed_total = Counter(
     ["tenant_id"],
 )
 
+tenant_limit_rejections_total = Counter(
+    "acos_tenant_limit_rejections_total",
+    "Total tenant traffic-control rejections",
+    ["tenant_id", "limit_type"],
+)
+
 
 def metrics_endpoint():
     """Prometheus scrape endpoint."""
@@ -79,3 +85,7 @@ def record_journey(
 
 def record_api_error(error_type: str, endpoint: str):
     api_errors_total.labels(error_type=error_type, endpoint=endpoint).inc()
+
+
+def record_tenant_limit_rejection(tenant_id: str, limit_type: str) -> None:
+    tenant_limit_rejections_total.labels(tenant_id=tenant_id, limit_type=limit_type).inc()

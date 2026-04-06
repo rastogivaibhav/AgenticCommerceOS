@@ -20,6 +20,13 @@ This runbook defines baseline SLO monitoring for ACOS journeys with tenant-level
    - `trace_id`
 3. SLO snapshot from `/analytics/slo`.
 
+## Alert Rules (Week-9 Wiring)
+1. `AcosJourneyAvailabilityBurn`: triggers when failed-journey burn rate exceeds 1% for 15 minutes.
+2. `AcosJourneyLatencyP95High`: triggers when p95 latency exceeds 2000ms for 10 minutes.
+3. `AcosTenantErrorRateHigh`: triggers when any tenant error rate exceeds 1% for 10 minutes.
+
+Rule pack path: `deploy/k8s/observability/prometheus-rule-slo-alerts.yaml`.
+
 ## Alert Triage
 1. Check `/analytics/slo?tenant_id=<id>&window_minutes=60`.
 2. Pull recent traces: `/analytics/traces?tenant_id=<id>&limit=200`.

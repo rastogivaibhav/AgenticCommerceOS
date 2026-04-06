@@ -26,6 +26,11 @@ TENANT_CONFIGS = {
             "promotions": {"mode": "local"},
             "orders": {"mode": "local"},
         },
+        "traffic_controls": {
+            "requests_per_minute": 120,
+            "daily_quota": 5000,
+            "max_in_flight": 8,
+        },
     },
     "eu-store": {
         "name": "European Store",
@@ -49,6 +54,11 @@ TENANT_CONFIGS = {
             "pricing": {"mode": "local"},
             "promotions": {"mode": "local"},
             "orders": {"mode": "local"},
+        },
+        "traffic_controls": {
+            "requests_per_minute": 140,
+            "daily_quota": 7000,
+            "max_in_flight": 10,
         },
     },
     "jp-store": {
@@ -74,6 +84,11 @@ TENANT_CONFIGS = {
             "promotions": {"mode": "local"},
             "orders": {"mode": "local"},
         },
+        "traffic_controls": {
+            "requests_per_minute": 100,
+            "daily_quota": 4500,
+            "max_in_flight": 7,
+        },
     },
     "in-store": {
         "name": "India Store",
@@ -97,6 +112,11 @@ TENANT_CONFIGS = {
             "pricing": {"mode": "local"},
             "promotions": {"mode": "local", "retries": 3},
             "orders": {"mode": "local"},
+        },
+        "traffic_controls": {
+            "requests_per_minute": 90,
+            "daily_quota": 4000,
+            "max_in_flight": 6,
         },
     },
 }
@@ -139,6 +159,7 @@ def get_tenant_config(tenant_id):
     try:
         row = get_tenant(tenant_id)
         if row:
+            baseline = TENANT_CONFIGS.get(tenant_id, TENANT_CONFIGS.get("default", {}))
             return {
                 "name": row["name"],
                 "currency": row["currency"],
@@ -146,6 +167,7 @@ def get_tenant_config(tenant_id):
                 "promo_rules": row["promo_rules"],
                 "features": row["features"],
                 "connectors": row.get("connector_routes", row.get("connectors", {})) or {},
+                "traffic_controls": row.get("traffic_controls", {}) or baseline.get("traffic_controls", {}),
             }
     except Exception:
         pass
@@ -174,6 +196,9 @@ def list_tenants():
                     "features": r["features"],
                     "promo_rules": r["promo_rules"],
                     "connectors": r.get("connector_routes", r.get("connectors", {})) or {},
+                    "traffic_controls": r.get("traffic_controls", {}) or TENANT_CONFIGS.get(
+                        r["id"], TENANT_CONFIGS.get("default", {})
+                    ).get("traffic_controls", {}),
                 }
                 for r in rows
             ]
@@ -188,6 +213,7 @@ def list_tenants():
             "features": cfg["features"],
             "promo_rules": cfg["promo_rules"],
             "connectors": cfg.get("connectors", {}),
+            "traffic_controls": cfg.get("traffic_controls", {}),
         }
         for tid, cfg in TENANT_CONFIGS.items()
     ]
@@ -216,9 +242,11 @@ def add_tenant(tenant_id, config_dict):
 
     record = {"id": tenant_id, **config_dict}
     record.setdefault("connectors", {})
+    record.setdefault("traffic_controls", {})
     save_tenant(record)
     TENANT_CONFIGS[tenant_id] = {k: config_dict[k] for k in required_keys}
     TENANT_CONFIGS[tenant_id]["connectors"] = config_dict.get("connectors", {})
+    TENANT_CONFIGS[tenant_id]["traffic_controls"] = config_dict.get("traffic_controls", {})
     return record
 
 
@@ -228,6 +256,7 @@ def update_tenant(tenant_id, partial_config):
     merged = {**existing_config, **partial_config}
     record = {"id": tenant_id, **merged}
     record.setdefault("connectors", merged.get("connectors", {}))
+    record.setdefault("traffic_controls", merged.get("traffic_controls", {}))
     save_tenant(record)
     if tenant_id in TENANT_CONFIGS:
         TENANT_CONFIGS[tenant_id].update(partial_config)
