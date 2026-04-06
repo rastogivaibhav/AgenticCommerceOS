@@ -1,6 +1,6 @@
 # tests/fixtures/uat_pilot_data.py
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 # Pilot Tenant Configuration
@@ -9,7 +9,7 @@ PILOT_TENANT_A = {
     "name": "Pilot Tenant A",
     "environment": "stage",
     "status": "active",
-    "created_at": datetime.utcnow().isoformat()
+    "created_at": datetime.now(timezone.utc).isoformat()
 }
 
 PILOT_TENANT_B = {
@@ -17,7 +17,7 @@ PILOT_TENANT_B = {
     "name": "Pilot Tenant B",
     "environment": "stage",
     "status": "active",
-    "created_at": datetime.utcnow().isoformat()
+    "created_at": datetime.now(timezone.utc).isoformat()
 }
 
 # Workflow Families for Bounded Scope
@@ -67,8 +67,8 @@ SAMPLE_RUN_SUCCESS = {
     "workflow_id": WORKFLOW_DISCOVERY["id"],
     "tenant_id": PILOT_TENANT_A["id"],
     "status": "completed",
-    "started_at": datetime.utcnow().isoformat(),
-    "ended_at": datetime.utcnow().isoformat(),
+    "started_at": datetime.now(timezone.utc).isoformat(),
+    "ended_at": datetime.now(timezone.utc).isoformat(),
     "steps": [
         {"step": "classify_intent", "status": "completed", "duration_ms": 145},
         {"step": "search_products", "status": "completed", "duration_ms": 320},
@@ -83,8 +83,8 @@ SAMPLE_RUN_FAILURE = {
     "workflow_id": WORKFLOW_POST_PURCHASE["id"],
     "tenant_id": PILOT_TENANT_A["id"],
     "status": "failed",
-    "started_at": datetime.utcnow().isoformat(),
-    "ended_at": datetime.utcnow().isoformat(),
+    "started_at": datetime.now(timezone.utc).isoformat(),
+    "ended_at": datetime.now(timezone.utc).isoformat(),
     "steps": [
         {"step": "validate_order_id", "status": "completed", "duration_ms": 85},
         {"step": "lookup_order", "status": "failed", "duration_ms": 150, "error": "order_not_found"},

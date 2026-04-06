@@ -1,6 +1,5 @@
 # tests/integration/test_uat_week11_journeys.py
 import pytest
-import json
 from tests.fixtures.uat_pilot_data import (
     PILOT_TENANT_A,
     PILOT_TENANT_B,
@@ -145,7 +144,8 @@ class TestOperatorJourney2WorkflowPromotion:
             headers={"Authorization": "Bearer workflow_admin_token"}
         )
         assert response.status_code in [200, 202]
-        promotion_id = response.json().get("id") or response.json().get("promotion_id")
+        resp_data = response.json()
+        promotion_id = resp_data.get("id") or resp_data.get("promotion_id")
 
         # Verify audit entry
         response = client.get(
@@ -297,6 +297,7 @@ class TestOperatorJourney4Approvals:
             headers={"Authorization": "Bearer risk_owner_token"}
         )
         approvals = response.json()["approvals"]
+        assert len(approvals) > 0, "Approval queue must not be empty for test to proceed"
         if approvals:
             approval_id = approvals[0]["id"]
             response = client.get(
@@ -346,7 +347,7 @@ class TestOperatorJourney5Analytics:
             headers={"Authorization": "Bearer product_manager_token"}
         )
         assert response.status_code == 200
-        assert response.headers["Content-Type"] == "text/csv"
+        assert response.headers["Content-Type"].startswith("text/csv")
 
 
 class TestOperatorJourney6Incidents:
