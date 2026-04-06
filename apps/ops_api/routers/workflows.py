@@ -1,9 +1,9 @@
 # apps/ops_api/routers/workflows.py
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException
 from typing import Optional
 from datetime import datetime
 from acosplatform.auth.api_key import require_ops_roles
-from apps.ops_api.models.workflow import WorkflowListResponse, WorkflowListItem, WorkflowDetail
+from apps.ops_api.models.workflow import WorkflowListResponse, WorkflowListItem, WorkflowDetail, PromotionSummary
 
 # Import test data for mock responses
 from tests.fixtures.uat_pilot_data import (
@@ -17,11 +17,37 @@ from tests.fixtures.uat_pilot_data import (
 
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
-# Map tenant IDs to their workflows
+# Fixed timestamp for consistent mock data
+MOCK_CREATED_AT = datetime(2026, 3, 1, 10, 0, 0)
+
+# Map tenant IDs to their workflows with environment information
 TENANT_WORKFLOWS = {
-    PILOT_TENANT_A["id"]: [WORKFLOW_DISCOVERY, WORKFLOW_POST_PURCHASE],
-    PILOT_TENANT_B["id"]: [WORKFLOW_SERVICE_GUIDANCE, WORKFLOW_RETURNS],
+    PILOT_TENANT_A["id"]: [
+        {**WORKFLOW_DISCOVERY, "environment": "dev"},
+        {**WORKFLOW_POST_PURCHASE, "environment": "dev"}
+    ],
+    PILOT_TENANT_B["id"]: [
+        {**WORKFLOW_SERVICE_GUIDANCE, "environment": "dev"},
+        {**WORKFLOW_RETURNS, "environment": "dev"}
+    ],
 }
+
+# Fixture map for lookup by workflow_id
+ALL_WORKFLOWS_BY_ID = {}
+for tenant_workflows in TENANT_WORKFLOWS.values():
+    for wf in tenant_workflows:
+        ALL_WORKFLOWS_BY_ID[wf["id"]] = wf
+
+def _get_mock_workflows(tenant_id: str, family=None, status=None, environment=None):
+    """Get filtered list of mock workflows"""
+    tenant_workflows = TENANT_WORKFLOWS.get(tenant_id, [])
+    filtered = [
+        w for w in tenant_workflows
+        if (family is None or w.get("family") == family)
+        and (status is None or w.get("status") == status)
+        and (environment is None or w.get("environment") == environment)
+    ]
+    return filtered
 
 @router.get("", response_model=WorkflowListResponse)
 def list_workflows_endpoint(
@@ -32,17 +58,8 @@ def list_workflows_endpoint(
     current_user = Depends(require_ops_roles("viewer", "editor", "admin"))
 ):
     """WA-1.1: List workflows with filtering"""
-    # Get workflows for the tenant
-    tenant_workflows = TENANT_WORKFLOWS.get(tenant_id, [])
-
-    # Apply filters
-    filtered_workflows = []
-    for wf in tenant_workflows:
-        if family and wf.get("family") != family:
-            continue
-        if status and wf.get("status") != status:
-            continue
-        filtered_workflows.append(wf)
+    # Get and filter workflows for the tenant
+    filtered_workflows = _get_mock_workflows(tenant_id, family, status, environment)
 
     # Convert to response items
     workflows = [
@@ -52,9 +69,9 @@ def list_workflows_endpoint(
             family=wf["family"],
             version=wf.get("version", "1.0.0"),
             status=wf.get("status", "active"),
-            environment=environment or "dev",
+            environment=wf.get("environment", "dev"),
             tenant_id=tenant_id,
-            created_at=datetime.now()
+            created_at=MOCK_CREATED_AT
         )
         for wf in filtered_workflows
     ]
@@ -71,34 +88,22 @@ def get_workflow_endpoint(
     current_user = Depends(require_ops_roles("viewer", "editor", "admin"))
 ):
     """WA-1.2: Get workflow with version and environment badges"""
-    # Find workflow by ID across all tenants
-    all_workflows = [
-        *TENANT_WORKFLOWS.get(PILOT_TENANT_A["id"], []),
-        *TENANT_WORKFLOWS.get(PILOT_TENANT_B["id"], [])
-    ]
-    workflow = next((w for w in all_workflows if w["id"] == workflow_id), None)
+    # Find workflow by ID from fixture data
+    workflow = ALL_WORKFLOWS_BY_ID.get(workflow_id)
 
     if not workflow:
-        # Fallback for unknown workflows
-        workflow = {
-            "id": workflow_id,
-            "name": "Test Workflow",
-            "family": "default",
-            "version": "1.0.0",
-            "status": "active",
-            "tenant_id": "test_tenant"
-        }
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
     return WorkflowDetail(
         id=workflow["id"],
-        name=workflow.get("name", "Test Workflow"),
-        family=workflow.get("family", "default"),
+        name=workflow.get("name", "Untitled Workflow"),
+        family=workflow.get("family", "unknown"),
         version=workflow.get("version", "1.0.0"),
         status=workflow.get("status", "active"),
-        environment="dev",
-        tenant_id=workflow.get("tenant_id", "test_tenant"),
-        created_at=datetime.now(),
-        last_promotion={},
+        environment=workflow.get("environment", "dev"),
+        tenant_id=workflow.get("tenant_id", "unknown"),
+        created_at=MOCK_CREATED_AT,
+        last_promotion=None,
         active_version=workflow.get("version", "1.0.0"),
         validation_status="ready"
     )
@@ -109,34 +114,22 @@ def get_workflow_detail_endpoint(
     current_user = Depends(require_ops_roles("viewer", "editor", "admin"))
 ):
     """WA-1.5: Workflow detail with promotion history"""
-    # Find workflow by ID across all tenants
-    all_workflows = [
-        *TENANT_WORKFLOWS.get(PILOT_TENANT_A["id"], []),
-        *TENANT_WORKFLOWS.get(PILOT_TENANT_B["id"], [])
-    ]
-    workflow = next((w for w in all_workflows if w["id"] == workflow_id), None)
+    # Find workflow by ID from fixture data
+    workflow = ALL_WORKFLOWS_BY_ID.get(workflow_id)
 
     if not workflow:
-        # Fallback for unknown workflows
-        workflow = {
-            "id": workflow_id,
-            "name": "Test Workflow",
-            "family": "default",
-            "version": "1.0.0",
-            "status": "active",
-            "tenant_id": "test_tenant"
-        }
+        raise HTTPException(status_code=404, detail="Workflow not found")
 
     return WorkflowDetail(
         id=workflow["id"],
-        name=workflow.get("name", "Test Workflow"),
-        family=workflow.get("family", "default"),
+        name=workflow.get("name", "Untitled Workflow"),
+        family=workflow.get("family", "unknown"),
         version=workflow.get("version", "1.0.0"),
         status=workflow.get("status", "active"),
-        environment="dev",
-        tenant_id=workflow.get("tenant_id", "test_tenant"),
-        created_at=datetime.now(),
-        last_promotion={"version": "1.0.0", "environment": "stage"},
+        environment=workflow.get("environment", "dev"),
+        tenant_id=workflow.get("tenant_id", "unknown"),
+        created_at=MOCK_CREATED_AT,
+        last_promotion=PromotionSummary(version="1.0.0", environment="stage"),
         active_version=workflow.get("version", "1.0.0"),
         validation_status="ready"
     )
