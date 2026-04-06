@@ -170,3 +170,105 @@ class TestOperatorJourney2WorkflowPromotion:
         latest = promotions[0]
         assert "rollback_version" in latest
         assert latest["rollback_version"] is not None
+
+
+class TestOperatorJourney3RunInvestigation:
+    """Operator Journey 3: Investigate A Failed Run"""
+
+    @pytest.mark.integration
+    def test_ops_lead_list_failed_runs(self, client):
+        """OL-3.1: Ops Lead can list failed runs with filters"""
+        response = client.get(
+            f"/api/runs?tenant_id={PILOT_TENANT_A['id']}&status=failed",
+            headers={"Authorization": "Bearer ops_lead_token"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "runs" in data
+        assert all(r["status"] == "failed" for r in data["runs"])
+
+    @pytest.mark.integration
+    def test_ops_lead_view_run_timeline(self, client):
+        """OL-3.2: Ops Lead can view run timeline with step details"""
+        # First get a failed run
+        response = client.get(
+            f"/api/runs?tenant_id={PILOT_TENANT_A['id']}&status=failed&limit=1",
+            headers={"Authorization": "Bearer ops_lead_token"}
+        )
+        assert response.status_code == 200
+        runs = response.json()["runs"]
+        assert len(runs) > 0
+        run_id = runs[0]["id"]
+
+        # Get run timeline
+        response = client.get(
+            f"/api/runs/{run_id}/timeline",
+            headers={"Authorization": "Bearer ops_lead_token"}
+        )
+        assert response.status_code == 200
+        timeline = response.json()
+        assert "steps" in timeline
+        assert all(s["step"] for s in timeline["steps"])
+        assert all("status" in s for s in timeline["steps"])
+        assert all("duration_ms" in s for s in timeline["steps"])
+
+    @pytest.mark.integration
+    def test_ops_lead_view_policy_decisions(self, client):
+        """OL-3.3: Ops Lead can see policy decisions in timeline"""
+        response = client.get(
+            f"/api/runs?tenant_id={PILOT_TENANT_A['id']}&status=failed&limit=1",
+            headers={"Authorization": "Bearer ops_lead_token"}
+        )
+        runs = response.json()["runs"]
+        run_id = runs[0]["id"]
+
+        response = client.get(
+            f"/api/runs/{run_id}/timeline?include_policy=true",
+            headers={"Authorization": "Bearer ops_lead_token"}
+        )
+        assert response.status_code == 200
+        timeline = response.json()
+        # Check for policy decisions in steps or separate section
+        assert "policy_decisions" in timeline or any("policy" in str(s) for s in timeline.get("steps", []))
+
+    @pytest.mark.integration
+    def test_ops_lead_can_replay_run(self, client):
+        """OL-3.4: Ops Lead can trigger replay of failed run"""
+        response = client.get(
+            f"/api/runs?tenant_id={PILOT_TENANT_A['id']}&status=failed&limit=1",
+            headers={"Authorization": "Bearer ops_lead_token"}
+        )
+        runs = response.json()["runs"]
+        run_id = runs[0]["id"]
+
+        response = client.post(
+            f"/api/runs/{run_id}/replay",
+            json={"reason": "Customer escalation - retry failed order lookup"},
+            headers={"Authorization": "Bearer ops_lead_token"}
+        )
+        assert response.status_code == 202
+        replay = response.json()
+        assert replay["status"] == "replaying"
+        assert "replay_id" in replay
+
+    @pytest.mark.integration
+    def test_ops_lead_escalate_run(self, client):
+        """OL-3.5: Ops Lead can escalate run to human handling"""
+        response = client.get(
+            f"/api/runs?tenant_id={PILOT_TENANT_A['id']}&status=failed&limit=1",
+            headers={"Authorization": "Bearer ops_lead_token"}
+        )
+        runs = response.json()["runs"]
+        run_id = runs[0]["id"]
+
+        response = client.post(
+            f"/api/runs/{run_id}/escalate",
+            json={
+                "escalation_reason": "Requires manual intervention",
+                "assigned_to": "human_handler_team"
+            },
+            headers={"Authorization": "Bearer ops_lead_token"}
+        )
+        assert response.status_code == 200
+        escalation = response.json()
+        assert escalation["status"] == "escalated"
