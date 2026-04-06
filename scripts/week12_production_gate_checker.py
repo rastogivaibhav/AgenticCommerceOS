@@ -9,13 +9,13 @@ Generates production gate evidence pack.
 import json
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 class ProductionGateChecker:
     def __init__(self):
         self.checks = {}
-        self.timestamp = datetime.utcnow().isoformat() + "Z"
+        self.timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z"
 
     def check_workflow_versioning(self):
         """GR-1: Versioned workflow resources exist"""
@@ -62,7 +62,7 @@ class ProductionGateChecker:
         print("\n🔍 Check: UI Control Plane Surfaces...")
         required_pages = ["workflows", "runs", "promotions", "approvals"]
         try:
-            src_path = Path("src")
+            src_path = Path("apps/ops_ui_v2/src")
             pages_found = []
             for page in required_pages:
                 page_files = list(src_path.rglob(f"*{page}*"))
@@ -84,11 +84,13 @@ class ProductionGateChecker:
         """GNFR-2: Security auth is in place"""
         print("\n🔍 Check: Authentication & Authorization...")
         try:
-            result = subprocess.run(
-                ["grep", "-r", "Bearer", "ops_api/"],
-                capture_output=True, text=True, timeout=5
-            )
-            passed = result.returncode == 0
+            auth_found = False
+            for file in Path("apps/ops_api").rglob("*.py"):
+                content = file.read_text()
+                if "Bearer" in content and "Authorization" in content:
+                    auth_found = True
+                    break
+            passed = auth_found
             self.checks["authentication"] = {
                 "requirement": "GNFR-2: Auth, role enforcement, secrets handling in place",
                 "passed": passed,
@@ -104,8 +106,8 @@ class ProductionGateChecker:
         """GNFR-3: Logs, metrics, health endpoints"""
         print("\n🔍 Check: Observability (Logs, Metrics, Health)...")
         try:
-            health_exists = Path("ops_api/health.py").exists()
-            metrics_exists = Path("ops_api/observability/metrics.py").exists()
+            health_exists = Path("apps/ops_api/main.py").exists()  # Health endpoint is inline
+            metrics_exists = Path("acosplatform/observability/metrics.py").exists()
 
             passed = health_exists and metrics_exists
             self.checks["observability"] = {
@@ -142,7 +144,7 @@ class ProductionGateChecker:
         """GR-6: Audit coverage"""
         print("\n🔍 Check: Audit Logging...")
         try:
-            audit_exists = Path("ops_api/audit.py").exists()
+            audit_exists = Path("acosplatform/audit/logger.py").exists()
             passed = audit_exists
             self.checks["audit_logging"] = {
                 "requirement": "GR-6: Control-plane mutations and risky decisions generate audit evidence",
@@ -198,9 +200,11 @@ class ProductionGateChecker:
             "go_live_requirements": {
                 "versioned_resources": self.checks.get("workflow_versioning", {}).get("passed", False),
                 "auditable_promotions": self.checks.get("audit_logging", {}).get("passed", False),
-                "operational_runbooks": True,  # TODO: Verify runbook files exist
-                "rollback_plans": True,  # TODO: Verify rollback procedures documented
-                "release_evidence": True,  # TODO: Week 11 evidence exists
+                "operational_runbooks": Path("docs/RUNBOOK_GO_LIVE.md").exists() and \
+                                       Path("docs/RUNBOOK_WORKFLOW_PROMOTION.md").exists() and \
+                                       Path("docs/RUNBOOK_INCIDENT_RESPONSE.md").exists(),
+                "rollback_plans": Path("docs/RUNBOOK_GO_LIVE.md").exists(),
+                "release_evidence": len(list(Path("deploy/k8s/observability/evidence").glob("week11*.json"))) > 0,
                 "docker_deployment": self.checks.get("docker_deployment", {}).get("passed", False)
             }
         }

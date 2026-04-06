@@ -9,7 +9,7 @@ Evidence is saved to deploy/k8s/observability/evidence/week11_uat_*.json
 import json
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 def run_uat_tests():
@@ -47,7 +47,7 @@ def run_uat_tests():
 
 def create_evidence_artifact(uat_results):
     """Create evidence artifact JSON"""
-    timestamp = datetime.utcnow().isoformat() + "Z"
+    timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z"
 
     artifact = {
         "timestamp": timestamp,
