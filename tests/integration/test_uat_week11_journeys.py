@@ -347,3 +347,69 @@ class TestOperatorJourney5Analytics:
         )
         assert response.status_code == 200
         assert response.headers["Content-Type"] == "text/csv"
+
+
+class TestOperatorJourney6Incidents:
+    """Operator Journey 6: Handle A Live Incident"""
+
+    @pytest.mark.integration
+    def test_engineer_detect_error_spike(self, client):
+        """PE-6.1: Platform Engineer can detect abnormal error signal"""
+        response = client.get(
+            f"/api/health/workflows/{WORKFLOW_DISCOVERY['id']}?window=5m",
+            headers={"Authorization": "Bearer platform_engineer_token"}
+        )
+        assert response.status_code == 200
+        health = response.json()
+        assert "error_rate" in health
+        assert "p99_latency" in health
+        assert "throughput" in health
+
+    @pytest.mark.integration
+    def test_engineer_pause_workflow(self, client):
+        """PE-6.2: Platform Engineer can pause affected workflow"""
+        response = client.post(
+            f"/api/workflows/{WORKFLOW_DISCOVERY['id']}/pause",
+            json={"incident_id": "incident_123", "reason": "Error rate spike detected"},
+            headers={"Authorization": "Bearer platform_engineer_token"}
+        )
+        assert response.status_code == 200
+        pause = response.json()
+        assert pause["status"] == "paused"
+
+    @pytest.mark.integration
+    def test_engineer_activate_failsafe(self, client):
+        """PE-6.3: Platform Engineer can activate failsafe route"""
+        response = client.post(
+            f"/api/workflows/{WORKFLOW_DISCOVERY['id']}/failsafe/activate",
+            json={"incident_id": "incident_123"},
+            headers={"Authorization": "Bearer platform_engineer_token"}
+        )
+        assert response.status_code == 200
+        failsafe = response.json()
+        assert failsafe["status"] == "active"
+
+    @pytest.mark.integration
+    def test_engineer_execute_rollback(self, client):
+        """PE-6.4: Platform Engineer can execute rollback"""
+        response = client.post(
+            f"/api/workflows/{WORKFLOW_DISCOVERY['id']}/rollback",
+            json={"incident_id": "incident_123", "target_version": "0.9.5"},
+            headers={"Authorization": "Bearer platform_engineer_token"}
+        )
+        assert response.status_code == 200
+        rollback = response.json()
+        assert rollback["status"] == "rolling_back"
+        assert rollback["target_version"] == "0.9.5"
+
+    @pytest.mark.integration
+    def test_incident_audit_trail(self, client):
+        """PE-6.5: Incident response creates audit trail"""
+        response = client.get(
+            f"/api/audit?incident_id=incident_123",
+            headers={"Authorization": "Bearer admin_token"}
+        )
+        assert response.status_code == 200
+        audit_events = response.json()
+        assert len(audit_events) > 0
+        assert all(e["incident_id"] == "incident_123" for e in audit_events)
