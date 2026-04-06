@@ -272,3 +272,78 @@ class TestOperatorJourney3RunInvestigation:
         assert response.status_code == 200
         escalation = response.json()
         assert escalation["status"] == "escalated"
+
+
+class TestOperatorJourney4Approvals:
+    """Operator Journey 4: Approve Risky Actions"""
+
+    @pytest.mark.integration
+    def test_risk_owner_view_approval_queue(self, client):
+        """RO-4.1: Risk Owner can view approval queue"""
+        response = client.get(
+            f"/api/approvals?status=pending&tenant_id={PILOT_TENANT_A['id']}",
+            headers={"Authorization": "Bearer risk_owner_token"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "approvals" in data
+        assert all(a["status"] == "pending" for a in data["approvals"])
+
+    @pytest.mark.integration
+    def test_risk_owner_review_approval_evidence(self, client):
+        """RO-4.2: Risk Owner can review evidence pack with approval"""
+        response = client.get(
+            f"/api/approvals?status=pending&limit=1",
+            headers={"Authorization": "Bearer risk_owner_token"}
+        )
+        approvals = response.json()["approvals"]
+        if approvals:
+            approval_id = approvals[0]["id"]
+            response = client.get(
+                f"/api/approvals/{approval_id}",
+                headers={"Authorization": "Bearer risk_owner_token"}
+            )
+            assert response.status_code == 200
+            approval = response.json()
+            assert "evidence" in approval
+            assert "rollback_plan" in approval
+
+
+class TestOperatorJourney5Analytics:
+    """Operator Journey 5: Evaluate Business Performance"""
+
+    @pytest.mark.integration
+    def test_pm_view_kpi_overview(self, client):
+        """PM-5.1: AI Product Manager can view KPI overview"""
+        response = client.get(
+            f"/api/analytics/kpi?tenant_id={PILOT_TENANT_A['id']}",
+            headers={"Authorization": "Bearer product_manager_token"}
+        )
+        assert response.status_code == 200
+        kpis = response.json()
+        assert "run_volume" in kpis or "total_runs" in kpis
+        assert "success_rate" in kpis or "completion_rate" in kpis
+
+    @pytest.mark.integration
+    def test_pm_segment_by_workflow(self, client):
+        """PM-5.2: Product Manager can segment KPIs by workflow"""
+        response = client.get(
+            f"/api/analytics/kpi?tenant_id={PILOT_TENANT_A['id']}&segment_by=workflow",
+            headers={"Authorization": "Bearer product_manager_token"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "segments" in data
+        for segment in data["segments"]:
+            assert "workflow_id" in segment
+            assert "metrics" in segment
+
+    @pytest.mark.integration
+    def test_pm_export_analytics(self, client):
+        """PM-5.3: Product Manager can export analytics"""
+        response = client.get(
+            f"/api/analytics/export?tenant_id={PILOT_TENANT_A['id']}&format=csv",
+            headers={"Authorization": "Bearer product_manager_token"}
+        )
+        assert response.status_code == 200
+        assert response.headers["Content-Type"] == "text/csv"
