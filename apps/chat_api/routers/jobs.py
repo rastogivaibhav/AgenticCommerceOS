@@ -58,23 +58,38 @@ def create_job(payload: dict):
 def get_job_status(job_id: str):
     """Get status of an async job.
 
-    Returns current job status and progress information.
+    Returns different response structures based on job state:
+
+    Response when queued:
+    {
+        "status": "queued",
+        "job_id": "...",
+        "created_at": "2026-04-06T..."
+    }
 
     Response when processing:
     {
         "status": "processing",
+        "job_id": "...",
         "current_step": 2,
         "total_steps": 4,
         "step_name": "Filtering by price",
         "eta_seconds": 3
     }
 
-    Response when queued/completed:
+    Response when completed:
     {
-        "status": "queued|completed|failed",
+        "status": "completed",
         "job_id": "...",
-        "created_at": "2026-04-06T...",
-        "updated_at": "2026-04-06T..."
+        "execution_time_ms": 8234,
+        "completed_at": "2026-04-06T..."
+    }
+
+    Response when failed:
+    {
+        "status": "failed",
+        "job_id": "...",
+        "error": "Error message"
     }
 
     Returns 404 if job not found.
@@ -96,29 +111,58 @@ def get_job_status(job_id: str):
         extra={"job_id": job_id, "status": job.status},
     )
 
-    # Build response
-    response = {
-        "job_id": job.id,
-        "status": job.status.value,
-        "created_at": job.created_at.isoformat(),
-        "updated_at": job.updated_at.isoformat() if job.updated_at else job.created_at.isoformat(),
-    }
+    # Build response based on job status
+    if job.status == JobStatus.QUEUED:
+        response = {
+            "status": "queued",
+            "job_id": job.id,
+            "created_at": job.created_at.isoformat(),
+        }
 
-    # Add optional fields if available
-    if job.started_at:
-        response["started_at"] = job.started_at.isoformat()
+    elif job.status == JobStatus.PROCESSING:
+        response = {
+            "status": "processing",
+            "job_id": job.id,
+        }
+        # Include step info if available
+        if job.current_step is not None:
+            response["current_step"] = job.current_step
+        if job.total_steps is not None:
+            response["total_steps"] = job.total_steps
+        if job.step_name:
+            response["step_name"] = job.step_name
+        if job.eta_seconds is not None:
+            response["eta_seconds"] = job.eta_seconds
 
-    if job.completed_at:
-        response["completed_at"] = job.completed_at.isoformat()
+    elif job.status == JobStatus.COMPLETED:
+        response = {
+            "status": "completed",
+            "job_id": job.id,
+        }
+        # Calculate execution time
+        if job.started_at and job.completed_at:
+            execution_time_ms = int(
+                (job.completed_at - job.started_at).total_seconds() * 1000
+            )
+            response["execution_time_ms"] = execution_time_ms
+        if job.completed_at:
+            response["completed_at"] = job.completed_at.isoformat()
 
-    if job.error:
-        response["error"] = job.error
+    elif job.status == JobStatus.FAILED:
+        response = {
+            "status": "failed",
+            "job_id": job.id,
+        }
+        if job.error:
+            response["error"] = job.error
 
-    # For processing jobs, optionally include progress info (future enhancement)
-    if job.status == JobStatus.PROCESSING:
-        # TODO: Add progress tracking to Job model
-        response["current_step"] = 2
-        response["total_steps"] = 4
+    else:
+        # Unknown status (shouldn't happen)
+        logger.warning(f"Unknown job status: {job.status}")
+        response = {
+            "status": "unknown",
+            "job_id": job.id,
+        }
 
     return response
 

@@ -178,6 +178,54 @@ class JobQueueService:
         logger.info(f"Job {job_id} marked as processing")
         return True
 
+    def update_job_step(
+        self,
+        job_id: str,
+        current_step: int,
+        total_steps: int,
+        step_name: str = None,
+        eta_seconds: int = None,
+    ) -> bool:
+        """
+        Update step progress information for a processing job.
+
+        Args:
+            job_id: The job identifier
+            current_step: Current step number (1-indexed)
+            total_steps: Total number of steps in workflow
+            step_name: Optional name of current step
+            eta_seconds: Optional estimated seconds remaining
+
+        Returns:
+            True if successful, False otherwise
+        """
+        job = self.get_job(job_id)
+        if job is None:
+            logger.warning(f"Cannot update job {job_id} step info: job not found")
+            return False
+
+        job.current_step = current_step
+        job.total_steps = total_steps
+        if step_name:
+            job.step_name = step_name
+        if eta_seconds is not None:
+            job.eta_seconds = eta_seconds
+
+        # Update job data in Redis
+        job_key = f"{self.JOB_PREFIX}{job_id}"
+        job_json = job.model_dump_json()
+        self.redis.setex(job_key, self.JOB_TTL, job_json)
+
+        logger.debug(
+            f"Updated step info for job {job_id}",
+            extra={
+                "job_id": job_id,
+                "current_step": current_step,
+                "total_steps": total_steps,
+            },
+        )
+        return True
+
     def mark_job_completed(
         self, job_id: str, result: Dict[str, Any]
     ) -> bool:

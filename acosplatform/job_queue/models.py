@@ -38,6 +38,10 @@ class Job(BaseModel):
         created_at: Job creation timestamp
         started_at: When job processing started (optional)
         completed_at: When job processing completed (optional)
+        current_step: Current step number being executed (1-indexed) (optional)
+        total_steps: Total number of steps in workflow (optional)
+        step_name: Name of current step being executed (optional)
+        eta_seconds: Estimated seconds remaining to completion (optional)
     """
 
     id: str = Field(default_factory=lambda: str(uuid4()))
@@ -51,5 +55,9 @@ class Job(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    current_step: Optional[int] = None
+    total_steps: Optional[int] = None
+    step_name: Optional[str] = None
+    eta_seconds: Optional[int] = None
 
     model_config = ConfigDict(use_enum_values=False)

@@ -56,6 +56,7 @@ class SessionStore:
         self,
         user_id: str,
         initial_context: Optional[Dict[str, Any]] = None,
+        session_id: Optional[str] = None,
     ) -> ChatSession:
         """
         Create a new session for a user.
@@ -63,15 +64,26 @@ class SessionStore:
         Args:
             user_id: The user identifier
             initial_context: Optional initial context data for the session
+            session_id: Optional session identifier. If provided, will be used instead of auto-generated ID.
+                       Expected format: "user_id:channel_id"
 
         Returns:
             Created ChatSession object in ACTIVE status
         """
-        session = ChatSession(
-            user_id=user_id,
-            status=SessionStatus.ACTIVE,
-            context=initial_context or {},
-        )
+        # If session_id is provided, use it; otherwise create a new one with auto-generated ID
+        if session_id:
+            session = ChatSession(
+                id=session_id,
+                user_id=user_id,
+                status=SessionStatus.ACTIVE,
+                context=initial_context or {},
+            )
+        else:
+            session = ChatSession(
+                user_id=user_id,
+                status=SessionStatus.ACTIVE,
+                context=initial_context or {},
+            )
 
         # Store session data in Redis
         session_key = f"{self.SESSION_PREFIX}{session.id}"

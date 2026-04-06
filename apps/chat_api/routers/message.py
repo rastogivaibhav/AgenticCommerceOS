@@ -162,16 +162,16 @@ def process_message(payload: ChatMessageRequest):
 
         session = session_store.get_session(session_id)
         if session is None:
-            # Create new session
+            # Create new session with the spec-compliant session_id format
+            # SessionStore will use this as the key
             session = session_store.create_session(
+                session_id=session_id,
                 user_id=payload.user_id,
                 initial_context={
                     "channel_id": payload.channel_id,
                     "tenant_id": "default",
                 },
             )
-            # Store the session ID for reference
-            session_id = session.id
 
             logger.debug(
                 f"Created new session {session_id} for user {payload.user_id}",
