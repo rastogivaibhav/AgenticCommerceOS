@@ -87,12 +87,19 @@ class BaseHandler(ABC):
         text = normalized_message.text.lower()
 
         # Simple keyword-based detection
-        if any(word in text for word in ["buy", "purchase", "checkout", "cart"]):
+        # Account workflows
+        if any(word in text for word in ["balance", "account", "loyalty", "points", "settings", "password"]):
+            return "wf-account"
+        # Support workflows (covers returns, issues, shipping, damaged items)
+        elif any(word in text for word in ["return", "refund", "exchange", "issue", "problem", "help", "damaged", "broken", "shipping", "delivery"]):
+            return "wf-support"
+        # Purchase workflows
+        elif any(word in text for word in ["buy", "purchase", "checkout", "cart"]):
             return "wf-purchase"
-        elif any(word in text for word in ["return", "refund", "exchange", "issue", "problem"]):
-            return "wf-service"
-        elif any(word in text for word in ["order", "status", "tracking", "shipped", "delivery"]):
+        # Post-purchase workflows
+        elif any(word in text for word in ["order", "status", "tracking", "shipped"]):
             return "wf-post-purchase"
+        # Engagement workflows
         elif any(word in text for word in ["feedback", "review", "rate", "referral", "recommend"]):
             return "wf-engagement"
         else:

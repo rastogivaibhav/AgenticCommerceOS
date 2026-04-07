@@ -3,6 +3,8 @@
 Executes workflows inline for operations that complete within 2 seconds.
 Receives normalized chat messages from the Slack adapter and returns
 results directly without background processing.
+
+Includes error handling with retry logic and fallback strategies.
 """
 
 import logging
@@ -12,6 +14,14 @@ from typing import Dict, Any, Optional
 
 from apps.chat_api.models.chat import ChatMessage
 from apps.chat_api.handlers.base import BaseHandler
+from apps.chat_api.errors import (
+    SessionNotFoundError,
+    WorkflowNotFoundError,
+    SessionNotFoundFallback,
+    WorkflowNotFoundFallback,
+    GenericFallback,
+    apply_fallbacks,
+)
 from acosplatform.session.store import SessionStore
 from acosplatform.session.models import MessageRole
 
@@ -87,15 +97,26 @@ class SyncHandler(BaseHandler):
             # 1. Retrieve session from SessionStore
             session = self.session_store.get_session(session_id)
             if session is None:
-                logger.error(
-                    f"Session {session_id} not found",
+                logger.warning(
+                    f"Session {session_id} not found, attempting recovery",
                     extra={"session_id": session_id, "request_id": request_id},
                 )
-                return {
-                    "status": "failed",
-                    "error": f"Session {session_id} not found",
-                    "request_id": request_id,
-                }
+                # Try fallback: create new session
+                fallback = SessionNotFoundFallback(
+                    self.session_store,
+                    normalized_message.user_id,
+                    normalized_message.channel_id,
+                )
+                fallback_result = fallback.execute()
+                if fallback_result.get("status") == "recovered":
+                    session_id = fallback_result["session_id"]
+                    session = self.session_store.get_session(session_id)
+                else:
+                    return {
+                        "status": "failed",
+                        "error": f"Session {session_id} not found and recovery failed",
+                        "request_id": request_id,
+                    }
 
             # 2. Add normalized message to conversation history
             self.session_store.add_message(
@@ -131,15 +152,31 @@ class SyncHandler(BaseHandler):
                 )
 
             if workflow is None:
-                logger.error(
-                    f"Workflow {workflow_id} not found in registry",
+                logger.warning(
+                    f"Workflow {workflow_id} not found in registry, attempting recovery",
                     extra={"workflow_id": workflow_id, "session_id": session_id},
                 )
-                return {
-                    "status": "failed",
-                    "error": f"Workflow {workflow_id} not found",
-                    "request_id": request_id,
-                }
+                # Try fallback: use default discovery workflow
+                fallback = WorkflowNotFoundFallback(workflow_id)
+                fallback_result = fallback.execute()
+                if fallback_result.get("status") == "degraded":
+                    workflow_id = fallback_result["workflow_id"]
+                    logger.info(
+                        f"Using fallback workflow {workflow_id}",
+                        extra={"original_workflow_id": workflow_id},
+                    )
+                    # Re-lookup the fallback workflow
+                    from acosplatform.workflows.service import resolve_execution_workflow
+                    workflow = resolve_execution_workflow(
+                        tenant_id=session.context.get("tenant_id", "default"),
+                        workflow_family="discovery",
+                    )
+                else:
+                    return {
+                        "status": "failed",
+                        "error": f"Workflow {workflow_id} not found and fallback failed",
+                        "request_id": request_id,
+                    }
 
             # 5. Execute workflow inline
             timeout_seconds = workflow.get("timeout_seconds", 2)
@@ -184,6 +221,18 @@ class SyncHandler(BaseHandler):
                 exc_info=True,
             )
 
+            # Try fallback strategies
+            fallbacks = [
+                GenericFallback(f"Sync handler execution failed: {str(e)}"),
+            ]
+            fallback_result = apply_fallbacks(e, fallbacks)
+
+            if fallback_result:
+                fallback_result["request_id"] = request_id
+                fallback_result["execution_time_ms"] = elapsed_ms
+                fallback_result["executed_at"] = datetime.now(UTC).isoformat()
+                return fallback_result
+
             return {
                 "status": "failed",
                 "error": str(e),
@@ -198,11 +247,13 @@ class SyncHandler(BaseHandler):
         message_text: str,
         session_context: Dict[str, Any],
         timeout_seconds: int,
-    ) -> Dict[str, Any]:
+    ) -> str:
         """Execute workflow steps synchronously.
 
-        In the current implementation, this returns a mock result.
-        In production, this would call actual agents via MCP.
+        Checks for demo workflow implementations first. If a demo workflow
+        is found (wf-account, wf-discovery, wf-support), executes it directly.
+
+        Otherwise, would call actual agents via MCP in production.
 
         Args:
             workflow: Workflow definition from registry
@@ -211,9 +262,28 @@ class SyncHandler(BaseHandler):
             timeout_seconds: Execution timeout in seconds
 
         Returns:
-            Workflow execution result dict
+            Workflow execution result message
         """
         workflow_id = workflow.get("workflow_id", "unknown")
+
+        # Check for demo workflows first
+        try:
+            from apps.chat_api.workflows import get_demo_workflow
+            demo_workflow = get_demo_workflow(workflow_id)
+            if demo_workflow:
+                logger.debug(
+                    f"Executing demo workflow {workflow_id}",
+                    extra={"workflow_id": workflow_id},
+                )
+                result = demo_workflow.execute(message_text, session_context)
+                return result
+        except Exception as e:
+            logger.warning(
+                f"Failed to load demo workflow {workflow_id}: {str(e)}",
+                extra={"workflow_id": workflow_id},
+            )
+
+        # Fallback: execute registered workflow steps
         steps = workflow.get("steps", [])
 
         logger.debug(
@@ -246,11 +316,8 @@ class SyncHandler(BaseHandler):
 
             results[step_id] = step_result
 
-        return {
-            "workflow_steps": results,
-            "total_steps": len(steps),
-            "message": f"Workflow {workflow_id} completed successfully",
-        }
+        message = f"Workflow {workflow_id} completed successfully"
+        return message
 
     @staticmethod
     def _family_from_workflow_id(workflow_id: str) -> str:
