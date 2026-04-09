@@ -78,8 +78,8 @@ export default function Agents() {
     name: '',
     subsystem: 'Marketing',
     type: 'Task',
-    runtimeProvider: 'google_genai',
-    modelName: 'gemini-2.0-flash',
+    runtimeProvider: DEFAULT_RUNTIME_CAPABILITIES.active_provider,
+    modelName: DEFAULT_RUNTIME_CAPABILITIES.default_model,
     agentVersion: 'v1',
     deploymentCycle: 'Immediate',
   });
@@ -146,7 +146,7 @@ export default function Agents() {
         name: '',
         subsystem: 'Marketing',
         type: 'Task',
-        runtimeProvider: supportedProviderOptions[0] || 'local_fallback',
+        runtimeProvider: runtimeCapabilities.active_provider || supportedProviderOptions[0] || 'local_fallback',
         modelName: runtimeCapabilities.default_model || 'gemini-2.0-flash',
         agentVersion: 'v1',
         deploymentCycle: 'Immediate',
@@ -539,6 +539,11 @@ export default function Agents() {
                         Provider: {testResult.runtime_provider || '-'} | Model: {testResult.model_name || '-'} | Duration:{' '}
                         {testResult.duration_ms ?? '-'} ms
                       </div>
+                      {testResult.error && (
+                        <div className="text-on-error-container text-sm" style={{ marginTop: 8 }}>
+                          {testResult.error}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

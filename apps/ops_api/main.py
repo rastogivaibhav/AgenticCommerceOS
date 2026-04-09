@@ -68,7 +68,7 @@ from acosplatform.workflows.service import (
     promote_workflow_version,
     rollback_workflow_version,
 )
-from apps.ops_api.routers import experiments, analytics, workflows, promotions, runs, approvals, incidents
+from apps.ops_api.routers import experiments, analytics, promotions, runs, approvals, incidents
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -118,7 +118,6 @@ app.add_middleware(
 # Include routers
 app.include_router(experiments.router)
 app.include_router(analytics.router)
-app.include_router(workflows.router)
 app.include_router(promotions.router)
 app.include_router(promotions.approvals_router)
 app.include_router(promotions.audit_router)
@@ -700,9 +699,13 @@ def test_agent(
             "customer_id": payload.customer_id,
         },
         journey_type=payload.journey_type,
+        requested_provider=provider,
+        strict_provider=True,
     )
     runtime = adk_result.get("runtime", {})
     used_skills = adk_result.get("skills_used", [])
+    runtime_errors = list(adk_result.get("errors") or [])
+    contract_errors = list(adk_result.get("contract_errors") or [])
     configured_bound = list(agent.get("bound_skills") or agent.get("skills") or [])
     resolved_provider = provider if provider == "local_fallback" else runtime.get("provider", provider)
     duration_ms = round((perf_counter() - started) * 1000, 3)
@@ -711,11 +714,12 @@ def test_agent(
         "request_id": f"agt-test-{uuid4().hex[:10]}",
         "trace_id": f"trace-{uuid4().hex[:8]}",
         "timestamp": _utc_iso(),
-        "status": "pass" if not adk_result.get("contract_errors") else "fail",
+        "status": "pass" if not runtime_errors and not contract_errors else "fail",
         "agent_id": agent_id,
         "journey_type": payload.journey_type,
         "tenant_id": payload.tenant_id,
         "runtime_provider": resolved_provider,
+        "configured_runtime_provider": provider,
         "model_name": runtime.get("model_name", agent.get("model_name", DEFAULT_MODEL)),
         "agent_version": agent.get("agent_version", "v1"),
         "bound_skills": configured_bound,
@@ -724,6 +728,9 @@ def test_agent(
         "runtime": runtime,
         "adk_result": adk_result,
     }
+    if runtime_errors or contract_errors:
+        result["errors"] = runtime_errors + contract_errors
+        result["error"] = result["errors"][0]
     return result
 
 

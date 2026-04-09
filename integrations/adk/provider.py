@@ -51,12 +51,40 @@ def _init_adk() -> None:
 _init_adk()
 
 
+def _resolve_provider(
+    requested_provider: str | None = None,
+    *,
+    strict_provider: bool = False,
+) -> tuple[str, list[str]]:
+    if requested_provider == "local_fallback":
+        return "local_fallback", []
+
+    if requested_provider == "google_genai":
+        if _adk_available and _model:
+            return "google_genai", []
+        if strict_provider:
+            return (
+                "google_genai",
+                [
+                    "Configured runtime provider 'google_genai' is unavailable. "
+                    "Set GOOGLE_API_KEY or GEMINI_API_KEY to enable the Agent SDK runtime."
+                ],
+            )
+        return "local_fallback", []
+
+    return ("google_genai", []) if _adk_available and _model else ("local_fallback", [])
+
+
+def _should_use_genai(ctx: dict[str, Any]) -> bool:
+    return ctx.get("__runtime_provider") == "google_genai" and _adk_available and _model is not None
+
+
 def _skill_recommendation(ctx: dict[str, Any], products: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Recommendation skill that returns product reasoning."""
     message = ctx.get("message", "")
     prefs = ctx.get("preferences", {})
 
-    if _adk_available and _model:
+    if _should_use_genai(ctx):
         try:
             prompt = (
                 f"You are a shopping assistant. The customer says: '{message}'. "
@@ -98,7 +126,7 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
     """Explanation skill for pricing and recommendation rationale."""
     message = sanitize_user_message(ctx.get("message", ""))
 
-    if _adk_available and _model:
+    if _should_use_genai(ctx):
         try:
             prompt = (
                 f"You are a shopping assistant. The customer asked: '{message}'. "
@@ -124,8 +152,7 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
     }
 
 
-def _build_runtime(journey_type: str) -> ADKRuntime:
-    provider = "google_genai" if _adk_available else "local_fallback"
+def _build_runtime(journey_type: str, provider: str) -> ADKRuntime:
     runtime = ADKRuntime(
         journey_type=journey_type,
         provider=provider,
@@ -158,9 +185,19 @@ def _build_runtime(journey_type: str) -> ADKRuntime:
     return runtime
 
 
-def run_adk(ctx: dict[str, Any], journey_type: str = "discovery") -> dict[str, Any]:
+def run_adk(
+    ctx: dict[str, Any],
+    journey_type: str = "discovery",
+    *,
+    requested_provider: str | None = None,
+    strict_provider: bool = False,
+) -> dict[str, Any]:
     """Supervisor entrypoint using standardized runtime execution."""
-    runtime = _build_runtime(journey_type)
+    resolved_provider, runtime_errors = _resolve_provider(
+        requested_provider,
+        strict_provider=strict_provider,
+    )
+    runtime = _build_runtime(journey_type, resolved_provider)
     pipeline_by_journey = {
         "discovery": ["recommendation"],
         "purchase": ["recommendation", "explanation"],
@@ -170,6 +207,7 @@ def run_adk(ctx: dict[str, Any], journey_type: str = "discovery") -> dict[str, A
     }
 
     runtime_payload = dict(ctx)
+    runtime_payload["__runtime_provider"] = resolved_provider
     runtime_payload["products"] = ctx.get("recommendations") or ctx.get("products") or []
     if journey_type == "post_purchase":
         runtime_payload["explanation_context"] = {"type": "order_tracking"}
@@ -177,17 +215,18 @@ def run_adk(ctx: dict[str, Any], journey_type: str = "discovery") -> dict[str, A
     outputs: dict[str, Any] = {}
     used_tools: list[str] = []
     contract_errors: list[str] = []
-    try:
-        outputs, used_tools = runtime.run_pipeline(
-            pipeline_by_journey.get(journey_type, ["recommendation"]),
-            runtime_payload,
-        )
-    except ToolContractError as exc:
-        logger.error(f"ADK tool contract violation: {exc}")
-        contract_errors.append(str(exc))
+    if not runtime_errors:
+        try:
+            outputs, used_tools = runtime.run_pipeline(
+                pipeline_by_journey.get(journey_type, ["recommendation"]),
+                runtime_payload,
+            )
+        except ToolContractError as exc:
+            logger.error(f"ADK tool contract violation: {exc}")
+            contract_errors.append(str(exc))
 
     result = {
-        "adk_active": _adk_available,
+        "adk_active": resolved_provider == "google_genai" and _adk_available,
         "journey_type": journey_type,
         "skills_used": used_tools,
         "runtime": runtime.metadata(),
@@ -196,6 +235,8 @@ def run_adk(ctx: dict[str, Any], journey_type: str = "discovery") -> dict[str, A
         result["recommendation"] = outputs["recommendation"]
     if "explanation" in outputs:
         result["explanation"] = outputs["explanation"]
+    if runtime_errors:
+        result["errors"] = runtime_errors
     if contract_errors:
         result["contract_errors"] = contract_errors
     return result
