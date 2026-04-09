@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-04-09T10:29:47.942069Z",
+  "week": 12,
+  "phase": "production_gate",
+  "production_readiness_checks": {
+    "workflow_versioning": {
+      "requirement": "GR-1: Versioned workflow resources exist in persistence",
+      "passed": true,
+      "details": "Version fields present in workflow model and workflow version persistence hooks found"
+    },
+    "run_version_tracking": {
+      "requirement": "GR-2: Every run records the workflow version used",
+      "passed": true,
+      "details": "Run persistence and journey engine both reference workflow_version"
+    },
+    "ui_surfaces": {
+      "requirement": "GR-8: Real React control plane with foundational views",
+      "passed": true,
+      "details": "React routes and workflow/run investigation surfaces are present"
+    },
+    "authentication": {
+      "requirement": "GNFR-2: Auth, role enforcement, secrets handling in place",
+      "passed": true,
+      "details": "Role-based auth hooks and protected routes detected"
+    },
+    "observability": {
+      "requirement": "GNFR-3: Logs, metrics, and health endpoints for pilot operations",
+      "passed": true,
+      "details": "Metrics module and health/metrics endpoints are present"
+    },
+    "docker_deployment": {
+      "requirement": "GNFR-1: Full release runs through Docker Compose",
+      "passed": true,
+      "details": "Dockerfile and compose path with ops-api service found"
+    },
+    "audit_logging": {
+      "requirement": "GR-6: Control-plane mutations and risky decisions generate audit evidence",
+      "passed": true,
+      "details": "Audit logger and API audit calls are present"
+    }
+  },
+  "summary": {
+    "checks_passed": 7,
+    "checks_total": 7,
+    "overall_pass": true,
+    "readiness_percentage": 100
+  },
+  "go_live_requirements": {
+    "versioned_resources": true,
+    "auditable_promotions": true,
+    "operational_runbooks": true,
+    "rollback_plans": true,
+    "release_evidence": true,
+    "docker_deployment": true
+  }
+}

@@ -5,6 +5,20 @@ All notable changes to ACOS Control Plane are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Documentation
+
+- Rewrote `README.md` with a production-control-plane-first narrative, runnable quick start, and concrete operational examples.
+- Refreshed `DOCUMENTATION_INDEX.md` and `docs/README.md` to reflect the current docs map, runbooks, and readiness artifacts.
+- Updated `CONTRIBUTING.md` with current repo workflows, test gates, and docs update expectations.
+- Updated `SECURITY.md` with current disclosure guidance and operational security controls.
+- Added and linked Week 12 operational runbooks and evidence pack:
+  - `docs/RUNBOOK_GO_LIVE.md`
+  - `docs/RUNBOOK_WORKFLOW_PROMOTION.md`
+  - `docs/RUNBOOK_INCIDENT_RESPONSE.md`
+  - `docs/week12_production_gate_evidence_pack.md`
+
 ## [1.0.0] - 2026-03-22
 
 ### Initial Release

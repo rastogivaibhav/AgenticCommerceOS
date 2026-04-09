@@ -28,10 +28,18 @@ class RuntimeTool:
 class ADKRuntime:
     """Small runtime abstraction for deterministic tool execution."""
 
-    def __init__(self, *, journey_type: str, provider: str, contract_version: str = "v1"):
+    def __init__(
+        self,
+        *,
+        journey_type: str,
+        provider: str,
+        contract_version: str = "v1",
+        model_name: str | None = None,
+    ):
         self.journey_type = journey_type
         self.provider = provider
         self.contract_version = contract_version
+        self.model_name = model_name
         self._tools: dict[str, RuntimeTool] = {}
         self.trace: list[dict[str, Any]] = []
 
@@ -87,7 +95,7 @@ class ADKRuntime:
             "engine": "standardized-adk-runtime",
             "journey_type": self.journey_type,
             "provider": self.provider,
+            "model_name": self.model_name,
             "contract_version": self.contract_version,
             "trace": list(self.trace),
         }
-

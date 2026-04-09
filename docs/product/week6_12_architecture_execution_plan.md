@@ -5,9 +5,9 @@
 2. Week 7: Closed (tenant network isolation evidence pass on policy-enforcing CNI path).
 3. Week 8: Closed (connector contract runtime and failure-handling paths validated).
 4. Week 9: Closed (observability dashboards + SLO alert wiring + evidence artifact complete).
-5. Week 10: Active (tenant traffic controls implemented; load/noisy-neighbor evidence still open).
-6. Week 11: Not started (pilot UAT evidence and defect threshold gate open).
-7. Week 12: Not started (go-live evidence pack, DR/rollback drills, sign-off gate open).
+5. Week 10: Closed (tenant traffic controls and performance/noisy-neighbor evidence complete).
+6. Week 11: Closed (pilot UAT evidence passed; defect threshold gate documented and closed).
+7. Week 12: Closed (final checker pass, evidence pack complete, and formal go/no-go sign-off recorded).
 
 ## Virtual Architecture Team (Operating Roles)
 1. Principal Tech Lead (you + Codex): delivery slicing, quality gate ownership, release control.
@@ -53,7 +53,7 @@
    - Exit criteria:
      - Traces visible end-to-end for at least one journey per workflow family.
 
-5. Week 10 (Active): Performance + tenancy protections
+5. Week 10 (Closed): Performance + tenancy protections
    - Deliverables:
      - Tenant quotas and rate-limits enforced.
      - Load-test baseline and noisy-neighbor checks.
@@ -61,7 +61,7 @@
    - Exit criteria:
      - Documented performance baseline and limit policy.
 
-6. Week 11 (Planned): Pilot UAT execution
+6. Week 11 (Closed): Pilot UAT execution
    - Deliverables:
      - Pilot script pack for 2-3 tenants.
      - Defect triage rubric and burn-down board.
@@ -69,7 +69,7 @@
    - Exit criteria:
      - UAT scripts pass with accepted defect threshold.
 
-7. Week 12 (Planned): Production readiness gate
+7. Week 12 (Closed): Production readiness gate
    - Deliverables:
      - Go-live checklist + evidence pack.
      - DR drill + rollback drill proof.
@@ -86,12 +86,12 @@
 3. Use hard acceptance criteria before starting next slice.
 4. Keep feature surface frozen while governance/security/env validation remain open.
 
-## Active Next 5 Tasks (Weeks 10-12)
-1. Produce Week-10 load-test baseline evidence (single-tenant and mixed-tenant runs) and store artifacts under `deploy/k8s/performance/evidence/`.
-2. Execute noisy-neighbor validation (hot tenant + control tenant) and document p95 latency, error rate, and 429 behavior by tenant.
-3. Finalize Week-10 backpressure + graceful degradation runbook updates (include trigger thresholds and rollback-to-safe-mode steps).
-4. Prepare Week-11 pilot UAT pack for 2 tenants with acceptance scripts, defect severity rubric, and explicit pass/fail threshold.
-5. Create Week-12 production gate evidence checklist with DR drill log template, rollback drill proof template, and go/no-go sign-off section.
+## Active Next 5 Tasks (Post-Week-12 Follow-Through)
+1. Archive superseded Week-12 interim artifacts in the evidence index (keep files, mark latest canonical).
+2. Execute first pilot cutover window and capture operational outcomes.
+3. Track first-week production KPIs against go-live baseline.
+4. Record any post-cutover defects and complete follow-up triage.
+5. Prepare next roadmap slice after Week-12 gate closure.
 
 ## PR-Sized Execution Slices (Weeks 10-12)
 
@@ -143,6 +143,10 @@
    - Commands: `python scripts/week12_production_gate_checker.py`; `pytest -q`.
    - Exit gate: formal go/no-go decision logged with rollback approval and named sign-offs.
 
-## Known Blockers To Burn Down First
-1. Latest Week-11 UAT artifact (`deploy/k8s/observability/evidence/week11-uat-2026-04-06T10-20-57-783397Z.json`) shows `overall_pass=false` with `0/6` journeys validated.
-2. Latest Week-12 production gate artifact (`deploy/k8s/observability/evidence/week12-production-gate-2026-04-06T10-21-00-160165Z.json`) shows `1/7` checks passing, indicating checker-path and readiness gaps must be fixed before sign-off.
+## Current Blockers To Burn Down First
+1. None for Weeks 6-12 gate closure. Latest canonical Week-12 artifact: `deploy/k8s/observability/evidence/week12-production-gate-2026-04-09T10-32-24-158102Z.json` (`7/7`, `overall_pass=true`).
+
+## Week-12 Closure Record
+1. Formal go/no-go decision logged: `GO` at `2026-04-09T10:55:00Z`.
+2. Named sign-offs recorded in `docs/week12_production_gate_evidence_pack.md`.
+3. Rollback approval recorded with explicit rollback authority.

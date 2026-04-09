@@ -15,6 +15,15 @@ from integrations.adk.runtime import ADKRuntime, RuntimeTool, ToolContract, Tool
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_MODEL = "gemini-2.0-flash"
+SUPPORTED_RUNTIME_PROVIDERS = ("google_genai", "local_fallback")
+ROADMAP_RUNTIME_PROVIDERS = (
+    "crewai",
+    "salesforce_agentforce",
+    "servicenow_agent",
+    "openai_agent",
+)
+
 _adk_available = False
 _model = None
 
@@ -57,7 +66,7 @@ def _skill_recommendation(ctx: dict[str, Any], products: list[dict[str, Any]] | 
                 "Mention specific product names and why they are a good fit."
             )
             response = _model.models.generate_content(
-                model="gemini-2.0-flash",
+                model=DEFAULT_MODEL,
                 contents=prompt,
             )
             return {
@@ -97,7 +106,7 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
                 "Provide a concise explanation in 2-3 sentences."
             )
             response = _model.models.generate_content(
-                model="gemini-2.0-flash",
+                model=DEFAULT_MODEL,
                 contents=prompt,
             )
             return {
@@ -117,7 +126,12 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
 
 def _build_runtime(journey_type: str) -> ADKRuntime:
     provider = "google_genai" if _adk_available else "local_fallback"
-    runtime = ADKRuntime(journey_type=journey_type, provider=provider, contract_version="adk-tool-v1")
+    runtime = ADKRuntime(
+        journey_type=journey_type,
+        provider=provider,
+        contract_version="adk-tool-v1",
+        model_name=DEFAULT_MODEL,
+    )
 
     runtime.register_tool(
         RuntimeTool(
@@ -186,3 +200,12 @@ def run_adk(ctx: dict[str, Any], journey_type: str = "discovery") -> dict[str, A
         result["contract_errors"] = contract_errors
     return result
 
+
+def get_runtime_capabilities() -> dict[str, Any]:
+    return {
+        "supported_providers": list(SUPPORTED_RUNTIME_PROVIDERS),
+        "roadmap_providers": list(ROADMAP_RUNTIME_PROVIDERS),
+        "default_model": DEFAULT_MODEL,
+        "active_provider": "google_genai" if _adk_available else "local_fallback",
+        "genai_enabled": _adk_available,
+    }

@@ -3,13 +3,18 @@
 import json
 import logging
 import os
+from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
+from typing import Any
+from uuid import uuid4
 
+import requests
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from slowapi.errors import RateLimitExceeded
 
 from acosplatform.audit.logger import audit
@@ -26,9 +31,14 @@ from acosplatform.db.repository import (
     get_runs,
     get_runs_by_workflow,
     get_agents,
+    get_agent_by_id,
     get_skills,
+    get_skill_by_id,
+    save_agent,
+    save_skill,
     save_audit_event,
 )
+from acosplatform.journey.engine import run_journey
 from acosplatform.evaluation.scorer import get_experiment_results
 from acosplatform.middleware.rate_limit import REPLAY_LIMIT, limiter, rate_limit_error_handler
 from acosplatform.models.workflows import (
@@ -40,6 +50,13 @@ from acosplatform.models.workflows import (
 )
 from acosplatform.observability.metrics import metrics_endpoint, record_api_error
 from acosplatform.replay.replay_engine import replay
+from integrations.adk.provider import (
+    DEFAULT_MODEL,
+    SUPPORTED_RUNTIME_PROVIDERS,
+    get_runtime_capabilities,
+    run_adk,
+)
+from integrations.shopify.client import probe_shopify_admin
 from acosplatform.workflows.service import (
     approve_workflow_version,
     archive_workflow,
@@ -61,6 +78,16 @@ OPS_ENVIRONMENT = os.environ.get("OPS_ENVIRONMENT", "dev")
 EMBEDDED_UI_DIR = Path("apps/ops_api/ui")
 LOCAL_UI_DIR = Path("apps/ops_ui_v2/dist")
 UI_DIR = EMBEDDED_UI_DIR if (EMBEDDED_UI_DIR / "index.html").exists() else LOCAL_UI_DIR
+
+
+def _flag_enabled(name: str, default: str = "0") -> bool:
+    value = os.environ.get(name, default).strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+IS_DEV_ENV = OPS_ENVIRONMENT.strip().lower() in {"dev", "development", "local", "test", "testing"}
+ALLOW_MOCK_ROUTES = _flag_enabled("ALLOW_MOCK_ROUTES", "0")
+ALLOW_NON_DEV_MOCK_ROUTES = _flag_enabled("ALLOW_NON_DEV_MOCK_ROUTES", "0")
 
 app = FastAPI(
     title="ACOS Ops API",
@@ -110,6 +137,12 @@ async def generic_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 def startup():
     logger.info("Ops API starting up...")
+    if ALLOW_MOCK_ROUTES and not IS_DEV_ENV and not ALLOW_NON_DEV_MOCK_ROUTES:
+        raise RuntimeError(
+            "ALLOW_MOCK_ROUTES=1 is blocked in non-dev unless ALLOW_NON_DEV_MOCK_ROUTES=1 is also set."
+        )
+    if ALLOW_MOCK_ROUTES and not IS_DEV_ENV:
+        logger.warning("Mock/test routes are enabled in non-dev environment.")
     validate_auth_configuration(service="ops-api", environment=OPS_ENVIRONMENT)
     ensure_schema()
     ensure_default_workflow_registry(environment=OPS_ENVIRONMENT)
@@ -127,6 +160,384 @@ ADMIN_ACCESS = require_ops_roles("admin")
 
 class CanvasSaveRequest(BaseModel):
     step_definitions: dict
+
+
+class AgentTestRequest(BaseModel):
+    message: str = "Check order status for ORD-1001"
+    tenant_id: str = "default"
+    customer_id: str = "ops-test-customer"
+    journey_type: str = "post_purchase"
+
+
+class SkillTestRequest(BaseModel):
+    input_payload: dict[str, Any] = Field(default_factory=dict)
+    tenant_id: str = "default"
+    workflow_id: str | None = None
+    workflow_version: str | None = None
+
+
+class BindSkillRequest(BaseModel):
+    skill_id: str
+
+
+class SandboxScenarioRequest(BaseModel):
+    tenant_id: str = "default"
+    customer_id: str = "sandbox-customer"
+    environment_id: str = "dev"
+    write_evidence: bool = True
+
+
+def _utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _runtime_capabilities() -> dict[str, Any]:
+    return get_runtime_capabilities()
+
+
+def _validate_contract_payload(
+    schema: dict[str, Any],
+    payload: dict[str, Any],
+    *,
+    target: str,
+) -> list[str]:
+    errors: list[str] = []
+    if not schema:
+        return errors
+
+    required = schema.get("required", [])
+    properties = schema.get("properties", {})
+    type_map = {
+        "string": str,
+        "number": (int, float),
+        "integer": int,
+        "boolean": bool,
+        "object": dict,
+        "array": list,
+    }
+
+    for field_name in required:
+        if field_name not in payload:
+            errors.append(f"{target}: missing required field '{field_name}'")
+
+    for field_name, definition in properties.items():
+        if field_name not in payload:
+            continue
+        expected_type = definition.get("type")
+        python_type = type_map.get(expected_type)
+        if python_type and not isinstance(payload[field_name], python_type):
+            errors.append(
+                f"{target}: field '{field_name}' expected {expected_type}, got {type(payload[field_name]).__name__}"
+            )
+
+    return errors
+
+
+def _write_evidence_file(prefix: str, payload: dict[str, Any]) -> str:
+    evidence_dir = Path("deploy/k8s/observability/evidence")
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).isoformat().replace(":", "-").replace(".", "-").replace("+00:00", "Z")
+    filename = f"{prefix}-{stamp}.json"
+    file_path = evidence_dir / filename
+    file_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return str(file_path)
+
+
+_RETRYABLE_HTTP_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
+
+
+def _build_local_connector_output(
+    *,
+    skill_id: str,
+    execution_mode: str,
+    input_payload: dict[str, Any],
+    reason: str | None = None,
+    degraded: bool = False,
+    error: str | None = None,
+    attempts: int = 1,
+) -> dict[str, Any]:
+    connector_meta = {
+        "source": "local_fallback",
+        "degraded": degraded,
+        "attempts": attempts,
+        "reason": reason,
+        "error": error,
+    }
+    output_payload = {
+        "status": "ok",
+        "skill_id": skill_id,
+        "execution_mode": execution_mode,
+        "echo": input_payload,
+        "connector": connector_meta,
+    }
+    return {
+        "connector_source": "local_fallback",
+        "degraded": degraded,
+        "error": error,
+        "attempts": attempts,
+        "output_payload": output_payload,
+    }
+
+
+def _run_generic_http_probe(
+    *,
+    url: str,
+    payload: dict[str, Any],
+    timeout_seconds: int,
+    retries: int,
+    headers: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    attempts = 0
+    max_attempts = max(retries + 1, 1)
+    timeout = max(float(timeout_seconds), 0.2)
+    last_error: str | None = None
+
+    for attempt in range(1, max_attempts + 1):
+        attempts = attempt
+        try:
+            response = requests.post(
+                url,
+                json=payload,
+                headers=headers or {},
+                timeout=timeout,
+            )
+            status_code = response.status_code
+            if status_code in _RETRYABLE_HTTP_STATUS_CODES and attempt < max_attempts:
+                last_error = f"http_{status_code}"
+                continue
+            if status_code >= 400:
+                return {
+                    "ok": False,
+                    "attempts": attempts,
+                    "status_code": status_code,
+                    "error": f"HTTP {status_code}",
+                }
+            try:
+                body = response.json() if response.content else {}
+            except ValueError:
+                return {
+                    "ok": False,
+                    "attempts": attempts,
+                    "status_code": status_code,
+                    "error": "remote_response_invalid_json",
+                }
+            if not isinstance(body, dict):
+                return {
+                    "ok": False,
+                    "attempts": attempts,
+                    "status_code": status_code,
+                    "error": "remote_response_not_object",
+                }
+            return {
+                "ok": True,
+                "attempts": attempts,
+                "status_code": status_code,
+                "body": body,
+            }
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            last_error = f"{exc.__class__.__name__}: {exc}"
+            if attempt < max_attempts:
+                continue
+            break
+
+    return {
+        "ok": False,
+        "attempts": attempts,
+        "status_code": None,
+        "error": last_error or "remote_probe_failed",
+    }
+
+
+def _run_http_connector_skill_test(
+    *,
+    skill: dict[str, Any],
+    input_payload: dict[str, Any],
+    tenant_id: str,
+) -> dict[str, Any]:
+    skill_id = str(skill.get("id") or "unknown")
+    execution_mode = "http_connector"
+    timeout_seconds = max(_safe_int(skill.get("timeout_seconds", 15), 15), 1)
+    retries = max(_safe_int(skill.get("retries", 0), 0), 0)
+
+    tenant_route: dict[str, Any] = {}
+    try:
+        from acosplatform.tenancy.manager import get_tenant_config
+
+        connectors = (get_tenant_config(tenant_id).get("connectors") or {})
+        tenant_route = connectors.get("shopify") or {}
+    except Exception:
+        tenant_route = {}
+
+    configured_url = (
+        str(input_payload.get("connector_url") or "").strip()
+        or str(tenant_route.get("url") or tenant_route.get("endpoint") or "").strip()
+    )
+    route_mode = str(tenant_route.get("mode") or "remote").strip().lower()
+
+    if configured_url and route_mode != "local":
+        http_probe = _run_generic_http_probe(
+            url=configured_url,
+            payload=input_payload,
+            timeout_seconds=timeout_seconds,
+            retries=retries,
+            headers=(tenant_route.get("headers") or {}),
+        )
+        if http_probe["ok"]:
+            output_payload = {
+                "status": "ok",
+                "skill_id": skill_id,
+                "execution_mode": execution_mode,
+                "connector_response": http_probe.get("body") or {},
+                "connector": {
+                    "source": "remote_http",
+                    "url": configured_url,
+                    "attempts": http_probe.get("attempts", 1),
+                    "status_code": http_probe.get("status_code"),
+                    "degraded": False,
+                },
+            }
+            return {
+                "connector_source": "remote_http",
+                "degraded": False,
+                "error": None,
+                "attempts": http_probe.get("attempts", 1),
+                "output_payload": output_payload,
+            }
+        return _build_local_connector_output(
+            skill_id=skill_id,
+            execution_mode=execution_mode,
+            input_payload=input_payload,
+            degraded=True,
+            error=http_probe.get("error"),
+            reason="remote_connector_failed",
+            attempts=http_probe.get("attempts", 1),
+        )
+
+    shopify_probe = probe_shopify_admin(
+        input_payload,
+        timeout_seconds=float(timeout_seconds),
+        retries=retries,
+    )
+    if shopify_probe.get("status") == "ok":
+        output_payload = {
+            "status": "ok",
+            "skill_id": skill_id,
+            "execution_mode": execution_mode,
+            "connector_response": shopify_probe.get("result") or {},
+            "connector": {
+                "source": "shopify_admin_api",
+                "probe": shopify_probe.get("probe"),
+                "store_domain": shopify_probe.get("store_domain"),
+                "api_version": shopify_probe.get("api_version"),
+                "attempts": shopify_probe.get("attempts", 1),
+                "status_code": shopify_probe.get("status_code"),
+                "degraded": False,
+            },
+        }
+        return {
+            "connector_source": "shopify_admin_api",
+            "degraded": False,
+            "error": None,
+            "attempts": shopify_probe.get("attempts", 1),
+            "output_payload": output_payload,
+        }
+
+    if shopify_probe.get("status") == "error":
+        return _build_local_connector_output(
+            skill_id=skill_id,
+            execution_mode=execution_mode,
+            input_payload=input_payload,
+            degraded=True,
+            error=shopify_probe.get("error"),
+            reason="shopify_probe_failed",
+            attempts=int(shopify_probe.get("attempts", 1) or 1),
+        )
+
+    return _build_local_connector_output(
+        skill_id=skill_id,
+        execution_mode=execution_mode,
+        input_payload=input_payload,
+        degraded=False,
+        reason=shopify_probe.get("reason") or "shopify_not_configured",
+        attempts=1,
+    )
+
+
+def _run_external_connector_checks(tenant_id: str) -> list[dict[str, Any]]:
+    check = probe_shopify_admin({"probe": "shop"})
+    status = check.get("status")
+    normalized_status = "pass" if status == "ok" else ("skip" if status == "skipped" else "fail")
+    return [
+        {
+            "name": "shopify_admin_api",
+            "status": normalized_status,
+            "tenant_id": tenant_id,
+            "connector_source": check.get("connector_source"),
+            "probe": check.get("probe"),
+            "details": {
+                "reason": check.get("reason"),
+                "error": check.get("error"),
+                "store_domain": check.get("store_domain"),
+                "api_version": check.get("api_version"),
+                "attempts": check.get("attempts", 1),
+            },
+        }
+    ]
+
+
+def _mock_routes_allowed() -> bool:
+    return IS_DEV_ENV or ALLOW_MOCK_ROUTES
+
+
+_PROVIDER_ALIAS = {
+    "google adk": "google_genai",
+    "google_genai": "google_genai",
+    "local fallback": "local_fallback",
+    "local_fallback": "local_fallback",
+}
+
+
+def _to_provider_key(raw_provider: Any) -> str:
+    if not isinstance(raw_provider, str):
+        return _runtime_capabilities().get("active_provider", "local_fallback")
+    normalized = raw_provider.strip().lower()
+    return _PROVIDER_ALIAS.get(normalized, normalized)
+
+
+def _safe_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_agent_payload(agent: dict[str, Any]) -> dict[str, Any]:
+    payload = dict(agent)
+    bound_skills = payload.get("bound_skills") or payload.get("skills") or []
+    payload["bound_skills"] = list(bound_skills)
+    payload["skills"] = list(payload.get("skills") or payload["bound_skills"])
+    payload["runtime_provider"] = _to_provider_key(payload.get("runtime_provider") or payload.get("tech_stack"))
+    payload["model_name"] = payload.get("model_name") or DEFAULT_MODEL
+    payload["agent_version"] = payload.get("agent_version") or "v1"
+    return payload
+
+
+def _normalize_skill_payload(skill: dict[str, Any]) -> dict[str, Any]:
+    payload = dict(skill)
+    payload["execution_mode"] = payload.get("execution_mode") or "local"
+    payload["timeout_seconds"] = _safe_int(payload.get("timeout_seconds", 15), 15)
+    payload["retries"] = _safe_int(payload.get("retries", 0), 0)
+    payload["input_schema"] = payload.get("input_schema") or {
+        "type": "object",
+        "properties": {},
+        "required": [],
+    }
+    payload["output_schema"] = payload.get("output_schema") or {
+        "type": "object",
+        "properties": {"status": {"type": "string"}},
+        "required": ["status"],
+    }
+    return payload
 
 
 @app.get("/runs")
@@ -202,28 +613,118 @@ def billing(tenant_id: str = None, _claims: dict = Depends(READ_ACCESS)):
 @app.get("/api/v1/agents")
 @app.get("/agents")
 def list_agents(_claims: dict = Depends(READ_ACCESS)):
-    return {"agents": get_agents()}
+    return {"agents": get_agents(), "runtime_capabilities": _runtime_capabilities()}
+
+
+@app.get("/api/v1/agents/providers")
+def agent_provider_capabilities(_claims: dict = Depends(READ_ACCESS)):
+    return _runtime_capabilities()
 
 
 @app.post("/api/v1/agents")
 @app.post("/agents")
 def create_agent(agent: dict, _claims: dict = Depends(OPERATE_ACCESS)):
-    from acosplatform.db.repository import save_agent
-    save_agent(agent)
-    return {"status": "success", "agent": agent}
+    if not agent.get("id") or not agent.get("name"):
+        return JSONResponse(status_code=400, content={"error": "Agent requires id and name"})
+    prepared = _normalize_agent_payload(agent)
+    saved = save_agent(prepared)
+    return {"status": "success", "agent": saved}
 
 
 @app.patch("/api/v1/agents/{agent_id}")
 @app.patch("/agents/{agent_id}")
 def update_agent(agent_id: str, updates: dict, _claims: dict = Depends(OPERATE_ACCESS)):
-    from acosplatform.db.repository import get_agents, save_agent
-    agents = get_agents()
-    target = next((a for a in agents if a.get("id") == agent_id), None)
+    target = get_agent_by_id(agent_id)
     if not target:
         return JSONResponse(status_code=404, content={"error": "Agent not found"})
-    target.update(updates)
-    save_agent(target)
-    return {"status": "success", "agent": target}
+    patch = dict(updates)
+    if "runtime_provider" in patch or "tech_stack" in patch:
+        patch["runtime_provider"] = _to_provider_key(patch.get("runtime_provider") or patch.get("tech_stack"))
+    if "bound_skills" in patch and "skills" not in patch:
+        patch["skills"] = list(patch.get("bound_skills") or [])
+    target.update(patch)
+    saved = save_agent(target)
+    return {"status": "success", "agent": saved}
+
+
+@app.post("/api/v1/agents/{agent_id}/bind-skill")
+@app.post("/agents/{agent_id}/bind-skill")
+def bind_skill_to_agent(
+    agent_id: str,
+    payload: BindSkillRequest,
+    _claims: dict = Depends(OPERATE_ACCESS),
+):
+    agent = get_agent_by_id(agent_id)
+    if not agent:
+        return JSONResponse(status_code=404, content={"error": "Agent not found"})
+    skill = get_skill_by_id(payload.skill_id)
+    if not skill:
+        return JSONResponse(status_code=404, content={"error": "Skill not found"})
+
+    bound_skills = list(agent.get("bound_skills") or agent.get("skills") or [])
+    if payload.skill_id not in bound_skills:
+        bound_skills.append(payload.skill_id)
+    agent["bound_skills"] = bound_skills
+    agent["skills"] = sorted(set(list(agent.get("skills") or []) + [payload.skill_id]))
+    saved = save_agent(agent)
+    return {"status": "success", "agent": saved}
+
+
+@app.post("/api/v1/agents/{agent_id}/test")
+@app.post("/agents/{agent_id}/test")
+def test_agent(
+    agent_id: str,
+    payload: AgentTestRequest,
+    _claims: dict = Depends(OPERATE_ACCESS),
+):
+    started = perf_counter()
+    agent = get_agent_by_id(agent_id)
+    if not agent:
+        return JSONResponse(status_code=404, content={"error": "Agent not found"})
+
+    provider = _to_provider_key(agent.get("runtime_provider"))
+    if provider not in SUPPORTED_RUNTIME_PROVIDERS:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "Unsupported runtime provider",
+                "provider": provider,
+                "supported_providers": list(SUPPORTED_RUNTIME_PROVIDERS),
+            },
+        )
+
+    adk_result = run_adk(
+        {
+            "message": payload.message,
+            "tenant_id": payload.tenant_id,
+            "customer_id": payload.customer_id,
+        },
+        journey_type=payload.journey_type,
+    )
+    runtime = adk_result.get("runtime", {})
+    used_skills = adk_result.get("skills_used", [])
+    configured_bound = list(agent.get("bound_skills") or agent.get("skills") or [])
+    resolved_provider = provider if provider == "local_fallback" else runtime.get("provider", provider)
+    duration_ms = round((perf_counter() - started) * 1000, 3)
+
+    result = {
+        "request_id": f"agt-test-{uuid4().hex[:10]}",
+        "trace_id": f"trace-{uuid4().hex[:8]}",
+        "timestamp": _utc_iso(),
+        "status": "pass" if not adk_result.get("contract_errors") else "fail",
+        "agent_id": agent_id,
+        "journey_type": payload.journey_type,
+        "tenant_id": payload.tenant_id,
+        "runtime_provider": resolved_provider,
+        "model_name": runtime.get("model_name", agent.get("model_name", DEFAULT_MODEL)),
+        "agent_version": agent.get("agent_version", "v1"),
+        "bound_skills": configured_bound,
+        "bound_skills_executed": [skill for skill in used_skills if not configured_bound or skill in configured_bound],
+        "duration_ms": duration_ms,
+        "runtime": runtime,
+        "adk_result": adk_result,
+    }
+    return result
 
 
 @app.get("/api/v1/skills")
@@ -235,22 +736,217 @@ def list_skills(_claims: dict = Depends(READ_ACCESS)):
 @app.post("/api/v1/skills")
 @app.post("/skills")
 def create_skill(skill: dict, _claims: dict = Depends(OPERATE_ACCESS)):
-    from acosplatform.db.repository import save_skill
-    save_skill(skill)
-    return {"status": "success", "skill": skill}
+    if not skill.get("id") or not skill.get("name"):
+        return JSONResponse(status_code=400, content={"error": "Skill requires id and name"})
+    prepared = _normalize_skill_payload(skill)
+    saved = save_skill(prepared)
+    return {"status": "success", "skill": saved}
 
 
 @app.patch("/api/v1/skills/{skill_id}")
 @app.patch("/skills/{skill_id}")
 def update_skill(skill_id: str, updates: dict, _claims: dict = Depends(OPERATE_ACCESS)):
-    from acosplatform.db.repository import get_skills, save_skill
-    skills = get_skills()
-    target = next((s for s in skills if s.get("id") == skill_id), None)
+    target = get_skill_by_id(skill_id)
     if not target:
         return JSONResponse(status_code=404, content={"error": "Skill not found"})
-    target.update(updates)
-    save_skill(target)
-    return {"status": "success", "skill": target}
+    patch = dict(updates)
+    if "timeout_seconds" in patch:
+        patch["timeout_seconds"] = _safe_int(patch["timeout_seconds"], target.get("timeout_seconds", 15))
+    if "retries" in patch:
+        patch["retries"] = _safe_int(patch["retries"], target.get("retries", 0))
+    target.update(patch)
+    saved = save_skill(target)
+    return {"status": "success", "skill": saved}
+
+
+@app.post("/api/v1/skills/{skill_id}/test")
+@app.post("/skills/{skill_id}/test")
+def test_skill(
+    skill_id: str,
+    payload: SkillTestRequest,
+    _claims: dict = Depends(OPERATE_ACCESS),
+):
+    started = perf_counter()
+    skill = get_skill_by_id(skill_id)
+    if not skill:
+        return JSONResponse(status_code=404, content={"error": "Skill not found"})
+
+    input_payload = payload.input_payload or {}
+    input_errors = _validate_contract_payload(
+        schema=skill.get("input_schema") or {},
+        payload=input_payload,
+        target="input_schema",
+    )
+    if input_errors:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "status": "fail",
+                "request_id": f"sk-test-{uuid4().hex[:10]}",
+                "timestamp": _utc_iso(),
+                "skill_id": skill_id,
+                "contract_validation": {
+                    "input_valid": False,
+                    "output_valid": False,
+                    "errors": input_errors,
+                },
+            },
+        )
+
+    execution_mode = (skill.get("execution_mode") or "local").strip().lower()
+    connector_metadata: dict[str, Any] = {
+        "source": "local_fallback",
+        "degraded": False,
+        "attempts": 1,
+        "error": None,
+    }
+    if execution_mode == "http_connector":
+        connector_run = _run_http_connector_skill_test(
+            skill=skill,
+            input_payload=input_payload,
+            tenant_id=payload.tenant_id,
+        )
+        connector_source = connector_run.get("connector_source", "local_fallback")
+        output_payload = connector_run.get("output_payload") or {}
+        connector_metadata = {
+            "source": connector_source,
+            "degraded": bool(connector_run.get("degraded", False)),
+            "attempts": int(connector_run.get("attempts", 1) or 1),
+            "error": connector_run.get("error"),
+        }
+    else:
+        connector_source = "local_fallback"
+        output_payload = {
+            "status": "ok",
+            "skill_id": skill_id,
+            "execution_mode": execution_mode,
+            "echo": input_payload,
+        }
+    output_errors = _validate_contract_payload(
+        schema=skill.get("output_schema") or {},
+        payload=output_payload,
+        target="output_schema",
+    )
+    duration_ms = round((perf_counter() - started) * 1000, 3)
+    return {
+        "status": "pass" if not output_errors else "fail",
+        "request_id": f"sk-test-{uuid4().hex[:10]}",
+        "trace_id": f"trace-{uuid4().hex[:8]}",
+        "timestamp": _utc_iso(),
+        "skill_id": skill_id,
+        "tenant_id": payload.tenant_id,
+        "workflow_id": payload.workflow_id,
+        "workflow_version": payload.workflow_version,
+        "duration_ms": duration_ms,
+        "connector_source": connector_source,
+        "connector_metadata": connector_metadata,
+        "contract_validation": {
+            "input_valid": True,
+            "output_valid": not output_errors,
+            "errors": output_errors,
+        },
+        "output_payload": output_payload,
+    }
+
+
+@app.post("/api/v1/sandbox/execute-scenarios")
+@app.post("/sandbox/execute-scenarios")
+def execute_sandbox_scenarios(
+    payload: SandboxScenarioRequest,
+    _claims: dict = Depends(OPERATE_ACCESS),
+):
+    if not _mock_routes_allowed():
+        return JSONResponse(
+            status_code=403,
+            content={"error": "Sandbox scenarios are disabled. Set ALLOW_MOCK_ROUTES=1 to enable."},
+        )
+
+    scenarios = [
+        ("order_status", "Where is my order ORD-1001?"),
+        ("return_eligibility", "I want to return my last order"),
+        ("refund_triage", "I need a refund for my order"),
+        ("loyalty_fallback", "Show my loyalty status and rewards"),
+    ]
+
+    results: list[dict[str, Any]] = []
+    for scenario_name, message in scenarios:
+        run_started = perf_counter()
+        try:
+            run_result = run_journey(
+                {
+                    "message": message,
+                    "tenant_id": payload.tenant_id,
+                    "customer_id": payload.customer_id,
+                    "environment_id": payload.environment_id,
+                    "auth_subject": {"sub": "ops-sandbox-runner", "role": "ops"},
+                }
+            )
+            journey = run_result.get("journey")
+            result_payload = run_result.get("result", {})
+            passed = (
+                (scenario_name == "order_status" and journey == "post_purchase")
+                or (scenario_name in {"return_eligibility", "refund_triage"} and journey == "service")
+                or (scenario_name == "loyalty_fallback" and journey in {"engagement", "discovery"})
+            )
+            results.append(
+                {
+                    "scenario": scenario_name,
+                    "status": "pass" if passed else "fail",
+                    "journey": journey,
+                    "run_id": run_result.get("run_id"),
+                    "trace_id": run_result.get("trace", {}).get("trace_id"),
+                    "workflow_id": run_result.get("workflow", {}).get("workflow_id"),
+                    "workflow_version": run_result.get("workflow", {}).get("workflow_version"),
+                    "provider": result_payload.get("agent", {}).get("runtime", {}).get("provider"),
+                    "model_name": result_payload.get("agent", {}).get("runtime", {}).get("model_name"),
+                    "duration_ms": round((perf_counter() - run_started) * 1000, 3),
+                }
+            )
+        except Exception as exc:
+            results.append(
+                {
+                    "scenario": scenario_name,
+                    "status": "fail",
+                    "error": str(exc),
+                    "duration_ms": round((perf_counter() - run_started) * 1000, 3),
+                }
+            )
+
+    passed = len([row for row in results if row.get("status") == "pass"])
+    external_checks = _run_external_connector_checks(payload.tenant_id)
+    external_passed = len([row for row in external_checks if row.get("status") == "pass"])
+    external_failed = len([row for row in external_checks if row.get("status") == "fail"])
+    external_skipped = len([row for row in external_checks if row.get("status") == "skip"])
+    summary = {
+        "executed": len(results),
+        "passed": passed,
+        "failed": len(results) - passed,
+        "overall_status": "pass" if passed >= 3 else "fail",
+        "external_checks": {
+            "executed": len(external_checks),
+            "passed": external_passed,
+            "failed": external_failed,
+            "skipped": external_skipped,
+        },
+    }
+    artifact = {
+        "timestamp": _utc_iso(),
+        "suite": "agentic-commerce-sandbox",
+        "tenant_id": payload.tenant_id,
+        "environment_id": payload.environment_id,
+        "summary": summary,
+        "results": results,
+        "external_checks": external_checks,
+    }
+    evidence_file = None
+    if payload.write_evidence:
+        evidence_file = _write_evidence_file("agentic-commerce-sandbox", artifact)
+    return {
+        "summary": summary,
+        "results": results,
+        "external_checks": external_checks,
+        "evidence_file": evidence_file,
+    }
 
 
 @app.get("/api/v1/tenants")

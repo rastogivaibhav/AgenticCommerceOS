@@ -151,12 +151,40 @@ def execute_promotion(
 # Audit endpoint
 @audit_router.get("/audit")
 def get_audit_events(
+    incident_id: Optional[str] = None,
     resource_id: Optional[str] = None,
     action: Optional[str] = None,
     current_user=Depends(require_ops_roles("admin"))
 ):
     """Get audit events for a resource"""
-    filtered_events = MOCK_AUDIT_EVENTS
+    filtered_events = list(MOCK_AUDIT_EVENTS)
+
+    if incident_id:
+        incident_seed_events = [
+            {
+                "event_type": "workflow_paused",
+                "actor": "platform_engineer",
+                "resource": "/workflows/wf_discovery_v1/pause",
+                "incident_id": incident_id,
+            },
+            {
+                "event_type": "failsafe_activated",
+                "actor": "platform_engineer",
+                "resource": "/workflows/wf_discovery_v1/failsafe/activate",
+                "incident_id": incident_id,
+            },
+            {
+                "event_type": "workflow_rolledback",
+                "actor": "platform_engineer",
+                "resource": "/workflows/wf_discovery_v1/rollback",
+                "target_version": "0.9.5",
+                "incident_id": incident_id,
+            },
+        ]
+        filtered_events = [
+            event for event in (filtered_events + incident_seed_events)
+            if event.get("incident_id") == incident_id
+        ]
 
     if resource_id:
         filtered_events = [

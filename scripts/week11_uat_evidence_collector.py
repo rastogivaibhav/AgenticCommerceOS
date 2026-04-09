@@ -28,18 +28,18 @@ def run_uat_tests():
     results = {}
     for suite_name, suite_class in test_suites:
         print(f"\n📋 {suite_name}")
+        test_target = f"tests/integration/test_uat_week11_journeys.py::{suite_class}"
         cmd = [
             "pytest",
-            "tests/integration/test_uat_week11_journeys.py",
-            f"::{suite_class}",
-            "-v", "--tb=short", "-json-report", "--json-report-file=/tmp/report.json"
+            test_target,
+            "-q", "--tb=short"
         ]
 
         result = subprocess.run(cmd, capture_output=True, text=True)
         results[suite_name] = {
-            "passed": "passed" in result.stdout.lower(),
+            "passed": result.returncode == 0,
             "exit_code": result.returncode,
-            "output_lines": len(result.stdout.split("\n"))
+            "output_lines": len((result.stdout + "\n" + result.stderr).split("\n"))
         }
         print(f"  Result: {'✅ PASSED' if result.returncode == 0 else '❌ FAILED'}")
 

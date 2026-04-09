@@ -108,6 +108,8 @@ def run_journey(payload):
 
         adk_result = run_adk({**ctx, **result}, journey_type)
         result["agent"] = adk_result
+        agent_runtime = adk_result.get("runtime", {}) if isinstance(adk_result, dict) else {}
+        skills_used = adk_result.get("skills_used", []) if isinstance(adk_result, dict) else []
 
         result = personalize(ctx, result)
 
@@ -150,6 +152,16 @@ def run_journey(payload):
             workflow_id=workflow.get("workflow_id"),
             workflow_version=workflow.get("version"),
             environment_id=environment_id,
+            agent_metadata={
+                "provider": agent_runtime.get("provider"),
+                "model_name": agent_runtime.get("model_name"),
+                "contract_version": agent_runtime.get("contract_version"),
+                "engine": agent_runtime.get("engine"),
+            },
+            skill_metadata={
+                "skills_used": skills_used,
+                "source": "adk_runtime",
+            },
         )
         save_event(run_id, "journey_completed", {"journey": journey_type, "trace_id": trace_id})
 

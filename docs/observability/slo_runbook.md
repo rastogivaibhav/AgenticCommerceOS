@@ -37,3 +37,31 @@ Rule pack path: `deploy/k8s/observability/prometheus-rule-slo-alerts.yaml`.
 1. Route affected tenant connectors to local mode.
 2. Roll back active workflow version if failure started post-promotion.
 3. Apply temporary rate-limit for noisy tenant traffic if p95 saturation occurs.
+
+## Week-10 Backpressure Triggers
+Use these thresholds to decide when to activate tenancy protections beyond the Week-9 alert set:
+
+1. Latency saturation:
+   - Trigger when journey p95 is `> 2000 ms` for `10` minutes.
+2. Tenant error spike:
+   - Trigger when tenant error rate is `> 1.0%` for `10` minutes.
+3. Tenant throttling pressure:
+   - Trigger when `acos_tenant_limit_rejections_total` increments continuously for the same tenant across `5` consecutive minutes.
+4. Noisy-neighbor pattern:
+   - Trigger when one tenant shows repeated throttling and at least one other tenant shows a concurrent p95 increase `>= 25%` vs its previous 60-minute baseline.
+
+## Week-10 Safe-Mode Procedure
+When any backpressure trigger is hit:
+
+1. Identify impacted tenant(s) from `/analytics/slo` and `/analytics/traces`.
+2. Activate tenant safe mode:
+   - Reduce per-tenant request rate and in-flight limits in tenant traffic controls.
+   - Shift connector mode to local/degraded for the impacted tenant.
+3. Stabilize workflow blast radius:
+   - Pause or roll back the most recently promoted workflow version if degradation started post-promotion.
+4. Verify recovery:
+   - Confirm p95 returns below `2000 ms`.
+   - Confirm tenant error rate returns below `1.0%`.
+   - Confirm tenant limit rejections are no longer increasing abnormally.
+5. Exit safe mode gradually:
+   - Restore limits in steps while monitoring SLO and trace signals for at least `30` minutes.

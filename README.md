@@ -1,439 +1,221 @@
-# ACOS Control Plane v1.0.0
+# ACOS Control Plane
+### Agentic commerce runtime + governed operations plane
 
-Enterprise-grade platform for autonomous agent orchestration, experimentation, and customer engagement.
+[![GitHub Repo](https://img.shields.io/badge/GitHub-AgenticCommerceOS-181717?logo=github)](https://github.com/rastogivaibhav/AgenticCommerceOS)
+[![Stars](https://img.shields.io/github/stars/rastogivaibhav/AgenticCommerceOS?style=social)](https://github.com/rastogivaibhav/AgenticCommerceOS/stargazers)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green)](./LICENSE)
+[![Release](https://img.shields.io/badge/release-v1.0.0-blue)](./CHANGELOG.md)
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB)](https://www.python.org/)
+[![Docker Compose](https://img.shields.io/badge/docker%20compose-ready-2496ED)](./docker-compose.yml)
 
-**Status**: Generally Available (GA) | **Release Date**: March 2026 | **License**: Apache 2.0
+ACOS is for teams running **AI-powered commerce journeys** in production, where approvals, rollback, tenant controls, and incident response are non-negotiable.
 
-## Overview
+## Why This Exists
+If this looked like n8n, that is on us.
 
-The ACOS Control Plane is a production-ready system for building, testing, and deploying autonomous agent workflows. It combines powerful workflow orchestration with built-in A/B experimentation capabilities, real-time analytics, and customer-facing agent interfaces.
+ACOS is **not** a generic automation canvas.
+It is an **agentic commerce system** with:
+- a dedicated shopper runtime (`shopper-api`) for journey execution,
+- and a dedicated ops plane (`ops-api`) for governance and release control.
 
-Designed for enterprise deployments with 99.5%+ uptime SLA, comprehensive audit logging, and multi-tenant support roadmap.
+What ACOS solves:
+- Commerce journeys need domain contracts (`/v1/journey`), not generic node chaining.
+- Promotions need approval + audit + rollback, not ad-hoc scripts.
+- Operators need run-level investigation tied to workflow versions.
+- Multi-tenant traffic needs hard limits to prevent noisy-neighbor failure.
 
-## Core Capabilities
+## What You Can Do With It
+- Execute customer journeys on `shopper-api` via `/v1/journey` with API-key auth.
+- Manage workflow lifecycle in `ops-api`: draft, approve, promote, rollback, archive.
+- Enforce role-based governance for high-risk operations.
+- Track runs, inspect timelines, replay, and investigate incidents.
+- Capture immutable audit records for control-plane mutations.
+- Apply tenant rate limits, quotas, and in-flight caps.
+- Generate production gate evidence artifacts for go/no-go decisions.
 
-| Capability | Description |
-|---|---|
-| **Visual Workflow Builder** | Drag-and-drop interface for designing complex agent workflows without code |
-| **A/B Experimentation Framework** | Statistical testing framework for evaluating workflow variants with built-in hypothesis tracking |
-| **Real-time Analytics Dashboard** | Live metrics, conversion tracking, and performance analysis with export capabilities |
-| **Shopping Agent System** | Conversational AI for customer product discovery, cart management, and order tracking |
-| **Multi-channel Chat Interface** | WebSocket-based real-time chat for web, mobile, and embedded deployments |
-| **Payment Integration** | Stripe integration for secure order processing with PCI compliance |
-| **Enterprise Authentication** | API key and JWT-based authentication with role-based access control |
-| **Rate Limiting & Protection** | Built-in rate limiting (100 req/min), CORS protection, and DDoS mitigation |
-| **Responsive Design** | Full support for mobile (375px+), tablet, and desktop viewports |
-| **Data Export** | CSV, JSON, and PDF export formats for reporting and analysis |
+## Architecture (High-Level)
+ACOS separates runtime execution from operations governance.
 
-## Getting Started
-
-### Prerequisites
-
-| Component | Version | Purpose |
-|---|---|---|
-| Python | 3.9+ | Backend runtime |
-| Node.js | 18+ | Frontend build tool |
-| PostgreSQL | 14+ | Primary data store |
-| Docker (optional) | Latest | Containerization |
-
-### Installation
-
-**Option 1: Docker (Production Recommended)**
-
-```bash
-cd acos
-docker compose up --build
-
-# Services will be available at:
-# - Control Plane UI: http://localhost:8000/ui
-# - API: http://localhost:8000
-# - Database: localhost:5432
+```text
+                 +-----------------------------+
+                 |       Ops UI (React)        |
+                 | served by ops-api (/ui)     |
+                 +--------------+--------------+
+                                |
+                                v
++-------------------+   +-------------------+   +-------------------+
+| shopper-api :8080 |   |   ops-api :8081   |   |   chat-api :8001  |
+| /v1/journey       |   | workflow governance|   | channel bridge    |
+| X-API-Key auth    |   | approvals + audit  |   | slack/chat        |
++---------+---------+   +---------+---------+   +---------+---------+
+          \____________________|___________________________/
+                               v
+                    +------------------------+
+                    | PostgreSQL (db:5432)   |
+                    | workflows/runs/audit   |
+                    +------------------------+
 ```
 
-**Option 2: Local Development Setup**
+Core packages in `acosplatform/`: `journey`, `workflows`, `governance`, `audit`, `observability`, `tenancy`, `replay`, `db`.
 
-Backend:
+## Quick Start (CRITICAL)
+Run ACOS locally and hit both runtime and ops endpoints.
+
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+git clone https://github.com/rastogivaibhav/AgenticCommerceOS.git
+cd AgenticCommerceOS
+cp .env.example .env
+# Windows PowerShell: copy .env.example .env
 
-export DATABASE_URL="postgresql://user:password@localhost:5432/acos"
-export OPS_ENVIRONMENT="development"
-
-python -m uvicorn ops_api.main:app --reload
-# API available at http://localhost:8000
+docker compose up --build -d
 ```
 
-Frontend:
+Verify services:
+
 ```bash
-cd src
-npm install
-npm run dev
-# UI available at http://localhost:5173
+curl http://localhost:8080/health   # shopper runtime
+curl http://localhost:8081/health   # ops control plane
 ```
 
-## Documentation
+Open ops UI:
+- http://localhost:8081/ui/
 
-| Document | Purpose |
-|---|---|
-| **[Installation Guide](docs/INSTALLATION.md)** | System requirements, setup procedures, verification steps |
-| **[User Guide](docs/USER_GUIDE.md)** | Workflow builder, experimentation framework, analytics dashboard |
-| **[API Reference](docs/API.md)** | REST/WebSocket endpoints, request/response examples, error codes |
-| **[Deployment Guide](docs/DEPLOYMENT.md)** | Production setup, scaling strategies, monitoring, backup procedures |
-| **[Testing Guide](docs/TESTING.md)** | Unit test setup, integration test patterns, E2E test execution |
-| **[Onboarding Guide](docs/ONBOARDING.md)** | 30-minute quickstart, first workflow, running experiments |
-| **[Shopping Agent Guide](docs/SHOPPING_AGENT.md)** | Conversational shopping implementation, product integration, payment setup |
-| **[Security Guide](docs/SECURITY.md)** | Vulnerability reporting, security best practices, compliance |
-| **[Contributing Guidelines](docs/CONTRIBUTING.md)** | Development standards, commit conventions, PR process |
-
-## Shopping Agent System
-
-The ACOS Control Plane includes a production-ready shopping agent system for conversational commerce:
-
-### Key Features
-
-- **Conversational Shopping**: Claude-powered agent for product discovery and recommendations
-- **Real-time Chat**: WebSocket-based interface for web and mobile applications
-- **Product Integration**: MCP (Model Context Protocol) integration with product catalogs
-- **Cart Management**: Persistent shopping cart with session state management
-- **Payment Processing**: Stripe integration for secure order completion
-- **Order Tracking**: Customer-facing order status and delivery tracking
-
-### Quick Shopping Agent Example
+Mint an ops token for examples:
 
 ```bash
-# Start shopping chat session
-curl -X POST http://localhost:8000/api/shopping/sessions \
+python scripts/mint_dev_jwt.py --role admin --secret "$OPS_JWT_SECRET"
+```
+
+## Example Usage
+Run a shopper journey (runtime plane):
+
+```bash
+curl -X POST http://localhost:8080/v1/journey \
   -H "Content-Type: application/json" \
-  -d '{"type": "guest"}'
-
-# Connect WebSocket for conversation
-# ws://localhost:8000/ws/shopping-chat/{session_id}
-
-# Send message
-{
-  "type": "message",
-  "content": "I'm looking for a firm mattress under £500"
-}
-```
-
-See [Shopping Agent Guide](docs/SHOPPING_AGENT.md) for complete integration documentation.
-
-## Development Workflow
-
-### Running Tests
-
-```bash
-# All tests with coverage report
-pytest tests/ -v --cov=ops_api --cov-report=html
-
-# Specific test module
-pytest tests/unit/test_shopping_sessions.py -v
-
-# Integration tests
-pytest tests/integration/ -v
-
-# E2E tests (Playwright)
-npx playwright test tests/e2e/
-```
-
-### Code Quality
-
-```bash
-# Format code
-black ops_api/ src/
-isort ops_api/
-
-# Lint checks
-flake8 ops_api/
-eslint src/
-
-# Type checking
-mypy ops_api/
-```
-
-### Building for Production
-
-```bash
-# Frontend build
-cd src && npm run build
-
-# Verify all checks pass
-pytest tests/ -v --cov=ops_api
-npm run lint
-
-# Ready for deployment
-```
-
-## System Architecture
-
-The ACOS Control Plane is built on a modular, scalable architecture:
-
-### Backend Layer (FastAPI)
-
-| Component | Purpose | Technologies |
-|---|---|---|
-| **REST API** | Workflow management, analytics, experimentation | FastAPI, Pydantic |
-| **WebSocket Server** | Real-time chat and agent communication | Starlette WebSockets |
-| **Authentication** | API key and JWT token validation | Python-jose |
-| **Rate Limiting** | Request throttling and DDoS protection | SlowAPI |
-| **Tool Executor** | Agent tool invocation with retry logic | JSON-RPC |
-
-### Frontend Layer (React + Vite)
-
-| Component | Purpose | Technologies |
-|---|---|---|
-| **Workflow Builder** | Visual workflow design | React Flow |
-| **Analytics Dashboard** | Real-time metrics and charts | Recharts, Zustand |
-| **Shopping Chat Widget** | Conversational shopping interface | React, WebSocket |
-| **Responsive UI** | Mobile/tablet/desktop support | Tailwind CSS, shadcn/ui |
-
-### Data Layer (PostgreSQL + pgvector)
-
-| Table | Purpose |
-|---|---|
-| `workflows` | Workflow definitions and configurations |
-| `workflow_runs` | Execution history and results |
-| `experiments` | A/B test configurations and variants |
-| `analytics_events` | Aggregated metrics and KPIs |
-| `shopping_sessions` | Conversation history and cart state |
-| `shopping_orders` | Order records with payment status |
-| `shopping_training_data` | Product knowledge for agent enrichment |
-
-### Integration Points
-
-- **MCP Servers**: Product catalog and inventory via Model Context Protocol
-- **Stripe API**: Payment processing and webhook handling
-- **Claude API**: LLM-powered agent intelligence
-- **PostgreSQL pgvector**: Semantic search and embeddings
-
-## Configuration
-
-### Required Environment Variables
-
-```env
-# Database Connection
-DATABASE_URL=postgresql://user:password@host:5432/acos
-
-# Application Settings
-OPS_ENVIRONMENT=production
-APP_VERSION=1.0.0
-LOG_LEVEL=INFO
-
-# Security & Authentication
-ALLOWED_ORIGINS=https://example.com,https://api.example.com
-OPS_JWT_SECRET=generate-with-openssl-rand-hex-32
-SHOPPER_API_KEYS=key1_replace_me,key2_replace_me
-ALLOW_INSECURE_DEV_AUTH=0
-
-# Shopping Agent (Optional)
-SHOPPING_AGENT_MODEL=claude-opus-4-6
-MCP_PRODUCT_SERVER_URL=https://products.example.com/mcp
-STRIPE_API_KEY=sk_live_xxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxxxx
-
-# Monitoring
-SENTRY_DSN=https://xxx@sentry.io/project
-```
-
-See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete configuration reference and security best practices.
-
-## API Usage
-
-### Local Ops Role Testing
-
-```powershell
-$env:OPS_JWT_SECRET="local-dev-secret"
-.\scripts\switch_ops_role.ps1 -Role admin
-```
-
-The helper mints a JWT for the selected role, opens `/dev/auth/bootstrap`, stores `ops_token` in browser localStorage, and redirects to `/ui/agents`.
-
-### Workflow Operations
-
-Create workflow:
-```bash
-curl -X POST http://localhost:8000/api/workflows \
-  -H "Authorization: Bearer $API_KEY" \
-  -H "Content-Type: application/json" \
+  -H "X-API-Key: <SHOPPER_API_KEY>" \
   -d '{
-    "name": "Customer Support Flow",
-    "description": "Autonomous customer support agent",
-    "family": "support"
+    "tenant_id": "default",
+    "workflow_family": "discovery",
+    "message": "I need running shoes under 120",
+    "customer_id": "cust_123"
   }'
 ```
 
-List workflows:
+List workflows (ops plane):
+
 ```bash
-curl -X GET http://localhost:8000/api/workflows \
-  -H "Authorization: Bearer $API_KEY"
+curl -X GET http://localhost:8081/api/v1/workflows \
+  -H "Authorization: Bearer <OPS_TOKEN>"
 ```
 
-### Analytics Queries
+Promote a workflow version:
 
-Get workflow metrics:
 ```bash
-curl -X GET "http://localhost:8000/api/analytics/metrics?workflow_id=xxx" \
-  -H "Authorization: Bearer $API_KEY"
+curl -X POST http://localhost:8081/api/v1/workflows/wf_discovery_primary/versions/v3/promote \
+  -H "Authorization: Bearer <OPS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target_environment": "prod",
+    "source_environment": "stage",
+    "approval_note": "Approved for bounded pilot cutover"
+  }'
 ```
 
-Export data:
+Fetch audit verification:
+
 ```bash
-curl -X GET "http://localhost:8000/api/analytics/export?format=csv" \
-  -H "Authorization: Bearer $API_KEY" \
-  > metrics.csv
+curl -X GET "http://localhost:8081/api/audit?workflow_id=wf_discovery_primary" \
+  -H "Authorization: Bearer <OPS_TOKEN>"
 ```
 
-### Shopping Agent Chat
+## Core Concepts
+| Concept | Meaning | Why it matters |
+|---|---|---|
+| Workflow | Versioned definition of behavior | Safe change management |
+| Version | Immutable revision | Predictable promotion + rollback |
+| Run | Execution instance tied to workflow version | Fast root-cause analysis |
+| Promotion | Controlled environment transition | Release governance |
+| Approval | Role-gated authorization | Risk control |
+| Audit Event | Immutable operation record | Compliance and traceability |
+| Tenant Controls | Per-tenant throughput boundaries | Noisy-neighbor isolation |
+| Evidence Pack | Artifact + runbook + sign-off record | Defensible go-live decisions |
 
-See [Shopping Agent Guide](docs/SHOPPING_AGENT.md) for WebSocket chat integration examples.
+## Integrations / Extensibility
+- MCP-compatible product and capability connectors.
+- Slack/chat channel bridging through `chat-api`.
+- Stripe-compatible payment workflows in shopper flows.
+- Optional AgentFabric hooks via environment configuration.
+- Pluggable domain components under `acosplatform/plugins/`.
 
-## Performance & Reliability
+## Real Use Cases
+- Retail operations control plane with approval-backed promotions and rollback.
+- Post-purchase service automation with policy-aware escalation.
+- Incident-ready AI operations with run timeline investigation and replay.
+- Pilot go-live governance with objective evidence artifacts and sign-off records.
+- Tenant-safe scale-up with hard quota and concurrency boundaries.
 
-### Response Time Targets
-| Endpoint | P50 | P95 | P99 |
+## Configuration
+Use `.env.example` as the source of truth.
+
+| Variable | Required | Default | Purpose |
 |---|---|---|---|
-| Workflow CRUD | 50ms | 150ms | 300ms |
-| Analytics Query | 100ms | 400ms | 800ms |
-| WebSocket Chat | 200ms | 500ms | 1000ms |
-| API Gateway | 10ms | 100ms | 200ms |
+| `DATABASE_URL` | Yes | - | Postgres connection string |
+| `DB_PASSWORD` | Yes | - | DB credential for local compose |
+| `SHOPPER_API_KEYS` | Yes | - | Shopper API auth keys |
+| `OPS_JWT_SECRET` | Yes | - | Ops JWT signing secret |
+| `ALLOWED_ORIGINS` | Yes | - | CORS allowlist |
+| `ALLOW_INSECURE_DEV_AUTH` | No | `0` | Dev-only auth fallback |
+| `TENANT_RATE_LIMIT_PER_MINUTE` | No | `120` | Per-tenant minute limit |
+| `TENANT_DAILY_QUOTA` | No | `5000` | Per-tenant daily quota |
+| `TENANT_MAX_IN_FLIGHT` | No | `8` | Per-tenant concurrency cap |
+| `GOOGLE_API_KEY` | No | empty | Optional model provider key |
+| `AGENTFABRIC_URL` | No | empty | Optional external agent fabric |
+| `AGENTFABRIC_API_KEY` | No | empty | Optional external auth key |
+| `SLACK_BOT_TOKEN` | No | empty | Chat API Slack integration |
+| `SLACK_SIGNING_SECRET` | No | empty | Slack request validation |
+| `SLACK_WORKSPACE_ID` | No | `default` | Workspace routing key |
 
-### Throughput & Capacity
-- **Workflow Execution**: 10,000+ workflows/hour
-- **Concurrent Connections**: 1000+ WebSocket sessions
-- **Database Capacity**: Supports 100M+ workflow runs
-- **Storage**: Scales to TB+ with PostgreSQL partitioning
-- **Concurrent Users**: 5000+ simultaneous API consumers
+## Security / Governance (if relevant)
+ACOS is designed for controlled AI operations:
+- RBAC enforcement on operational endpoints.
+- Audit coverage for workflow and tenant mutations.
+- Tenant-level traffic controls to reduce blast radius.
+- Operational runbooks for go-live, promotions, rollback, and incidents.
+- Evidence-driven release gates with machine-readable artifacts.
 
-### Availability
-- **Target Uptime**: 99.5% (monthly SLA)
-- **Recovery Time Objective (RTO)**: 15 minutes
-- **Recovery Point Objective (RPO)**: 1 minute
-- **Backup Frequency**: Hourly automated snapshots
+Operational guidance:
+1. Keep `ALLOW_INSECURE_DEV_AUTH=0` outside local development.
+2. Rotate `OPS_JWT_SECRET` and API keys regularly.
+3. Keep `ALLOWED_ORIGINS` restricted to known domains.
+4. Treat production gate artifacts as release records.
 
-## Security & Compliance
+## Roadmap
+Near-term:
+- Canonical index for production evidence artifacts.
+- Sign-off workflow in the ops UI.
+- Expanded cross-tenant incident diagnostics.
+- Automated first-week KPI post-cutover reporting.
 
-### Authentication & Authorization
-- API key authentication with Bearer tokens
-- JWT token support with configurable expiration
-- Role-based access control (RBAC) with three tiers: viewer, editor, admin
-- Session token validation on all protected endpoints
+Long-term:
+- Deeper multi-tenant policy isolation.
+- Progressive rollout strategies by workflow family.
+- Broader connector ecosystem for enterprise systems of record.
+- Extensibility model for third-party workflow capabilities.
 
-### Data Protection
-- TLS 1.2+ encryption for all network traffic
-- AES-256 encryption at rest for sensitive data (credentials, addresses)
-- PCI DSS compliance for payment processing via Stripe tokenization
-- GDPR support: Right to be forgotten, data export capabilities
+## Contributing
+Contributions are welcome from operators, backend engineers, frontend engineers, and platform teams.
 
-### Security Measures
-- Rate limiting: 100 requests/minute per API key
-- CORS protection with configurable origins
-- SQL injection prevention via parameterized queries
-- XSS protection via React DOM escaping
-- CSRF protection via HTTP-only cookie flags
-- Audit logging of all administrative operations
-- Security headers: CSP, X-Frame-Options, X-Content-Type-Options
+1. Fork and create a branch.
+2. Make focused changes with tests.
+3. Run checks:
+   - `python scripts/week12_production_gate_checker.py`
+   - `python -m pytest tests/test_week12_production_gate_checker.py -q`
+4. Open a PR with problem statement, implementation summary, and evidence.
 
-### Vulnerability Reporting
-Report security issues to `security@example.com` with:
-- Severity level (Critical/High/Medium/Low)
-- Affected component and version
-- Steps to reproduce
-- Potential impact
-
-We will respond within 24 hours for critical issues.
-
-## Support & Community
-
-| Channel | Purpose |
-|---|---|
-| **Documentation** | Comprehensive guides in `/docs/` directory |
-| **GitHub Issues** | Bug reports and feature requests |
-| **GitHub Discussions** | Questions and community support |
-| **Email Support** | Production issues: support@example.com |
-| **Security Issues** | Critical vulnerabilities: security@example.com |
-
-Response time targets:
-- Critical bugs: 2 hours
-- High priority: 4 hours
-- Standard issues: 24 hours
-
-## Product Roadmap
-
-### v1.1.0 (Q2 2026)
-- OAuth2 and SAML authentication
-- Webhook triggers for external integrations
-- Advanced workflow scheduling
-- Workflow versioning and rollback
-- Shopping agent: Multi-language support
-
-### v1.2.0 (Q3 2026)
-- Multi-tenant deployment support
-- Advanced role-based access control (RBAC)
-- Workflow execution audit trail UI
-- Shopping agent: Inventory real-time sync
-- Analytics: Custom metric framework
-
-### v2.0.0 (Q4 2026)
-- Native mobile applications (iOS/Android)
-- Real-time collaborative workflow editing
-- Advanced workflow analytics and insights
-- Shopping agent: Multi-currency support
-- Marketplace: Third-party integration framework
+See also:
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- [SECURITY.md](./SECURITY.md)
 
 ## License
-
-ACOS Control Plane is licensed under the **Apache License 2.0**. See [LICENSE](LICENSE) for full terms.
-
-This license permits:
-- Commercial use and modification
-- Distribution and private use
-- Patent protection through grant of patent rights
-- SaaS and hosted deployments
-
-Requires:
-- Retention of copyright and license notices
-- Notification of modifications
-- Clear statement of changes
-
-## Version History
-
-### v1.0.0 (March 2026) - General Availability
-**Core Platform**
-- Visual workflow builder with real-time execution
-- A/B experimentation framework with statistical analysis
-- Real-time analytics dashboard with export (CSV, JSON, PDF)
-- Rate limiting (100 req/min) and comprehensive audit logging
-- Dark/light mode with theme persistence
-
-**Shopping Agent System** (New)
-- Conversational shopping interface with Claude LLM
-- WebSocket-based real-time chat for web and mobile
-- Shopping cart management and order tracking
-- Stripe payment integration with webhook handling
-- MCP product server integration with fallback caching
-- Session persistence for guest and registered users
-
-**Infrastructure**
-- FastAPI backend with async support
-- PostgreSQL with pgvector semantic search
-- Docker containerization and orchestration
-- Production deployment guides and monitoring setup
-- Comprehensive test coverage (80%+ for core)
-
-**Documentation**
-- Installation, deployment, and onboarding guides
-- Complete API reference with examples
-- User guides for workflow builder and experimentation
-- Shopping agent integration documentation
-- Security and compliance guidelines
-
----
-
-**Quick Links**
-- [Deployment Instructions](docs/DEPLOYMENT.md)
-- [API Reference](docs/API.md)
-- [User Guide](docs/USER_GUIDE.md)
-- [Shopping Agent Setup](docs/SHOPPING_AGENT.md)
-- [Security Guidelines](docs/SECURITY.md)
+Apache License 2.0. See [LICENSE](./LICENSE).

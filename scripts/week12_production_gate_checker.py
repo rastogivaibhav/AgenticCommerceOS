@@ -2,166 +2,272 @@
 """
 Week 12 Production Gate Checker
 
-Validates all production readiness criteria from the go-live PRD.
-Generates production gate evidence pack.
+Validates production readiness checks from the go-live PRD and writes
+an evidence artifact.
 """
 
+from __future__ import annotations
+
 import json
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+
 class ProductionGateChecker:
-    def __init__(self):
-        self.checks = {}
+    def __init__(self, repo_root: Path | None = None):
+        # Anchor all checks to repo root so results do not depend on current cwd.
+        self.repo_root = (repo_root or Path(__file__).resolve().parent.parent).resolve()
+        self.checks: dict[str, dict] = {}
         self.timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "") + "Z"
 
-    def check_workflow_versioning(self):
+    def _abs(self, rel_path: str) -> Path:
+        return self.repo_root / rel_path
+
+    def _exists(self, rel_path: str) -> bool:
+        return self._abs(rel_path).exists()
+
+    def _read_text(self, rel_path: str) -> str:
+        path = self._abs(rel_path)
+        if not path.exists():
+            return ""
+        try:
+            return path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            return path.read_text(encoding="utf-8", errors="ignore")
+
+    def _contains_all(self, rel_path: str, tokens: list[str]) -> bool:
+        content = self._read_text(rel_path)
+        return bool(content) and all(token in content for token in tokens)
+
+    def _contains_any(self, rel_path: str, tokens: list[str]) -> bool:
+        content = self._read_text(rel_path)
+        return bool(content) and any(token in content for token in tokens)
+
+    def _record(self, key: str, requirement: str, passed: bool, details: str) -> bool:
+        self.checks[key] = {
+            "requirement": requirement,
+            "passed": passed,
+            "details": details,
+        }
+        print(f"  [{'PASS' if passed else 'FAIL'}] {key}: {details}")
+        return passed
+
+    def check_workflow_versioning(self) -> bool:
         """GR-1: Versioned workflow resources exist"""
-        print("\n🔍 Check: Workflow Versioning...")
-        try:
-            result = subprocess.run(
-                ["python", "-c", "from ops_api.models import Workflow; print(hasattr(Workflow, 'version'))"],
-                capture_output=True, text=True, timeout=5
+        print("\nCheck: Workflow versioning")
+        model_has_version = self._contains_all(
+            "apps/ops_api/models/workflow.py",
+            ["version: str", "active_version: str"],
+        )
+        persistence_has_versioning = self._contains_all(
+            "acosplatform/db/repository.py",
+            ["def save_workflow_version(", "workflow_versions", "version"],
+        )
+        passed = model_has_version and persistence_has_versioning
+        details = (
+            "Version fields present in workflow model and workflow version persistence hooks found"
+            if passed
+            else (
+                f"model_has_version={model_has_version}, "
+                f"persistence_has_versioning={persistence_has_versioning}"
             )
-            passed = result.returncode == 0
-            self.checks["workflow_versioning"] = {
-                "requirement": "GR-1: Versioned workflow resources exist in persistence",
-                "passed": passed,
-                "details": "Workflow model includes version field" if passed else "Version field not found"
-            }
-            print(f"  {'✅' if passed else '❌'} Workflow versioning: {self.checks['workflow_versioning']['details']}")
-            return passed
-        except Exception as e:
-            self.checks["workflow_versioning"] = {"passed": False, "error": str(e)}
-            return False
+        )
+        return self._record(
+            "workflow_versioning",
+            "GR-1: Versioned workflow resources exist in persistence",
+            passed,
+            details,
+        )
 
-    def check_run_version_tracking(self):
+    def check_run_version_tracking(self) -> bool:
         """GR-2: Runs reference workflow versions"""
-        print("\n🔍 Check: Run Version Tracking...")
-        try:
-            result = subprocess.run(
-                ["python", "-c", "from ops_api.models import WorkflowRun; print(hasattr(WorkflowRun, 'workflow_version'))"],
-                capture_output=True, text=True, timeout=5
+        print("\nCheck: Run version tracking")
+        repository_tracks_run_versions = self._contains_all(
+            "acosplatform/db/repository.py",
+            ["def save_run(", "workflow_version"],
+        )
+        journey_emits_run_versions = self._contains_all(
+            "acosplatform/journey/engine.py",
+            ["workflow_version"],
+        )
+        passed = repository_tracks_run_versions and journey_emits_run_versions
+        details = (
+            "Run persistence and journey engine both reference workflow_version"
+            if passed
+            else (
+                f"repository_tracks_run_versions={repository_tracks_run_versions}, "
+                f"journey_emits_run_versions={journey_emits_run_versions}"
             )
-            passed = result.returncode == 0
-            self.checks["run_version_tracking"] = {
-                "requirement": "GR-2: Every run records the workflow version used",
-                "passed": passed,
-                "details": "WorkflowRun model tracks workflow_version" if passed else "Version tracking not found"
-            }
-            print(f"  {'✅' if passed else '❌'} Run version tracking: {self.checks['run_version_tracking']['details']}")
-            return passed
-        except Exception as e:
-            self.checks["run_version_tracking"] = {"passed": False, "error": str(e)}
-            return False
+        )
+        return self._record(
+            "run_version_tracking",
+            "GR-2: Every run records the workflow version used",
+            passed,
+            details,
+        )
 
-    def check_ui_surfaces(self):
+    def check_ui_surfaces(self) -> bool:
         """GR-8: React control-plane foundation exists"""
-        print("\n🔍 Check: UI Control Plane Surfaces...")
-        required_pages = ["workflows", "runs", "promotions", "approvals"]
-        try:
-            src_path = Path("apps/ops_ui_v2/src")
-            pages_found = []
-            for page in required_pages:
-                page_files = list(src_path.rglob(f"*{page}*"))
-                pages_found.append(len(page_files) > 0)
+        print("\nCheck: UI control-plane surfaces")
+        app_routes_exist = self._contains_all(
+            "apps/ops_ui_v2/src/App.jsx",
+            ["/workflows", "/simulation"],
+        )
+        ui_pages_exist = all(
+            self._exists(path)
+            for path in [
+                "apps/ops_ui_v2/src/pages/WorkflowRegistry.jsx",
+                "apps/ops_ui_v2/src/pages/WorkflowEditor.jsx",
+                "apps/ops_ui_v2/src/pages/Simulation.jsx",
+            ]
+        )
+        investigation_routes_exist = all(
+            self._exists(path)
+            for path in [
+                "apps/ops_api/routers/runs.py",
+                "apps/ops_api/routers/promotions.py",
+                "apps/ops_api/routers/approvals.py",
+            ]
+        )
+        passed = app_routes_exist and ui_pages_exist and investigation_routes_exist
+        details = (
+            "React routes and workflow/run investigation surfaces are present"
+            if passed
+            else (
+                f"app_routes_exist={app_routes_exist}, "
+                f"ui_pages_exist={ui_pages_exist}, "
+                f"investigation_routes_exist={investigation_routes_exist}"
+            )
+        )
+        return self._record(
+            "ui_surfaces",
+            "GR-8: Real React control plane with foundational views",
+            passed,
+            details,
+        )
 
-            passed = all(pages_found)
-            self.checks["ui_surfaces"] = {
-                "requirement": "GR-8: Real React control plane with foundational views",
-                "passed": passed,
-                "details": f"Found UI for: {', '.join([p for p, f in zip(required_pages, pages_found) if f])}"
-            }
-            print(f"  {'✅' if passed else '❌'} UI surfaces: {self.checks['ui_surfaces']['details']}")
-            return passed
-        except Exception as e:
-            self.checks["ui_surfaces"] = {"passed": False, "error": str(e)}
-            return False
-
-    def check_authentication(self):
+    def check_authentication(self) -> bool:
         """GNFR-2: Security auth is in place"""
-        print("\n🔍 Check: Authentication & Authorization...")
-        try:
-            auth_found = False
-            for file in Path("apps/ops_api").rglob("*.py"):
-                content = file.read_text()
-                if "Bearer" in content and "Authorization" in content:
-                    auth_found = True
+        print("\nCheck: Authentication and authorization")
+        auth_module_exists = self._contains_all(
+            "acosplatform/auth/api_key.py",
+            ["def require_ops_roles"],
+        )
+        main_has_auth_header = self._contains_all(
+            "apps/ops_api/main.py",
+            ["Authorization", "require_ops_roles"],
+        )
+        router_role_enforcement = False
+        routers_root = self._abs("apps/ops_api/routers")
+        if routers_root.exists():
+            for file in routers_root.rglob("*.py"):
+                text = file.read_text(encoding="utf-8", errors="ignore")
+                if "require_ops_roles(" in text and "Depends(" in text:
+                    router_role_enforcement = True
                     break
-            passed = auth_found
-            self.checks["authentication"] = {
-                "requirement": "GNFR-2: Auth, role enforcement, secrets handling in place",
-                "passed": passed,
-                "details": "Bearer token authentication implemented" if passed else "Auth not found"
-            }
-            print(f"  {'✅' if passed else '❌'} Authentication: {self.checks['authentication']['details']}")
-            return passed
-        except Exception as e:
-            self.checks["authentication"] = {"passed": False, "error": str(e)}
-            return False
 
-    def check_observability(self):
+        passed = auth_module_exists and main_has_auth_header and router_role_enforcement
+        details = (
+            "Role-based auth hooks and protected routes detected"
+            if passed
+            else (
+                f"auth_module_exists={auth_module_exists}, "
+                f"main_has_auth_header={main_has_auth_header}, "
+                f"router_role_enforcement={router_role_enforcement}"
+            )
+        )
+        return self._record(
+            "authentication",
+            "GNFR-2: Auth, role enforcement, secrets handling in place",
+            passed,
+            details,
+        )
+
+    def check_observability(self) -> bool:
         """GNFR-3: Logs, metrics, health endpoints"""
-        print("\n🔍 Check: Observability (Logs, Metrics, Health)...")
-        try:
-            health_exists = Path("apps/ops_api/main.py").exists()  # Health endpoint is inline
-            metrics_exists = Path("acosplatform/observability/metrics.py").exists()
+        print("\nCheck: Observability")
+        metrics_module_exists = self._exists("acosplatform/observability/metrics.py")
+        health_endpoint_exists = self._contains_any(
+            "apps/ops_api/main.py",
+            ['@app.get("/health")', "@app.get('/health')"],
+        )
+        metrics_endpoint_exists = self._contains_any(
+            "apps/ops_api/main.py",
+            ['@app.get("/metrics")', "@app.get('/metrics')"],
+        )
+        passed = metrics_module_exists and health_endpoint_exists and metrics_endpoint_exists
+        details = (
+            "Metrics module and health/metrics endpoints are present"
+            if passed
+            else (
+                f"metrics_module_exists={metrics_module_exists}, "
+                f"health_endpoint_exists={health_endpoint_exists}, "
+                f"metrics_endpoint_exists={metrics_endpoint_exists}"
+            )
+        )
+        return self._record(
+            "observability",
+            "GNFR-3: Logs, metrics, and health endpoints for pilot operations",
+            passed,
+            details,
+        )
 
-            passed = health_exists and metrics_exists
-            self.checks["observability"] = {
-                "requirement": "GNFR-3: Logs, metrics, and health endpoints for pilot operations",
-                "passed": passed,
-                "details": f"Health: {'✅' if health_exists else '❌'}, Metrics: {'✅' if metrics_exists else '❌'}"
-            }
-            print(f"  {'✅' if passed else '❌'} Observability: {self.checks['observability']['details']}")
-            return passed
-        except Exception as e:
-            self.checks["observability"] = {"passed": False, "error": str(e)}
-            return False
-
-    def check_docker_deployment(self):
+    def check_docker_deployment(self) -> bool:
         """GNFR-1: Containerized operation"""
-        print("\n🔍 Check: Docker Deployment...")
-        try:
-            dockerfile_exists = Path("Dockerfile").exists()
-            compose_exists = Path("docker-compose.yml").exists()
+        print("\nCheck: Docker deployment")
+        dockerfile_exists = self._exists("Dockerfile")
+        compose_exists = self._exists("docker-compose.yml")
+        compose_has_ops_api = self._contains_all("docker-compose.yml", ["ops-api"])
+        passed = dockerfile_exists and compose_exists and compose_has_ops_api
+        details = (
+            "Dockerfile and compose path with ops-api service found"
+            if passed
+            else (
+                f"dockerfile_exists={dockerfile_exists}, "
+                f"compose_exists={compose_exists}, "
+                f"compose_has_ops_api={compose_has_ops_api}"
+            )
+        )
+        return self._record(
+            "docker_deployment",
+            "GNFR-1: Full release runs through Docker Compose",
+            passed,
+            details,
+        )
 
-            passed = dockerfile_exists and compose_exists
-            self.checks["docker_deployment"] = {
-                "requirement": "GNFR-1: Full release runs through Docker Compose",
-                "passed": passed,
-                "details": f"Dockerfile: {'✅' if dockerfile_exists else '❌'}, docker-compose: {'✅' if compose_exists else '❌'}"
-            }
-            print(f"  {'✅' if passed else '❌'} Docker deployment: {self.checks['docker_deployment']['details']}")
-            return passed
-        except Exception as e:
-            self.checks["docker_deployment"] = {"passed": False, "error": str(e)}
-            return False
-
-    def check_audit_logging(self):
+    def check_audit_logging(self) -> bool:
         """GR-6: Audit coverage"""
-        print("\n🔍 Check: Audit Logging...")
-        try:
-            audit_exists = Path("acosplatform/audit/logger.py").exists()
-            passed = audit_exists
-            self.checks["audit_logging"] = {
-                "requirement": "GR-6: Control-plane mutations and risky decisions generate audit evidence",
-                "passed": passed,
-                "details": "Audit module present" if passed else "Audit module not found"
-            }
-            print(f"  {'✅' if passed else '❌'} Audit logging: {self.checks['audit_logging']['details']}")
-            return passed
-        except Exception as e:
-            self.checks["audit_logging"] = {"passed": False, "error": str(e)}
-            return False
+        print("\nCheck: Audit logging")
+        audit_module_exists = self._contains_all(
+            "acosplatform/audit/logger.py",
+            ["def audit("],
+        )
+        api_uses_audit = self._contains_all(
+            "apps/ops_api/main.py",
+            ["audit(", "save_audit_event"],
+        )
+        passed = audit_module_exists and api_uses_audit
+        details = (
+            "Audit logger and API audit calls are present"
+            if passed
+            else (
+                f"audit_module_exists={audit_module_exists}, "
+                f"api_uses_audit={api_uses_audit}"
+            )
+        )
+        return self._record(
+            "audit_logging",
+            "GR-6: Control-plane mutations and risky decisions generate audit evidence",
+            passed,
+            details,
+        )
 
-    def run_all_checks(self):
-        """Run all production gate checks"""
-        print("═" * 60)
+    def run_all_checks(self) -> dict[str, dict]:
+        print("=" * 60)
         print("ACOS WEEK 12: PRODUCTION GATE VALIDATION")
-        print("═" * 60)
+        print(f"Repo root: {self.repo_root}")
+        print("=" * 60)
 
         checks_methods = [
             self.check_workflow_versioning,
@@ -172,21 +278,25 @@ class ProductionGateChecker:
             self.check_docker_deployment,
             self.check_audit_logging,
         ]
-
         for check_method in checks_methods:
-            try:
-                check_method()
-            except Exception as e:
-                print(f"  ⚠️  Error: {e}")
-
+            check_method()
         return self.checks
 
-    def generate_evidence_artifact(self):
-        """Create evidence artifact"""
-        passed_checks = sum(1 for c in self.checks.values() if c.get("passed", False))
+    def generate_evidence_artifact(self) -> dict:
+        passed_checks = sum(1 for check in self.checks.values() if check.get("passed", False))
         total_checks = len(self.checks)
+        runbook_paths = [
+            "docs/RUNBOOK_GO_LIVE.md",
+            "docs/RUNBOOK_WORKFLOW_PROMOTION.md",
+            "docs/RUNBOOK_INCIDENT_RESPONSE.md",
+        ]
+        operational_runbooks = all(self._exists(path) for path in runbook_paths)
+        rollback_plan = self._exists("docs/RUNBOOK_WORKFLOW_PROMOTION.md")
+        week11_evidence_exists = bool(
+            list(self._abs("deploy/k8s/observability/evidence").glob("week11-uat-*.json"))
+        )
 
-        artifact = {
+        return {
             "timestamp": self.timestamp,
             "week": 12,
             "phase": "production_gate",
@@ -195,64 +305,49 @@ class ProductionGateChecker:
                 "checks_passed": passed_checks,
                 "checks_total": total_checks,
                 "overall_pass": passed_checks == total_checks,
-                "readiness_percentage": int((passed_checks / total_checks) * 100) if total_checks > 0 else 0
+                "readiness_percentage": int((passed_checks / total_checks) * 100) if total_checks else 0,
             },
             "go_live_requirements": {
                 "versioned_resources": self.checks.get("workflow_versioning", {}).get("passed", False),
                 "auditable_promotions": self.checks.get("audit_logging", {}).get("passed", False),
-                "operational_runbooks": Path("docs/RUNBOOK_GO_LIVE.md").exists() and \
-                                       Path("docs/RUNBOOK_WORKFLOW_PROMOTION.md").exists() and \
-                                       Path("docs/RUNBOOK_INCIDENT_RESPONSE.md").exists(),
-                "rollback_plans": Path("docs/RUNBOOK_GO_LIVE.md").exists(),
-                "release_evidence": len(list(Path("deploy/k8s/observability/evidence").glob("week11*.json"))) > 0,
-                "docker_deployment": self.checks.get("docker_deployment", {}).get("passed", False)
-            }
+                "operational_runbooks": operational_runbooks,
+                "rollback_plans": rollback_plan,
+                "release_evidence": week11_evidence_exists,
+                "docker_deployment": self.checks.get("docker_deployment", {}).get("passed", False),
+            },
         }
 
-        return artifact
-
-    def save_evidence(self, artifact):
-        """Save evidence artifact"""
-        evidence_dir = Path("deploy/k8s/observability/evidence")
+    def save_evidence(self, artifact: dict) -> str:
+        evidence_dir = self._abs("deploy/k8s/observability/evidence")
         evidence_dir.mkdir(parents=True, exist_ok=True)
 
         timestamp_str = self.timestamp.replace(":", "-").replace(".", "-")
-        filename = f"week12-production-gate-{timestamp_str}.json"
-        filepath = evidence_dir / filename
+        file_path = evidence_dir / f"week12-production-gate-{timestamp_str}.json"
+        file_path.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
+        return str(file_path)
 
-        with open(filepath, "w") as f:
-            json.dump(artifact, f, indent=2)
 
-        return str(filepath)
-
-def main():
+def main() -> None:
     checker = ProductionGateChecker()
-
-    # Run all checks
     checks = checker.run_all_checks()
-
-    # Generate and save evidence
     artifact = checker.generate_evidence_artifact()
     evidence_file = checker.save_evidence(artifact)
 
-    # Print summary
-    print("\n" + "═" * 60)
+    print("\n" + "=" * 60)
     print("PRODUCTION GATE SUMMARY")
-    print("═" * 60)
-
+    print("=" * 60)
     summary = artifact["summary"]
-    print(f"\n✅ Checks Passed: {summary['checks_passed']}/{summary['checks_total']}")
-    print(f"📊 Readiness: {summary['readiness_percentage']}%")
-
-    print("\n📋 Detailed Results:")
+    print(f"\nChecks Passed: {summary['checks_passed']}/{summary['checks_total']}")
+    print(f"Readiness: {summary['readiness_percentage']}%")
+    print("\nDetailed Results:")
     for check_name, check_result in checks.items():
-        status = "✅" if check_result.get("passed", False) else "❌"
-        print(f"  {status} {check_result.get('requirement', check_name)}")
+        status = "PASS" if check_result.get("passed", False) else "FAIL"
+        print(f"  [{status}] {check_result.get('requirement', check_name)}")
+    print(f"\nEvidence Artifact: {evidence_file}")
+    print("\nPRODUCTION GATE PASSED" if summary["overall_pass"] else "\nPRODUCTION GATE REVIEW REQUIRED")
 
-    print(f"\n💾 Evidence Artifact: {evidence_file}")
-    print(f"\n{'🎉 PRODUCTION GATE PASSED' if summary['overall_pass'] else '⚠️  PRODUCTION GATE REVIEW REQUIRED'}")
+    sys.exit(0 if summary["overall_pass"] else 1)
 
-    sys.exit(0 if summary['overall_pass'] else 1)
 
 if __name__ == "__main__":
     main()

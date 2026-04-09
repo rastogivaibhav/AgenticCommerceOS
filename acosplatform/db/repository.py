@@ -139,8 +139,11 @@ _JSON_KEYS = {
     "agent_bindings",
     "policy_bindings",
     "skills",
+    "bound_skills",
     "history",
     "linterWarnings",
+    "agent_metadata",
+    "skill_metadata",
     "promo_rules",
     "features",
     "connector_routes",
@@ -176,6 +179,53 @@ def _append_or_replace(store, record, identity_key):
     return record
 
 
+_DEFAULT_AGENT_RUNTIME_PROVIDER = "local_fallback"
+_DEFAULT_AGENT_MODEL = "gemini-2.0-flash"
+_DEFAULT_AGENT_VERSION = "v1"
+_DEFAULT_SKILL_EXECUTION_MODE = "local"
+
+
+def _safe_int(value, default):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_agent(agent_data):
+    data = dict(agent_data)
+    data["subsystem"] = data.get("subsystem") or "General"
+    data["status"] = data.get("status") or "healthy"
+    data["calls"] = data.get("calls") or "0"
+    data["uptime"] = data.get("uptime") or "100%"
+    data["grade"] = data.get("grade") or "A+"
+    data["latency"] = data.get("latency") or "0ms"
+    data["history"] = list(data.get("history") or [])
+    skills = list(data.get("skills") or data.get("bound_skills") or [])
+    bound_skills = list(data.get("bound_skills") or skills)
+    data["skills"] = skills
+    data["bound_skills"] = bound_skills
+    data["runtime_provider"] = data.get("runtime_provider") or _DEFAULT_AGENT_RUNTIME_PROVIDER
+    data["model_name"] = data.get("model_name") or _DEFAULT_AGENT_MODEL
+    data["agent_version"] = data.get("agent_version") or _DEFAULT_AGENT_VERSION
+    return data
+
+
+def _normalize_skill(skill_data):
+    data = dict(skill_data)
+    data["category"] = data.get("category") or "Integration"
+    data["type"] = data.get("type") or "read"
+    data["calls"] = data.get("calls") or "0"
+    data["code"] = data.get("code") or ""
+    data["linterWarnings"] = list(data.get("linterWarnings") or [])
+    data["input_schema"] = data.get("input_schema") or {}
+    data["output_schema"] = data.get("output_schema") or {}
+    data["execution_mode"] = data.get("execution_mode") or _DEFAULT_SKILL_EXECUTION_MODE
+    data["timeout_seconds"] = _safe_int(data.get("timeout_seconds", 15), 15)
+    data["retries"] = _safe_int(data.get("retries", 0), 0)
+    return data
+
+
 def save_run(
     run_id,
     tenant_id,
@@ -189,6 +239,8 @@ def save_run(
     workflow_id=None,
     workflow_version=None,
     environment_id="dev",
+    agent_metadata=None,
+    skill_metadata=None,
 ):
     record = {
         "id": run_id,
@@ -203,6 +255,8 @@ def save_run(
         "workflow_id": workflow_id,
         "workflow_version": workflow_version,
         "environment_id": environment_id,
+        "agent_metadata": agent_metadata or {},
+        "skill_metadata": skill_metadata or {},
         "created_at": datetime.now(UTC).isoformat(),
     }
     if _use_db():
@@ -212,9 +266,9 @@ def save_run(
                     cur.execute(
                         """INSERT INTO runs (
                                id, tenant_id, customer_id, journey, input, output, cost, score, variant,
-                               workflow_id, workflow_version, environment_id
+                               workflow_id, workflow_version, environment_id, agent_metadata, skill_metadata
                            )
-                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                            ON CONFLICT (id) DO NOTHING""",
                         (
                             run_id,
@@ -229,6 +283,8 @@ def save_run(
                             workflow_id,
                             workflow_version,
                             environment_id,
+                            json.dumps(agent_metadata or {}),
+                            json.dumps(skill_metadata or {}),
                         ),
                     )
             return record
@@ -837,14 +893,16 @@ def get_dashboard():
 
 
 def save_agent(agent_data):
+    normalized = _normalize_agent(agent_data)
     if _use_db():
         try:
             with transaction() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
                         """INSERT INTO agents (
-                               id, name, subsystem, status, calls, uptime, skills, grade, latency, history
-                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                               id, name, subsystem, status, calls, uptime, skills, grade, latency, history,
+                               runtime_provider, model_name, agent_version, bound_skills
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                            ON CONFLICT (id) DO UPDATE
                            SET name=EXCLUDED.name,
                                subsystem=EXCLUDED.subsystem,
@@ -855,24 +913,32 @@ def save_agent(agent_data):
                                grade=EXCLUDED.grade,
                                latency=EXCLUDED.latency,
                                history=EXCLUDED.history,
+                               runtime_provider=EXCLUDED.runtime_provider,
+                               model_name=EXCLUDED.model_name,
+                               agent_version=EXCLUDED.agent_version,
+                               bound_skills=EXCLUDED.bound_skills,
                                updated_at=NOW()""",
                         (
-                            agent_data["id"],
-                            agent_data["name"],
-                            agent_data["subsystem"],
-                            agent_data.get("status", "healthy"),
-                            agent_data.get("calls", "0"),
-                            agent_data.get("uptime", "100%"),
-                            json.dumps(agent_data.get("skills", [])),
-                            agent_data.get("grade", "A+"),
-                            agent_data.get("latency", "0ms"),
-                            json.dumps(agent_data.get("history", [])),
+                            normalized["id"],
+                            normalized["name"],
+                            normalized["subsystem"],
+                            normalized.get("status", "healthy"),
+                            normalized.get("calls", "0"),
+                            normalized.get("uptime", "100%"),
+                            json.dumps(normalized.get("skills", [])),
+                            normalized.get("grade", "A+"),
+                            normalized.get("latency", "0ms"),
+                            json.dumps(normalized.get("history", [])),
+                            normalized.get("runtime_provider", _DEFAULT_AGENT_RUNTIME_PROVIDER),
+                            normalized.get("model_name", _DEFAULT_AGENT_MODEL),
+                            normalized.get("agent_version", _DEFAULT_AGENT_VERSION),
+                            json.dumps(normalized.get("bound_skills", [])),
                         ),
                     )
-            return agent_data
+            return normalized
         except Exception as e:
             logger.warning(f"save_agent DB error: {e}")
-    return _append_or_replace(_fallback_agents, agent_data, "id")
+    return _append_or_replace(_fallback_agents, normalized, "id")
 
 
 def get_agents():
@@ -881,21 +947,40 @@ def get_agents():
             with transaction() as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT * FROM agents ORDER BY name")
-                    return [_serialize_record(r) for r in cur.fetchall()]
+                    return [_normalize_agent(_serialize_record(r)) for r in cur.fetchall()]
         except Exception as e:
             logger.warning(f"get_agents DB error: {e}")
-    return sorted(list(_fallback_agents), key=lambda x: x.get("name", ""))
+    return sorted([_normalize_agent(a) for a in _fallback_agents], key=lambda x: x.get("name", ""))
+
+
+def get_agent_by_id(agent_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM agents WHERE id=%s", (agent_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_agent(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_agent_by_id DB error: {e}")
+    for agent in _fallback_agents:
+        if agent.get("id") == agent_id:
+            return _normalize_agent(agent)
+    return None
 
 
 def save_skill(skill_data):
+    normalized = _normalize_skill(skill_data)
     if _use_db():
         try:
             with transaction() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
                         """INSERT INTO skills (
-                               id, name, category, type, calls, code, "linterWarnings"
-                           ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                               id, name, category, type, calls, code, "linterWarnings",
+                               input_schema, output_schema, execution_mode, timeout_seconds, retries
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                            ON CONFLICT (id) DO UPDATE
                            SET name=EXCLUDED.name,
                                category=EXCLUDED.category,
@@ -903,21 +988,31 @@ def save_skill(skill_data):
                                calls=EXCLUDED.calls,
                                code=EXCLUDED.code,
                                "linterWarnings"=EXCLUDED."linterWarnings",
+                               input_schema=EXCLUDED.input_schema,
+                               output_schema=EXCLUDED.output_schema,
+                               execution_mode=EXCLUDED.execution_mode,
+                               timeout_seconds=EXCLUDED.timeout_seconds,
+                               retries=EXCLUDED.retries,
                                updated_at=NOW()""",
                         (
-                            skill_data["id"],
-                            skill_data["name"],
-                            skill_data["category"],
-                            skill_data.get("type", "read"),
-                            skill_data.get("calls", "0"),
-                            skill_data.get("code", ""),
-                            json.dumps(skill_data.get("linterWarnings", [])),
+                            normalized["id"],
+                            normalized["name"],
+                            normalized["category"],
+                            normalized.get("type", "read"),
+                            normalized.get("calls", "0"),
+                            normalized.get("code", ""),
+                            json.dumps(normalized.get("linterWarnings", [])),
+                            json.dumps(normalized.get("input_schema", {})),
+                            json.dumps(normalized.get("output_schema", {})),
+                            normalized.get("execution_mode", _DEFAULT_SKILL_EXECUTION_MODE),
+                            normalized.get("timeout_seconds", 15),
+                            normalized.get("retries", 0),
                         ),
                     )
-            return skill_data
+            return normalized
         except Exception as e:
             logger.warning(f"save_skill DB error: {e}")
-    return _append_or_replace(_fallback_skills, skill_data, "id")
+    return _append_or_replace(_fallback_skills, normalized, "id")
 
 
 def get_skills():
@@ -926,10 +1021,27 @@ def get_skills():
             with transaction() as conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT * FROM skills ORDER BY name")
-                    return [_serialize_record(r) for r in cur.fetchall()]
+                    return [_normalize_skill(_serialize_record(r)) for r in cur.fetchall()]
         except Exception as e:
             logger.warning(f"get_skills DB error: {e}")
-    return sorted(list(_fallback_skills), key=lambda x: x.get("name", ""))
+    return sorted([_normalize_skill(s) for s in _fallback_skills], key=lambda x: x.get("name", ""))
+
+
+def get_skill_by_id(skill_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM skills WHERE id=%s", (skill_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_skill(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_skill_by_id DB error: {e}")
+    for skill in _fallback_skills:
+        if skill.get("id") == skill_id:
+            return _normalize_skill(skill)
+    return None
 
 
 _fallback_products = []
