@@ -1,6 +1,6 @@
 # Weekly Readiness Journey
 
-## Current Status (as of 2026-04-05)
+## Current Status (as of 2026-04-09)
 1. Week 1: Done (delivery scope complete; architecture approval remains governance artifact).
 2. Week 2: Done (fail-open removed, RBAC enforced on control endpoints, security tests green).
 3. Week 3: Done (ADK runtime scaffold, tool contract enforcement, journey path verified).
@@ -10,7 +10,7 @@
 7. Week 7: Done (network-policy-enforcing CNI path validated; tenant isolation evidence passing).
 8. Week 8: Done (catalog/pricing/promotions/orders connector contract runtime with retry/timeout/fallback and tests).
 9. Week 9: Done (Grafana dashboard ConfigMap wiring + Prometheus alert rules + evidence artifact).
-10. Week 10: Done (tenant quota/rate-limit + noisy-neighbor baseline controls with tests; integration evidence in deploy/k8s/observability/evidence/week10-quota-*.json).
+10. Week 10: Started (tenant quota/rate-limit + noisy-neighbor baseline controls with tests; load/perf baselining evidence still open).
 11. Weeks 11-12: Not started.
 
 ## Hard Gates Still Open
