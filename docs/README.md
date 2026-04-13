@@ -1,6 +1,6 @@
 # ACOS Documentation Library
 
-This folder is the architecture, product, and operational source of truth for ACOS.
+This folder is the architecture, product, and operational documentation set for the current ACOS codebase.
 
 ## Document Map
 
@@ -32,15 +32,26 @@ This folder is the architecture, product, and operational source of truth for AC
 - `RUNBOOK_INCIDENT_RESPONSE.md`
 
 ## How To Use This Library
-- Use PRDs and architecture docs before changing implementation.
-- Keep each delivery slice testable, runnable, and documented.
-- Treat readiness docs and evidence packs as release records.
-- Keep runbooks current whenever operational behavior changes.
+
+- Use the architecture docs as the code-backed description of the current platform shape.
+- Use product docs for roadmap intent, scope sequencing, and release-readiness decisions.
+- Keep runbooks aligned with real API endpoints, workflow operations, and incident controls.
+- Update the relevant architecture docs whenever the workflow model, persisted resources, channel model, or service topology changes.
 
 ## Current Baseline
+
 ACOS currently includes:
-- `shopper-api` for customer runtime flows.
-- `ops-api` for governed control-plane operations.
-- `chat-api` for channel integrations.
-- Postgres persistence for workflows, runs, and audit artifacts.
-- Week 6-12 readiness evidence with closed Week 12 gate.
+- `shopper-api` for authenticated journey execution on `/v1/journey`
+- `ops-api` for workflow governance, replay, channels, agents, skills, analytics, and `/ui`
+- `chat-api` for Slack and message-driven workflow execution
+- `apps/ops_ui_v2` for the React control-plane frontend
+- PostgreSQL persistence for workflow versions, promotions, runs, audit, context, CRM, channels, agents, and skills
+- connector-aware retail demo flows spanning Shopify, Salesforce, WhatsApp, Telegram, and runtime-provider selection
+
+## Most Code-Sensitive Docs
+
+When implementation changes, check these first:
+- `architecture/02-reference-architecture.md`
+- `architecture/03-workflow-operating-model.md`
+- `architecture/04-canonical-resource-model.md`
+- `architecture/05-retail-capability-map.md`

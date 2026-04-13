@@ -2,207 +2,131 @@
 
 ## Purpose
 
-This document defines how ACOS resources move from authoring to go-live.
-
-An enterprise operating system for AI-driven commerce cannot rely on ad hoc deployment or undocumented approval paths.
+This document describes the release and runtime-governance mechanisms that are already present in ACOS, plus the hardening work that is still needed.
 
 ## Governance Principles
 
-### Separation Of Duties
-The same individual should not unilaterally author, approve, and promote high-risk changes into production.
-
-### Evidence-Based Promotion
-Changes must carry validation evidence before promotion.
-
 ### Versioned Promotion
-Promotions happen by promoting versioned artifacts, not mutable drafts.
+Live behavior should change by activating specific workflow versions, not by mutating an implicit draft in place.
 
-### Safe Rollback
-Every production promotion must define a rollback path.
+### Environment Awareness
+Promotion and execution need to carry environment identity explicitly.
 
-## Environment Model
+### Evidence And Audit
+Operational mutations should leave promotion or audit records that operators can inspect later.
 
-ACOS should operate with at least these environments:
+### Safe Fallbacks
+Connectors and AI runtimes should degrade to preview or sandbox behavior when live dependencies are not ready.
+
+## Current Environment Model
+
+The current code uses:
+- `OPS_ENVIRONMENT` to identify the running service environment
+- `environment_id` on runs
+- `target_environment` and `source_environment` on workflow promotions
+- environment-specific filtering for channel bindings and workflow activation
+
+The repo does not yet implement a first-class `environments` table, but environment identity is already operationally meaningful.
+
+## Current Promotion Model
+
+Workflow release governance is the most mature release mechanism in the codebase.
+
+Current implementation supports:
+- creating a workflow version
+- approving a version
+- promoting a version into an environment
+- rolling back to a prior version
+- archiving a workflow
+
+Promotion state is stored in `workflow_promotions`, and workflow execution resolves active versions from that state.
+
+## Current Runtime Governance Controls
+
+The platform already includes:
+- role-gated ops endpoints
+- workflow approval and promotion flows
+- audit event storage
+- workflow rollback
+- incident endpoints for workflow health, pause, failsafe, rollback, and audit lookup
+- tenant traffic controls in `shopper-api`
+- row-level security for context and governance tables
+
+## Current Connector Release Behavior
+
+Connector behavior is intentionally staged:
+- `sandbox` when the connector is not configured
+- `configured_preview` when credentials exist but a live action is intentionally not executed
+- `live` when the connector is configured and the action is allowed
+
+This gives ACOS a practical release-safety mechanism for external systems even before a fuller connector registry exists.
+
+## Mock And Demo Guardrails
+
+The repository includes explicit controls for mock-route exposure:
+- `ALLOW_MOCK_ROUTES`
+- `ALLOW_NON_DEV_MOCK_ROUTES`
+
+`ops-api` blocks non-dev mock routes unless the explicit override is set, which is an important current safeguard.
+
+## Release Artifact Reality
+
+Today the most concrete promotable artifact in ACOS is the workflow version plus its environment promotion record.
+
+Agents, skills, connectors, and UI behavior are still more lightly governed than workflows, even though they are operationally important.
+
+## Current Promotion Readiness Checks
+
+The codebase already makes room for release checks through:
+- startup auth validation
+- schema readiness checks
+- health endpoints
+- metrics endpoints
+- workflow validation status fields
+- audit and promotion history
+- runbooks and evidence-pack docs in `docs/`
+
+What is still mostly process-driven rather than fully enforced in code:
+- artifact hashing
+- automated environment-specific validation gates for every promotable object
+- uniform dependency validation across workflow, agent, skill, and connector changes
+
+## Practical Environment Semantics Today
 
 ### Dev
-Used for active development and rapid iteration.
+- default environment for local work
+- sandbox connectors and mock routes are expected here
 
-### Test
-Used for functional integration, contract validation, and automated test execution.
-
-### Stage
-Used for realistic pre-production validation with release candidates.
-
-### Prod
-Used for live business traffic and governed operational execution.
-
-## Resource Promotion Scope
-
-The following resources require environment-aware promotion:
-- workflow versions
-- agent versions
-- skill versions
-- policy versions
-- connector versions or config changes
-- UI releases where they affect control-plane behavior
-
-## Release Artifact Model
-
-Every promotable artifact should include:
-- resource identity
-- version number
-- artifact hash
-- change summary
-- validation evidence
-- dependency declarations
-- rollback target
-
-## Validation Gates By Environment
-
-### Dev To Test
-Minimum requirements:
-- unit tests pass
-- schema validation passes
-- API and UI contracts build
-- Docker build passes
-
-### Test To Stage
-Minimum requirements:
-- integration tests pass
-- migration safety reviewed
-- tenant behavior validated
-- audit and metrics behavior validated
-- release notes prepared
-
-### Stage To Prod
-Minimum requirements:
-- release candidate validated in near-production conditions
-- approvals complete
-- rollback plan documented
-- runbooks current
-- risk sign-off complete for affected areas
-
-## Approval Model
-
-### Low-Risk Changes
-Examples:
-- copy updates
-- harmless UI refinement
-- non-production test fixtures
-
-Approval:
-- product or engineering owner
-
-### Medium-Risk Changes
-Examples:
-- workflow logic changes
-- skill contract changes
-- new control-plane mutations
-
-Approval:
-- engineering owner
-- product owner
-
-### High-Risk Changes
-Examples:
-- production policy changes
-- financial action thresholds
-- refund approval logic
-- model profile changes affecting live customer outputs
-- connector changes to systems of record
-
-Approval:
-- engineering owner
-- business owner
-- risk or compliance owner where applicable
-
-## Production Change Types
-
-### Planned Release
-Normal promotion through approval and release windows.
-
-### Emergency Fix
-Fast-track release with mandatory retrospective review.
-
-### Feature Flag Rollout
-Change is promoted but activated only for targeted traffic.
-
-## Rollback Rules
-
-Every production release must define:
-- the prior stable version
-- rollback conditions
-- rollback owner
-- rollback validation steps
-
-Rollback should prefer:
-- version reactivation
-- feature flag disablement
-- connector fail-safe routing
-
-## Release Readiness Checklist
-
-Before production promotion, confirm:
-- affected tenants identified
-- affected workflows identified
-- backward compatibility assessed
-- metrics and dashboards updated if needed
-- audit coverage present
-- support teams informed if needed
-- operational runbooks updated
-
-## Runtime Governance
-
-Deployment governance alone is not enough.
-Live runtime must also support:
-- pausing a workflow version
-- pausing an agent version
-- blocking a skill version
-- requiring manual approval for risky live actions
-- routing to human fallback when policy confidence is low
-
-## Environment Data Rules
-
-### Dev And Test
-- synthetic or sanitized data only
-- no production secrets
-
-### Stage
-- controlled sanitized datasets
-- production-like config with safe boundaries
+### Stage/Test
+- supported by workflow promotion fields and environment parameters
+- not yet represented as separate deployment stacks in the repo
 
 ### Prod
-- full policy and audit enforcement
-- least-privilege access
-- redaction of sensitive operational views where required
+- represented in promotion targets and runtime metadata
+- should run with mock routes disabled, stricter auth, and fully configured connectors
 
-## Release Governance Roles
+## Rollback Model
 
-- Product Owner
-  accountable for business intent and release value
-- Engineering Owner
-  accountable for technical correctness and rollback
-- Platform Owner
-  accountable for deployment safety and runtime health
-- Risk And Compliance Owner
-  accountable for policy-sensitive release oversight
-- Operations Owner
-  accountable for adoption readiness and incident handling
+Rollback currently works best at the workflow level:
+- identify the prior version
+- reactivate it for the target environment
+- audit the action
+- replay or inspect affected runs
 
-## Current Repository Implications
+This is a meaningful operational capability that already exists in the codebase.
 
-Near-term governance improvements should include:
-- explicit environment variables for environment identity
-- versioned workflow records
-- promotion records in persistence
-- audit events for activation and mutation
-- a documented release candidate path through Docker Compose
+## Remaining Governance Gaps
 
-## Go-Live Standard
+The biggest gaps are:
+- no first-class promotion system yet for agent versions, skill versions, or connector contracts
+- no unified release object spanning workflow, UI, connectors, and runtime provider changes
+- limited automated enforcement of evidence requirements before promotion
+- partial reliance on demo data and sandbox flows for some operational paths
 
-ACOS is go-live capable only when:
-- all production-facing resources are versioned
-- promotions are approved and auditable
-- rollback is operationally simple
-- runtime kill switches exist
-- release evidence is preserved
+## Near-Term Governance Direction
+
+The most valuable next hardening steps are:
+- extend version/promotion concepts beyond workflows
+- validate workflow graphs and dependencies more strictly before approval
+- make release evidence more machine-checkable
+- keep production behavior safely separated from demo and mock paths

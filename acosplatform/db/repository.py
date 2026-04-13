@@ -19,13 +19,30 @@ _fallback_agents = [
     {
         "id": "ag_marketing",
         "name": "Campaign Manager",
+        "purpose": "Coordinates outbound campaign generation and segmentation decisions.",
         "subsystem": "Marketing",
         "status": "healthy",
         "calls": "12.4k",
         "uptime": "99.9%",
         "skills": ["sk_email_gen", "sk_search_products", "sk_audience_insight"],
+        "bound_skills": ["sk_email_gen", "sk_search_products", "sk_audience_insight"],
+        "connector_bindings": ["shopify-primary"],
+        "used_by_workflow_ids": ["wf-engagement"],
         "grade": "A+",
         "latency": "110ms",
+        "last_test_at": "2026-04-10T12:15:00Z",
+        "last_test_status": "pass",
+        "code": {
+            "system_prompt": "Drive high-conversion outbound messaging while respecting campaign policies.",
+            "tool_bindings": ["sk_email_gen", "sk_search_products"],
+            "runtime": {"provider": "google_genai", "model": "gemini-2.0-flash"},
+        },
+        "scorecard": {
+            "connector_health_status": "healthy",
+            "contract_validation_status": "pass",
+            "recent_run_failure_rate": 0.01,
+            "last_successful_run_at": "2026-04-10T11:58:00Z",
+        },
         "history": [
             {"id": "run_12931", "time": "2m ago", "outcome": "Success"},
             {"id": "run_12929", "time": "1h ago", "outcome": "Degraded"},
@@ -34,25 +51,59 @@ _fallback_agents = [
     {
         "id": "ag_support_l1",
         "name": "Frontline Support",
+        "purpose": "Handles order status, policy-guided answers, and escalation decisions for inbound service requests.",
         "subsystem": "Customer Service",
         "status": "healthy",
         "calls": "45.1k",
         "uptime": "99.9%",
         "skills": ["sk_order_lookup", "sk_process_refund", "sk_check_loyalty"],
+        "bound_skills": ["sk_order_lookup", "sk_process_refund", "sk_check_loyalty"],
+        "connector_bindings": ["shopify-primary", "salesforce-support", "whatsapp-support"],
+        "used_by_workflow_ids": ["wf-order-support-demo", "wf-service"],
         "grade": "A",
         "latency": "240ms",
+        "last_test_at": "2026-04-10T12:30:00Z",
+        "last_test_status": "pass",
+        "code": {
+            "system_prompt": "Resolve order support requests, use commerce systems for evidence, and escalate if confidence is low.",
+            "tool_bindings": ["shopify:get_order", "salesforce:get_contact", "whatsapp:send_message"],
+            "runtime": {"provider": "google_genai", "model": "gemini-2.0-flash"},
+        },
+        "scorecard": {
+            "connector_health_status": "healthy",
+            "contract_validation_status": "pass",
+            "recent_run_failure_rate": 0.02,
+            "last_successful_run_at": "2026-04-10T12:25:00Z",
+        },
         "history": [],
     },
     {
         "id": "ag_support_l2",
         "name": "Escalation Desk",
+        "purpose": "Takes over high-risk or policy-sensitive cases that require human review.",
         "subsystem": "Customer Service",
         "status": "degraded",
         "calls": "2.1k",
         "uptime": "98.4%",
         "skills": ["sk_human_handoff", "sk_issue_credit"],
+        "bound_skills": ["sk_human_handoff", "sk_issue_credit"],
+        "connector_bindings": ["salesforce-support", "whatsapp-support"],
+        "used_by_workflow_ids": ["wf-order-support-demo"],
         "grade": "C-",
         "latency": "1450ms",
+        "last_test_at": "2026-04-10T11:30:00Z",
+        "last_test_status": "fail",
+        "code": {
+            "system_prompt": "Collect the minimum service evidence required for escalation and open a downstream case.",
+            "tool_bindings": ["salesforce:create_case", "whatsapp:handoff_tag"],
+            "runtime": {"provider": "local_fallback", "model": "gemini-2.0-flash"},
+        },
+        "scorecard": {
+            "connector_health_status": "degraded",
+            "contract_validation_status": "pass",
+            "recent_run_failure_rate": 0.18,
+            "last_successful_run_at": "2026-04-09T19:12:00Z",
+        },
         "history": [
             {"id": "run_841", "time": "1m ago", "outcome": "Failed"},
             {"id": "run_839", "time": "12m ago", "outcome": "Timeout"},
@@ -61,27 +112,214 @@ _fallback_agents = [
     {
         "id": "ag_fulfillment",
         "name": "Logistics Router",
+        "purpose": "Routes fulfillment and post-purchase tracking requests across order systems.",
         "subsystem": "Fulfillment",
         "status": "healthy",
         "calls": "8.3k",
         "uptime": "100%",
         "skills": [],
+        "bound_skills": [],
+        "connector_bindings": ["shopify-primary"],
+        "used_by_workflow_ids": ["wf-post-purchase"],
         "grade": "A+",
         "latency": "45ms",
+        "last_test_at": "2026-04-10T10:45:00Z",
+        "last_test_status": "pass",
+        "code": {
+            "system_prompt": "Read shipment/order state and route fulfillment actions without customer-facing improvisation.",
+            "tool_bindings": ["shopify:get_order"],
+            "runtime": {"provider": "local_fallback", "model": "gemini-2.0-flash"},
+        },
+        "scorecard": {
+            "connector_health_status": "healthy",
+            "contract_validation_status": "pass",
+            "recent_run_failure_rate": 0.0,
+            "last_successful_run_at": "2026-04-10T10:44:00Z",
+        },
         "history": [],
     },
     {
         "id": "ag_returns",
         "name": "Returns Processor",
+        "purpose": "Prepares returns and refund intents before final downstream approval.",
         "subsystem": "Reverse Logistics",
         "status": "healthy",
         "calls": "1.2k",
         "uptime": "99.8%",
         "skills": [],
+        "bound_skills": [],
+        "connector_bindings": ["shopify-primary", "salesforce-support"],
+        "used_by_workflow_ids": ["wf-service"],
         "grade": "A",
         "latency": "310ms",
+        "last_test_at": "2026-04-10T09:30:00Z",
+        "last_test_status": "pass",
+        "code": {
+            "system_prompt": "Prepare a governed return path and avoid issuing refunds without policy evidence.",
+            "tool_bindings": ["shopify:create_return_intent", "salesforce:update_case"],
+            "runtime": {"provider": "local_fallback", "model": "gemini-2.0-flash"},
+        },
+        "scorecard": {
+            "connector_health_status": "healthy",
+            "contract_validation_status": "pass",
+            "recent_run_failure_rate": 0.03,
+            "last_successful_run_at": "2026-04-10T09:28:00Z",
+        },
         "history": [],
     },
+]
+
+_fallback_channel_bindings = [
+    {
+        "id": "whatsapp-support",
+        "type": "whatsapp",
+        "tenant_id": "default",
+        "environment": "dev",
+        "status": "sandbox",
+        "mode": "sandbox",
+        "identity": "WhatsApp Support",
+        "default_route": "order_status",
+        "allowed_routes": ["order_status", "return_refund", "loyalty_rewards", "vip_escalation"],
+        "notification_targets": ["telegram-ops"],
+        "metadata": {
+            "phone_number_id": "",
+            "verified_name": "",
+        },
+    },
+    {
+        "id": "telegram-ops",
+        "type": "telegram",
+        "tenant_id": "default",
+        "environment": "dev",
+        "status": "sandbox",
+        "mode": "sandbox",
+        "identity": "ACOS Ops Bot",
+        "default_route": "order_status",
+        "allowed_routes": ["order_status", "return_refund", "loyalty_rewards", "vip_escalation"],
+        "notification_targets": [],
+        "metadata": {
+            "bot_username": "",
+            "default_chat_id": "",
+        },
+    },
+]
+
+_fallback_channel_senders = [
+    {
+        "id": "sender-whatsapp-approved",
+        "channel_binding_id": "whatsapp-support",
+        "sender_external_id": "whatsapp:+447700900001",
+        "display_name": "Ava Morgan",
+        "customer_id": "cust_1001",
+        "approval_status": "approved",
+        "last_message": "Where is my order ORD-1001?",
+        "last_seen_at": "2026-04-12T09:00:00Z",
+        "metadata": {"channel": "whatsapp"},
+    }
+]
+
+_fallback_channel_pairings = []
+
+_fallback_demo_routes = [
+    {
+        "id": "order_status",
+        "name": "Order Status",
+        "description": "Track the latest order, explain shipment state, and notify ops.",
+        "workflow_id": "wf-order-support-demo",
+        "workflow_family": "service",
+        "supported_channels": ["whatsapp", "telegram"],
+        "sample_trigger": "Where is my order ORD-1001?",
+        "systems": ["crm", "shopify", "salesforce", "whatsapp", "telegram"],
+        "preferred_runtime": "lmstudio_local",
+        "mode": "sandbox",
+    },
+    {
+        "id": "return_refund",
+        "name": "Return / Refund",
+        "description": "Prepare a return intent, summarize policy, and escalate when needed.",
+        "workflow_id": "wf-service",
+        "workflow_family": "service",
+        "supported_channels": ["whatsapp", "telegram"],
+        "sample_trigger": "I want to return my last order.",
+        "systems": ["crm", "shopify", "salesforce", "telegram"],
+        "preferred_runtime": "local_fallback",
+        "mode": "sandbox",
+    },
+    {
+        "id": "loyalty_rewards",
+        "name": "Loyalty Rewards",
+        "description": "Retrieve loyalty tier and available benefits before replying.",
+        "workflow_id": "wf-engagement",
+        "workflow_family": "engagement",
+        "supported_channels": ["whatsapp", "telegram"],
+        "sample_trigger": "Do I have any loyalty rewards?",
+        "systems": ["crm", "salesforce", "telegram"],
+        "preferred_runtime": "local_fallback",
+        "mode": "sandbox",
+    },
+    {
+        "id": "vip_escalation",
+        "name": "VIP Escalation",
+        "description": "Escalate priority cases for high-value customers and notify ops.",
+        "workflow_id": "wf-order-support-demo",
+        "workflow_family": "service",
+        "supported_channels": ["whatsapp", "telegram"],
+        "sample_trigger": "This is my third failed delivery, escalate now.",
+        "systems": ["crm", "salesforce", "whatsapp", "telegram"],
+        "preferred_runtime": "lmstudio_local",
+        "mode": "sandbox",
+    },
+]
+
+_fallback_crm_customers = [
+    {
+        "id": "cust_1001",
+        "tenant_id": "default",
+        "name": "Ava Morgan",
+        "email": "ava@example.com",
+        "phone": "+447700900001",
+        "loyalty_tier": "gold",
+        "preferred_channel": "whatsapp",
+        "salesforce_contact_id": "003-demo-contact",
+        "shopify_customer_id": "1001",
+        "last_order_id": "ORD-1001",
+        "segment": "vip_repeat_buyer",
+        "metadata": {
+            "open_cases": ["case_1001"],
+            "consent_flags": {"whatsapp": True, "telegram": True},
+        },
+    },
+    {
+        "id": "cust_1002",
+        "tenant_id": "default",
+        "name": "Leo Barnes",
+        "email": "leo@example.com",
+        "phone": "+447700900002",
+        "loyalty_tier": "silver",
+        "preferred_channel": "telegram",
+        "salesforce_contact_id": "003-demo-contact-2",
+        "shopify_customer_id": "1002",
+        "last_order_id": "ORD-1002",
+        "segment": "loyalty_growth",
+        "metadata": {
+            "open_cases": [],
+            "consent_flags": {"whatsapp": False, "telegram": True},
+        },
+    },
+]
+
+_fallback_crm_cases = [
+    {
+        "id": "case_1001",
+        "customer_id": "cust_1001",
+        "tenant_id": "default",
+        "subject": "Delayed shipment complaint",
+        "status": "open",
+        "priority": "high",
+        "channel": "whatsapp",
+        "summary": "Customer reported repeated delays for order ORD-1001.",
+        "metadata": {"source": "support_history"},
+    }
 ]
 
 _fallback_skills = [
@@ -147,6 +385,15 @@ _JSON_KEYS = {
     "promo_rules",
     "features",
     "connector_routes",
+    "connector_bindings",
+    "used_by_workflow_ids",
+    "code",
+    "scorecard",
+    "allowed_routes",
+    "notification_targets",
+    "metadata",
+    "supported_channels",
+    "systems",
 }
 
 _fallback_tenants = []
@@ -195,6 +442,7 @@ def _safe_int(value, default):
 def _normalize_agent(agent_data):
     data = dict(agent_data)
     data["subsystem"] = data.get("subsystem") or "General"
+    data["purpose"] = data.get("purpose") or f"{data.get('name', 'Agent')} operational responsibilities"
     data["status"] = data.get("status") or "healthy"
     data["calls"] = data.get("calls") or "0"
     data["uptime"] = data.get("uptime") or "100%"
@@ -208,6 +456,24 @@ def _normalize_agent(agent_data):
     data["runtime_provider"] = data.get("runtime_provider") or _DEFAULT_AGENT_RUNTIME_PROVIDER
     data["model_name"] = data.get("model_name") or _DEFAULT_AGENT_MODEL
     data["agent_version"] = data.get("agent_version") or _DEFAULT_AGENT_VERSION
+    data["connector_bindings"] = list(data.get("connector_bindings") or [])
+    data["used_by_workflow_ids"] = list(data.get("used_by_workflow_ids") or [])
+    data["last_test_at"] = data.get("last_test_at")
+    data["last_test_status"] = data.get("last_test_status") or "unknown"
+    data["code"] = data.get("code") or {
+        "system_prompt": "",
+        "tool_bindings": bound_skills,
+        "runtime": {
+            "provider": data["runtime_provider"],
+            "model": data["model_name"],
+        },
+    }
+    data["scorecard"] = data.get("scorecard") or {
+        "connector_health_status": "unknown",
+        "contract_validation_status": "unknown",
+        "recent_run_failure_rate": None,
+        "last_successful_run_at": None,
+    }
     return data
 
 
@@ -223,6 +489,88 @@ def _normalize_skill(skill_data):
     data["execution_mode"] = data.get("execution_mode") or _DEFAULT_SKILL_EXECUTION_MODE
     data["timeout_seconds"] = _safe_int(data.get("timeout_seconds", 15), 15)
     data["retries"] = _safe_int(data.get("retries", 0), 0)
+    return data
+
+
+def _normalize_channel_binding(binding_data):
+    data = dict(binding_data)
+    data["type"] = (data.get("type") or "whatsapp").strip().lower()
+    data["tenant_id"] = data.get("tenant_id") or "default"
+    data["environment"] = data.get("environment") or "dev"
+    data["status"] = data.get("status") or "sandbox"
+    data["mode"] = data.get("mode") or "sandbox"
+    data["identity"] = data.get("identity") or data.get("display_name") or data.get("id", "Channel")
+    data["default_route"] = data.get("default_route") or "order_status"
+    data["allowed_routes"] = list(data.get("allowed_routes") or [data["default_route"]])
+    data["notification_targets"] = list(data.get("notification_targets") or [])
+    data["metadata"] = dict(data.get("metadata") or {})
+    return data
+
+
+def _normalize_channel_sender(sender_data):
+    data = dict(sender_data)
+    data["display_name"] = data.get("display_name") or data.get("sender_external_id") or "Unknown sender"
+    data["customer_id"] = data.get("customer_id")
+    data["approval_status"] = (data.get("approval_status") or "pending").strip().lower()
+    data["last_message"] = data.get("last_message") or ""
+    data["metadata"] = dict(data.get("metadata") or {})
+    return data
+
+
+def _normalize_channel_pairing(pairing_data):
+    data = dict(pairing_data)
+    data["channel_binding_id"] = data.get("channel_binding_id") or ""
+    data["route_id"] = data.get("route_id") or "order_status"
+    data["pair_code"] = str(data.get("pair_code") or "").strip().upper()
+    data["status"] = (data.get("status") or "active").strip().lower()
+    data["metadata"] = dict(data.get("metadata") or {})
+    return data
+
+
+def _normalize_demo_route(route_data):
+    data = dict(route_data)
+    data["description"] = data.get("description") or ""
+    data["workflow_id"] = data.get("workflow_id") or ""
+    data["workflow_family"] = data.get("workflow_family") or "service"
+    data["supported_channels"] = list(data.get("supported_channels") or [])
+    data["systems"] = list(data.get("systems") or [])
+    data["sample_trigger"] = data.get("sample_trigger") or ""
+    data["preferred_runtime"] = data.get("preferred_runtime") or "local_fallback"
+    data["mode"] = data.get("mode") or "sandbox"
+    return data
+
+
+def _normalize_crm_customer(customer_data):
+    data = dict(customer_data)
+    data["tenant_id"] = data.get("tenant_id") or "default"
+    data["email"] = data.get("email") or ""
+    data["phone"] = data.get("phone") or ""
+    data["loyalty_tier"] = data.get("loyalty_tier") or "standard"
+    data["preferred_channel"] = data.get("preferred_channel") or "whatsapp"
+    data["salesforce_contact_id"] = data.get("salesforce_contact_id") or ""
+    data["shopify_customer_id"] = data.get("shopify_customer_id") or ""
+    data["last_order_id"] = data.get("last_order_id") or ""
+    data["segment"] = data.get("segment") or "general"
+    data["metadata"] = dict(data.get("metadata") or {})
+    return data
+
+
+def _normalize_phone_lookup(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    digits = "".join(char for char in raw if char.isdigit())
+    return digits or raw.lstrip("+")
+
+
+def _normalize_crm_case(case_data):
+    data = dict(case_data)
+    data["tenant_id"] = data.get("tenant_id") or "default"
+    data["status"] = data.get("status") or "new"
+    data["priority"] = data.get("priority") or "medium"
+    data["channel"] = data.get("channel") or "whatsapp"
+    data["summary"] = data.get("summary") or ""
+    data["metadata"] = dict(data.get("metadata") or {})
     return data
 
 
@@ -900,12 +1248,14 @@ def save_agent(agent_data):
                 with conn.cursor() as cur:
                     cur.execute(
                         """INSERT INTO agents (
-                               id, name, subsystem, status, calls, uptime, skills, grade, latency, history,
-                               runtime_provider, model_name, agent_version, bound_skills
-                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                               id, name, subsystem, purpose, status, calls, uptime, skills, grade, latency, history,
+                               runtime_provider, model_name, agent_version, bound_skills, connector_bindings,
+                               used_by_workflow_ids, last_test_at, last_test_status, code, scorecard
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                            ON CONFLICT (id) DO UPDATE
                            SET name=EXCLUDED.name,
                                subsystem=EXCLUDED.subsystem,
+                               purpose=EXCLUDED.purpose,
                                status=EXCLUDED.status,
                                calls=EXCLUDED.calls,
                                uptime=EXCLUDED.uptime,
@@ -917,11 +1267,18 @@ def save_agent(agent_data):
                                model_name=EXCLUDED.model_name,
                                agent_version=EXCLUDED.agent_version,
                                bound_skills=EXCLUDED.bound_skills,
+                               connector_bindings=EXCLUDED.connector_bindings,
+                               used_by_workflow_ids=EXCLUDED.used_by_workflow_ids,
+                               last_test_at=EXCLUDED.last_test_at,
+                               last_test_status=EXCLUDED.last_test_status,
+                               code=EXCLUDED.code,
+                               scorecard=EXCLUDED.scorecard,
                                updated_at=NOW()""",
                         (
                             normalized["id"],
                             normalized["name"],
                             normalized["subsystem"],
+                            normalized.get("purpose", ""),
                             normalized.get("status", "healthy"),
                             normalized.get("calls", "0"),
                             normalized.get("uptime", "100%"),
@@ -933,6 +1290,12 @@ def save_agent(agent_data):
                             normalized.get("model_name", _DEFAULT_AGENT_MODEL),
                             normalized.get("agent_version", _DEFAULT_AGENT_VERSION),
                             json.dumps(normalized.get("bound_skills", [])),
+                            json.dumps(normalized.get("connector_bindings", [])),
+                            json.dumps(normalized.get("used_by_workflow_ids", [])),
+                            normalized.get("last_test_at"),
+                            normalized.get("last_test_status", "unknown"),
+                            json.dumps(normalized.get("code", {})),
+                            json.dumps(normalized.get("scorecard", {})),
                         ),
                     )
             return normalized
@@ -1042,6 +1405,522 @@ def get_skill_by_id(skill_id):
         if skill.get("id") == skill_id:
             return _normalize_skill(skill)
     return None
+
+
+def save_channel_binding(binding_data):
+    normalized = _normalize_channel_binding(binding_data)
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO channel_bindings (
+                               id, type, tenant_id, environment, status, mode, identity,
+                               default_route, allowed_routes, notification_targets, metadata
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET type=EXCLUDED.type,
+                               tenant_id=EXCLUDED.tenant_id,
+                               environment=EXCLUDED.environment,
+                               status=EXCLUDED.status,
+                               mode=EXCLUDED.mode,
+                               identity=EXCLUDED.identity,
+                               default_route=EXCLUDED.default_route,
+                               allowed_routes=EXCLUDED.allowed_routes,
+                               notification_targets=EXCLUDED.notification_targets,
+                               metadata=EXCLUDED.metadata,
+                               updated_at=NOW()""",
+                        (
+                            normalized["id"],
+                            normalized["type"],
+                            normalized["tenant_id"],
+                            normalized["environment"],
+                            normalized["status"],
+                            normalized["mode"],
+                            normalized["identity"],
+                            normalized["default_route"],
+                            json.dumps(normalized["allowed_routes"]),
+                            json.dumps(normalized["notification_targets"]),
+                            json.dumps(normalized["metadata"]),
+                        ),
+                    )
+            return normalized
+        except Exception as e:
+            logger.warning(f"save_channel_binding DB error: {e}")
+    return _append_or_replace(_fallback_channel_bindings, normalized, "id")
+
+
+def get_channel_bindings():
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM channel_bindings ORDER BY type, id")
+                    rows = [_normalize_channel_binding(_serialize_record(r)) for r in cur.fetchall()]
+                    if rows:
+                        return rows
+        except Exception as e:
+            logger.warning(f"get_channel_bindings DB error: {e}")
+    return [_normalize_channel_binding(binding) for binding in _fallback_channel_bindings]
+
+
+def get_channel_binding(binding_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM channel_bindings WHERE id=%s", (binding_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_channel_binding(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_channel_binding DB error: {e}")
+    for binding in _fallback_channel_bindings:
+        if binding.get("id") == binding_id:
+            return _normalize_channel_binding(binding)
+    return None
+
+
+def save_channel_sender(sender_data):
+    normalized = _normalize_channel_sender(sender_data)
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO channel_senders (
+                               id, channel_binding_id, sender_external_id, display_name, customer_id,
+                               approval_status, last_message, last_seen_at, metadata
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET channel_binding_id=EXCLUDED.channel_binding_id,
+                               sender_external_id=EXCLUDED.sender_external_id,
+                               display_name=EXCLUDED.display_name,
+                               customer_id=EXCLUDED.customer_id,
+                               approval_status=EXCLUDED.approval_status,
+                               last_message=EXCLUDED.last_message,
+                               last_seen_at=EXCLUDED.last_seen_at,
+                               metadata=EXCLUDED.metadata,
+                               updated_at=NOW()""",
+                        (
+                            normalized["id"],
+                            normalized["channel_binding_id"],
+                            normalized["sender_external_id"],
+                            normalized["display_name"],
+                            normalized.get("customer_id"),
+                            normalized["approval_status"],
+                            normalized["last_message"],
+                            normalized.get("last_seen_at") or datetime.now(UTC),
+                            json.dumps(normalized["metadata"]),
+                        ),
+                    )
+            return normalized
+        except Exception as e:
+            logger.warning(f"save_channel_sender DB error: {e}")
+    return _append_or_replace(_fallback_channel_senders, normalized, "id")
+
+
+def get_channel_senders(channel_binding_id=None, approval_status=None):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    query = "SELECT * FROM channel_senders WHERE 1=1"
+                    params = []
+                    if channel_binding_id:
+                        query += " AND channel_binding_id=%s"
+                        params.append(channel_binding_id)
+                    if approval_status:
+                        query += " AND approval_status=%s"
+                        params.append(approval_status)
+                    query += " ORDER BY last_seen_at DESC"
+                    cur.execute(query, tuple(params))
+                    rows = [_normalize_channel_sender(_serialize_record(r)) for r in cur.fetchall()]
+                    if rows:
+                        return rows
+        except Exception as e:
+            logger.warning(f"get_channel_senders DB error: {e}")
+    records = [_normalize_channel_sender(sender) for sender in _fallback_channel_senders]
+    if channel_binding_id:
+        records = [sender for sender in records if sender.get("channel_binding_id") == channel_binding_id]
+    if approval_status:
+        records = [sender for sender in records if sender.get("approval_status") == approval_status]
+    return records
+
+
+def get_channel_sender_by_external_id(channel_binding_id, sender_external_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT * FROM channel_senders
+                           WHERE channel_binding_id=%s AND sender_external_id=%s
+                           LIMIT 1""",
+                        (channel_binding_id, sender_external_id),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_channel_sender(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_channel_sender_by_external_id DB error: {e}")
+    for sender in _fallback_channel_senders:
+        if sender.get("channel_binding_id") == channel_binding_id and sender.get("sender_external_id") == sender_external_id:
+            return _normalize_channel_sender(sender)
+    return None
+
+
+def save_channel_pairing(pairing_data):
+    normalized = _normalize_channel_pairing(pairing_data)
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO channel_pairings (
+                               id, channel_binding_id, route_id, pair_code, status, metadata, expires_at, used_at
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET channel_binding_id=EXCLUDED.channel_binding_id,
+                               route_id=EXCLUDED.route_id,
+                               pair_code=EXCLUDED.pair_code,
+                               status=EXCLUDED.status,
+                               metadata=EXCLUDED.metadata,
+                               expires_at=EXCLUDED.expires_at,
+                               used_at=EXCLUDED.used_at""",
+                        (
+                            normalized["id"],
+                            normalized["channel_binding_id"],
+                            normalized["route_id"],
+                            normalized["pair_code"],
+                            normalized["status"],
+                            json.dumps(normalized["metadata"]),
+                            normalized.get("expires_at"),
+                            normalized.get("used_at"),
+                        ),
+                    )
+            return normalized
+        except Exception as e:
+            logger.warning(f"save_channel_pairing DB error: {e}")
+    return _append_or_replace(_fallback_channel_pairings, normalized, "id")
+
+
+def get_channel_pairings(channel_binding_id=None, status=None):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    query = "SELECT * FROM channel_pairings WHERE 1=1"
+                    params = []
+                    if channel_binding_id:
+                        query += " AND channel_binding_id=%s"
+                        params.append(channel_binding_id)
+                    if status:
+                        query += " AND status=%s"
+                        params.append(status)
+                    query += " ORDER BY created_at DESC"
+                    cur.execute(query, tuple(params))
+                    rows = [_normalize_channel_pairing(_serialize_record(r)) for r in cur.fetchall()]
+                    if rows:
+                        return rows
+        except Exception as e:
+            logger.warning(f"get_channel_pairings DB error: {e}")
+    records = [_normalize_channel_pairing(pairing) for pairing in _fallback_channel_pairings]
+    if channel_binding_id:
+        records = [pairing for pairing in records if pairing.get("channel_binding_id") == channel_binding_id]
+    if status:
+        records = [pairing for pairing in records if pairing.get("status") == status]
+    return records
+
+
+def get_channel_pairing(pairing_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM channel_pairings WHERE id=%s", (pairing_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_channel_pairing(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_channel_pairing DB error: {e}")
+    for pairing in _fallback_channel_pairings:
+        if pairing.get("id") == pairing_id:
+            return _normalize_channel_pairing(pairing)
+    return None
+
+
+def get_channel_pairing_by_code(channel_binding_id, pair_code):
+    normalized_code = str(pair_code or "").strip().upper()
+    if not normalized_code:
+        return None
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT * FROM channel_pairings
+                           WHERE channel_binding_id=%s AND pair_code=%s
+                           ORDER BY created_at DESC
+                           LIMIT 1""",
+                        (channel_binding_id, normalized_code),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_channel_pairing(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_channel_pairing_by_code DB error: {e}")
+    for pairing in _fallback_channel_pairings:
+        if pairing.get("channel_binding_id") == channel_binding_id and str(pairing.get("pair_code") or "").upper() == normalized_code:
+            return _normalize_channel_pairing(pairing)
+    return None
+
+
+def get_channel_pairing_by_route(channel_binding_id, route_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """SELECT * FROM channel_pairings
+                           WHERE channel_binding_id=%s AND route_id=%s AND status='active'
+                           ORDER BY created_at DESC
+                           LIMIT 1""",
+                        (channel_binding_id, route_id),
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_channel_pairing(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_channel_pairing_by_route DB error: {e}")
+    for pairing in _fallback_channel_pairings:
+        if (
+            pairing.get("channel_binding_id") == channel_binding_id
+            and pairing.get("route_id") == route_id
+            and pairing.get("status") == "active"
+        ):
+            return _normalize_channel_pairing(pairing)
+    return None
+
+
+def save_demo_route(route_data):
+    normalized = _normalize_demo_route(route_data)
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO demo_routes (
+                               id, name, description, workflow_id, workflow_family, supported_channels,
+                               sample_trigger, systems, preferred_runtime, mode
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET name=EXCLUDED.name,
+                               description=EXCLUDED.description,
+                               workflow_id=EXCLUDED.workflow_id,
+                               workflow_family=EXCLUDED.workflow_family,
+                               supported_channels=EXCLUDED.supported_channels,
+                               sample_trigger=EXCLUDED.sample_trigger,
+                               systems=EXCLUDED.systems,
+                               preferred_runtime=EXCLUDED.preferred_runtime,
+                               mode=EXCLUDED.mode,
+                               updated_at=NOW()""",
+                        (
+                            normalized["id"],
+                            normalized["name"],
+                            normalized["description"],
+                            normalized["workflow_id"],
+                            normalized["workflow_family"],
+                            json.dumps(normalized["supported_channels"]),
+                            normalized["sample_trigger"],
+                            json.dumps(normalized["systems"]),
+                            normalized["preferred_runtime"],
+                            normalized["mode"],
+                        ),
+                    )
+            return normalized
+        except Exception as e:
+            logger.warning(f"save_demo_route DB error: {e}")
+    return _append_or_replace(_fallback_demo_routes, normalized, "id")
+
+
+def get_demo_routes():
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM demo_routes ORDER BY id")
+                    rows = [_normalize_demo_route(_serialize_record(r)) for r in cur.fetchall()]
+                    if rows:
+                        return rows
+        except Exception as e:
+            logger.warning(f"get_demo_routes DB error: {e}")
+    return [_normalize_demo_route(route) for route in _fallback_demo_routes]
+
+
+def get_demo_route(route_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM demo_routes WHERE id=%s", (route_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_demo_route(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_demo_route DB error: {e}")
+    for route in _fallback_demo_routes:
+        if route.get("id") == route_id:
+            return _normalize_demo_route(route)
+    return None
+
+
+def save_crm_customer(customer_data):
+    normalized = _normalize_crm_customer(customer_data)
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO crm_customers (
+                               id, tenant_id, name, email, phone, loyalty_tier, preferred_channel,
+                               salesforce_contact_id, shopify_customer_id, last_order_id, segment, metadata
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET tenant_id=EXCLUDED.tenant_id,
+                               name=EXCLUDED.name,
+                               email=EXCLUDED.email,
+                               phone=EXCLUDED.phone,
+                               loyalty_tier=EXCLUDED.loyalty_tier,
+                               preferred_channel=EXCLUDED.preferred_channel,
+                               salesforce_contact_id=EXCLUDED.salesforce_contact_id,
+                               shopify_customer_id=EXCLUDED.shopify_customer_id,
+                               last_order_id=EXCLUDED.last_order_id,
+                               segment=EXCLUDED.segment,
+                               metadata=EXCLUDED.metadata,
+                               updated_at=NOW()""",
+                        (
+                            normalized["id"],
+                            normalized["tenant_id"],
+                            normalized["name"],
+                            normalized["email"],
+                            normalized["phone"],
+                            normalized["loyalty_tier"],
+                            normalized["preferred_channel"],
+                            normalized["salesforce_contact_id"],
+                            normalized["shopify_customer_id"],
+                            normalized["last_order_id"],
+                            normalized["segment"],
+                            json.dumps(normalized["metadata"]),
+                        ),
+                    )
+            return normalized
+        except Exception as e:
+            logger.warning(f"save_crm_customer DB error: {e}")
+    return _append_or_replace(_fallback_crm_customers, normalized, "id")
+
+
+def get_crm_customers():
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM crm_customers ORDER BY name")
+                    rows = [_normalize_crm_customer(_serialize_record(r)) for r in cur.fetchall()]
+                    if rows:
+                        return rows
+        except Exception as e:
+            logger.warning(f"get_crm_customers DB error: {e}")
+    return [_normalize_crm_customer(customer) for customer in _fallback_crm_customers]
+
+
+def get_crm_customer_by_id(customer_id):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT * FROM crm_customers WHERE id=%s", (customer_id,))
+                    row = cur.fetchone()
+                    if row:
+                        return _normalize_crm_customer(_serialize_record(row))
+        except Exception as e:
+            logger.warning(f"get_crm_customer_by_id DB error: {e}")
+    for customer in _fallback_crm_customers:
+        if customer.get("id") == customer_id:
+            return _normalize_crm_customer(customer)
+    return None
+
+
+def find_crm_customer_by_phone(phone):
+    phone_key = _normalize_phone_lookup(phone)
+    if not phone_key:
+        return None
+    customers = get_crm_customers()
+    for customer in customers:
+        if _normalize_phone_lookup(customer.get("phone")) == phone_key:
+            return customer
+    return None
+
+
+def save_crm_case(case_data):
+    normalized = _normalize_crm_case(case_data)
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO crm_cases (
+                               id, customer_id, tenant_id, subject, status, priority, channel, summary, metadata
+                           ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON CONFLICT (id) DO UPDATE
+                           SET customer_id=EXCLUDED.customer_id,
+                               tenant_id=EXCLUDED.tenant_id,
+                               subject=EXCLUDED.subject,
+                               status=EXCLUDED.status,
+                               priority=EXCLUDED.priority,
+                               channel=EXCLUDED.channel,
+                               summary=EXCLUDED.summary,
+                               metadata=EXCLUDED.metadata,
+                               updated_at=NOW()""",
+                        (
+                            normalized["id"],
+                            normalized["customer_id"],
+                            normalized["tenant_id"],
+                            normalized["subject"],
+                            normalized["status"],
+                            normalized["priority"],
+                            normalized["channel"],
+                            normalized["summary"],
+                            json.dumps(normalized["metadata"]),
+                        ),
+                    )
+            return normalized
+        except Exception as e:
+            logger.warning(f"save_crm_case DB error: {e}")
+    return _append_or_replace(_fallback_crm_cases, normalized, "id")
+
+
+def get_crm_cases(customer_id=None):
+    if _use_db():
+        try:
+            with transaction() as conn:
+                with conn.cursor() as cur:
+                    if customer_id:
+                        cur.execute(
+                            "SELECT * FROM crm_cases WHERE customer_id=%s ORDER BY created_at DESC",
+                            (customer_id,),
+                        )
+                    else:
+                        cur.execute("SELECT * FROM crm_cases ORDER BY created_at DESC")
+                    rows = [_normalize_crm_case(_serialize_record(r)) for r in cur.fetchall()]
+                    if rows:
+                        return rows
+        except Exception as e:
+            logger.warning(f"get_crm_cases DB error: {e}")
+    records = [_normalize_crm_case(case) for case in _fallback_crm_cases]
+    if customer_id:
+        records = [case for case in records if case.get("customer_id") == customer_id]
+    return records
 
 
 _fallback_products = []

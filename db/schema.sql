@@ -284,25 +284,135 @@ CREATE TABLE IF NOT EXISTS agents (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     subsystem TEXT NOT NULL,
+    purpose TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'healthy',
     calls TEXT NOT NULL DEFAULT '0',
     uptime TEXT NOT NULL DEFAULT '100%',
     skills JSONB NOT NULL DEFAULT '[]',
     bound_skills JSONB NOT NULL DEFAULT '[]',
+    connector_bindings JSONB NOT NULL DEFAULT '[]',
+    used_by_workflow_ids JSONB NOT NULL DEFAULT '[]',
     runtime_provider TEXT NOT NULL DEFAULT 'local_fallback',
     model_name TEXT NOT NULL DEFAULT 'gemini-2.0-flash',
     agent_version TEXT NOT NULL DEFAULT 'v1',
     grade TEXT NOT NULL DEFAULT 'A+',
     latency TEXT NOT NULL DEFAULT '0ms',
+    last_test_at TIMESTAMP DEFAULT NULL,
+    last_test_status TEXT NOT NULL DEFAULT 'unknown',
+    code JSONB NOT NULL DEFAULT '{}',
+    scorecard JSONB NOT NULL DEFAULT '{}',
     history JSONB NOT NULL DEFAULT '[]',
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS bound_skills JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS purpose TEXT NOT NULL DEFAULT '';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS connector_bindings JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS used_by_workflow_ids JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS runtime_provider TEXT NOT NULL DEFAULT 'local_fallback';
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS model_name TEXT NOT NULL DEFAULT 'gemini-2.0-flash';
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS agent_version TEXT NOT NULL DEFAULT 'v1';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS last_test_at TIMESTAMP DEFAULT NULL;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS last_test_status TEXT NOT NULL DEFAULT 'unknown';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS code JSONB NOT NULL DEFAULT '{}';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS scorecard JSONB NOT NULL DEFAULT '{}';
+
+CREATE TABLE IF NOT EXISTS channel_bindings (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    tenant_id TEXT NOT NULL DEFAULT 'default',
+    environment TEXT NOT NULL DEFAULT 'dev',
+    status TEXT NOT NULL DEFAULT 'sandbox',
+    mode TEXT NOT NULL DEFAULT 'sandbox',
+    identity TEXT NOT NULL DEFAULT '',
+    default_route TEXT NOT NULL DEFAULT 'order_status',
+    allowed_routes JSONB NOT NULL DEFAULT '[]',
+    notification_targets JSONB NOT NULL DEFAULT '[]',
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS channel_senders (
+    id TEXT PRIMARY KEY,
+    channel_binding_id TEXT NOT NULL REFERENCES channel_bindings(id),
+    sender_external_id TEXT NOT NULL,
+    display_name TEXT NOT NULL DEFAULT '',
+    customer_id TEXT DEFAULT NULL,
+    approval_status TEXT NOT NULL DEFAULT 'pending',
+    last_message TEXT NOT NULL DEFAULT '',
+    last_seen_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(channel_binding_id, sender_external_id)
+);
+
+CREATE TABLE IF NOT EXISTS channel_pairings (
+    id TEXT PRIMARY KEY,
+    channel_binding_id TEXT NOT NULL REFERENCES channel_bindings(id),
+    route_id TEXT NOT NULL,
+    pair_code TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'active',
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP DEFAULT NULL,
+    used_at TIMESTAMP DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS demo_routes (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    workflow_id TEXT NOT NULL DEFAULT '',
+    workflow_family TEXT NOT NULL DEFAULT 'service',
+    supported_channels JSONB NOT NULL DEFAULT '[]',
+    sample_trigger TEXT NOT NULL DEFAULT '',
+    systems JSONB NOT NULL DEFAULT '[]',
+    preferred_runtime TEXT NOT NULL DEFAULT 'local_fallback',
+    mode TEXT NOT NULL DEFAULT 'sandbox',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS crm_customers (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL DEFAULT 'default',
+    name TEXT NOT NULL,
+    email TEXT NOT NULL DEFAULT '',
+    phone TEXT NOT NULL DEFAULT '',
+    loyalty_tier TEXT NOT NULL DEFAULT 'standard',
+    preferred_channel TEXT NOT NULL DEFAULT 'whatsapp',
+    salesforce_contact_id TEXT NOT NULL DEFAULT '',
+    shopify_customer_id TEXT NOT NULL DEFAULT '',
+    last_order_id TEXT NOT NULL DEFAULT '',
+    segment TEXT NOT NULL DEFAULT 'general',
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS crm_cases (
+    id TEXT PRIMARY KEY,
+    customer_id TEXT NOT NULL REFERENCES crm_customers(id),
+    tenant_id TEXT NOT NULL DEFAULT 'default',
+    subject TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new',
+    priority TEXT NOT NULL DEFAULT 'medium',
+    channel TEXT NOT NULL DEFAULT 'whatsapp',
+    summary TEXT NOT NULL DEFAULT '',
+    metadata JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_channel_bindings_tenant ON channel_bindings(tenant_id, environment);
+CREATE INDEX IF NOT EXISTS idx_channel_senders_lookup ON channel_senders(channel_binding_id, approval_status, last_seen_at);
+CREATE INDEX IF NOT EXISTS idx_channel_pairings_lookup ON channel_pairings(channel_binding_id, status, created_at);
+CREATE INDEX IF NOT EXISTS idx_demo_routes_workflow ON demo_routes(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_crm_customers_tenant ON crm_customers(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_crm_cases_customer ON crm_cases(customer_id, created_at);
 
 CREATE TABLE IF NOT EXISTS skills (
     id TEXT PRIMARY KEY,

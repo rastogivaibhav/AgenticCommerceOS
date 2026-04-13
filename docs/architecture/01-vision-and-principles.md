@@ -4,105 +4,94 @@
 
 ACOS stands for Agentic Commerce Operating System.
 
-The product is not just a chatbot for shoppers.
-It is the operating system behind AI-driven commerce: a platform that can orchestrate autonomous and semi-autonomous commerce workflows across discovery, purchase, fulfillment, service, loyalty, and growth while giving operators governance, visibility, and control.
+In the current repository, ACOS is best described as a governed commerce runtime and operations plane:
+- a shopper-facing journey runtime
+- a control plane for workflow and operational governance
+- a chat and channel intake layer
+- a shared persistence and connector substrate for retail service flows
 
-## What We Have Today
+It is no longer just a thin prototype, but it is also not yet a fully hardened enterprise platform across every domain and environment.
 
-The current repository already expresses the outline of that vision:
-- a shopper API that accepts natural language intent
-- a journey router that maps requests into commerce journeys
-- modular commerce capabilities such as catalog, pricing, promotions, loyalty, checkout, orders, and returns
-- persistence for runs and events
-- an ops API for run inspection, replay, billing summaries, and dashboard access
-- early controls for auth, validation, rate limiting, and metrics
+## What The Repository Contains Today
 
-This is enough to describe ACOS as a modular prototype for commerce orchestration.
-It is not yet a true enterprise operating system because data, workflows, UI, and governance are still thin or mocked.
+The codebase already implements:
+- `shopper-api` for authenticated journey execution
+- `ops-api` for workflow lifecycle, agents, skills, channels, runs, replay, analytics, audit, and incident controls
+- `chat-api` for Slack and message-driven workflow execution
+- a React control-plane UI served by `ops-api`
+- persisted workflow versions and promotions
+- a graph-based workflow executor for saved workflows
+- demo retail routing across WhatsApp, Telegram, Shopify, and Salesforce
+- tenant-aware context, governance, rate limiting, metrics, and audit foundations
 
-## What ACOS Aspires To Be
+## Product Direction
 
-ACOS should evolve into a control plane and runtime for AI-driven commerce with five product layers:
+ACOS is evolving toward a platform with five tightly connected layers:
 
 1. Commerce Runtime
-The execution engine that routes shopper and operator intents into trusted workflows.
+Journey execution for discovery, purchase, post-purchase, service, and engagement flows.
 
-2. Agent And Skill System
-The layer that defines reusable agent roles, tools, policies, prompts, connectors, and execution boundaries.
+2. Workflow Orchestration
+Versioned workflow definitions, graph execution, promotion, rollback, replay, and operational controls.
 
-3. Workflow Orchestration
-The layer that models journeys as governed workflows with state, approval points, compensation logic, and replay.
+3. Agent And Skill System
+Named agents, reusable skills, runtime-provider selection, connector bindings, and governed execution contracts.
 
 4. Control Plane
-The operational surface where teams configure tenants, monitor runs, manage versions, enforce policy, and evaluate performance.
+The operator surface for workflows, analytics, channels, tenants, incidents, approvals, and investigation.
 
-5. Enterprise Platform
-The security, tenancy, observability, release management, and compliance foundation needed for production adoption.
+5. Platform Foundation
+Tenancy, security, persistence, observability, release governance, and evidence-backed operations.
 
 ## Core Vision Statement
 
-ACOS will provide a governed operating environment where AI agents can execute customer-facing and operator-facing commerce work safely, observably, and measurably across multiple brands, tenants, and channels.
+ACOS provides a governed environment where AI-assisted commerce work can run across shopper, service, and operator workflows with explicit versions, observable execution, and human-operable controls.
 
 ## Business Outcomes
 
-ACOS should make the following outcomes possible:
-- faster and more consistent customer resolution across commerce journeys
-- lower cost to serve through automation and operator leverage
-- safer AI adoption through policy, replay, approvals, and auditability
-- faster experimentation in pricing, merchandising, service, and journey design
-- a reusable platform rather than disconnected one-off AI features
+ACOS is intended to support:
+- faster customer resolution across retail journeys
+- safer adoption of AI-assisted execution through audit, replay, and approval
+- reusable commerce workflow infrastructure rather than one-off agents
+- better operator confidence through explicit runtime state and investigation surfaces
+- channel-aware automation that still preserves escalation and rollback paths
 
 ## Architectural Principles
 
-### 1. Control Plane And Runtime Are Separate
-The system that configures and governs execution must be distinct from the system that executes live workloads.
+### 1. Runtime And Control Plane Stay Separate
+Live customer execution and operational governance are implemented as distinct services with different auth models and responsibilities.
 
-### 2. Every Workflow Is Explicit
-No critical business behavior should depend on hidden prompt behavior alone.
-Agents can reason, but the workflow, policy boundary, and observable steps must remain explicit.
+### 2. Workflow State Must Be Explicit
+ACOS can use LLMs for reasoning, but workflow identity, version, promotion state, step graph, and operator actions must stay visible and structured.
 
-### 3. Human Override Must Always Exist
-Enterprise-grade commerce requires pause, replay, rollback, approval, and escalation patterns.
+### 3. Deterministic Systems Stay In The Loop
+Commerce mutations and system-of-record lookups should go through typed connectors and business services, not free-form model output alone.
 
-### 4. Multi-Tenancy Is A First-Class Concern
-Tenant isolation must apply to data, config, policy, rate limits, evaluation, and UI.
+### 4. Human Override Is A Product Feature
+Pause, replay, approval, rollback, escalation, and notification are core behaviors, not afterthoughts.
 
-### 5. Version Everything That Matters
-Workflows, prompts, skills, policies, connectors, and UI contracts should all be versioned.
+### 5. Tenant And Environment Boundaries Matter
+Data, traffic limits, context access, and promotion state all need tenant- and environment-aware handling.
 
-### 6. Optimize For Vertical Slices
-Each increment should ship a complete thin slice that works in a container and can be demonstrated end to end.
+### 6. Evidence Beats Aspirational Docs
+Architecture docs should describe what the code actually does today, then call out the remaining gaps clearly.
 
-### 7. Trust Through Evidence
-Claims in the docs must be backed by running behavior, tests, metrics, or recorded verification.
+### 7. Vertical Slices Over Abstract Frameworks
+ACOS should continue shipping end-to-end slices such as workflow execution, channel intake, and connector-backed service support instead of building disconnected infrastructure first.
 
 ## Product Design Principles
 
-### Operator Confidence Over Hype
-The platform should feel dependable, explainable, and controllable.
+### Operator Confidence Over Magic
+The system should make it obvious which workflow ran, which version was active, which connectors were touched, and how a case was escalated.
 
-### Enterprise UX Over Demo UX
-The UI should privilege auditability, clarity, and actionability over visual theater.
+### Sandbox Before Live
+Connector actions should degrade honestly to preview or sandbox modes when live dependencies are not ready.
 
-### AI As A Governed Capability
-AI should be treated like a managed enterprise subsystem, not a magical black box.
-
-## North Star Capabilities
-
-An enterprise-ready ACOS should eventually support:
-- omnichannel journey orchestration
-- agent and skill registry
-- workflow designer and simulator
-- policy enforcement and approval gates
-- run timelines and replay
-- experiment management
-- tenant-aware knowledge and connector surfaces
-- usage, cost, and quality analytics
-- deployment promotion across environments
+### Retail-Specific, Not Generic Automation
+The system is oriented around commerce journeys, retail service flows, CRM context, and governed operational execution.
 
 ## Strategic Framing
 
-The simplest honest framing for ACOS is:
+The most accurate short description of ACOS today is:
 
-"Today: a modular prototype for AI-assisted commerce orchestration.
-Target: a governed control plane and runtime for enterprise AI-driven commerce."
+"A commerce-focused AI runtime and control plane with persisted workflows, graph execution, channel demos, connector probes, and operator governance surfaces."

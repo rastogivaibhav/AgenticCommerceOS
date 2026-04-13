@@ -3,16 +3,18 @@
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from io import BytesIO
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from time import perf_counter
 from typing import Any
+from urllib.parse import quote
 from uuid import uuid4
 
 import requests
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from slowapi.errors import RateLimitExceeded
@@ -23,6 +25,19 @@ from acosplatform.config.startup_validation import validate_auth_configuration
 from acosplatform.billing.engine import get_cost_summary, get_usage
 from acosplatform.db.connection import ensure_schema, check_connection
 from acosplatform.db.repository import (
+    find_crm_customer_by_phone,
+    get_channel_binding,
+    get_channel_bindings,
+    get_channel_pairing,
+    get_channel_pairing_by_route,
+    get_channel_pairings,
+    get_channel_sender_by_external_id,
+    get_channel_senders,
+    get_crm_cases,
+    get_crm_customer_by_id,
+    get_crm_customers,
+    get_demo_route,
+    get_demo_routes,
     get_events,
     get_orders_for_customer,
     get_product_by_id,
@@ -34,9 +49,16 @@ from acosplatform.db.repository import (
     get_agent_by_id,
     get_skills,
     get_skill_by_id,
+    save_channel_binding,
+    save_channel_pairing,
+    save_channel_sender,
+    save_crm_case,
+    save_crm_customer,
+    save_demo_route,
     save_agent,
     save_skill,
     save_audit_event,
+    save_run,
 )
 from acosplatform.journey.engine import run_journey
 from acosplatform.evaluation.scorer import get_experiment_results
@@ -49,6 +71,7 @@ from acosplatform.models.workflows import (
     WorkflowVersionCreateRequest,
 )
 from acosplatform.observability.metrics import metrics_endpoint, record_api_error
+from acosplatform.retail_ops.service import dispatch_demo_route, ingest_channel_message
 from acosplatform.replay.replay_engine import replay
 from integrations.adk.provider import (
     DEFAULT_MODEL,
@@ -56,8 +79,12 @@ from integrations.adk.provider import (
     get_runtime_capabilities,
     run_adk,
 )
-from integrations.shopify.client import probe_shopify_admin
+from integrations.salesforce.client import execute_salesforce_action, probe_salesforce
+from integrations.shopify.client import execute_shopify_action, probe_shopify_admin
+from integrations.telegram.client import probe_telegram_bot, send_telegram_message
+from integrations.whatsapp.client import execute_whatsapp_action, probe_whatsapp_cloud, verify_whatsapp_webhook
 from acosplatform.workflows.service import (
+    DEMO_WORKFLOW_ID,
     approve_workflow_version,
     archive_workflow,
     create_workflow_draft,
@@ -68,6 +95,7 @@ from acosplatform.workflows.service import (
     promote_workflow_version,
     rollback_workflow_version,
 )
+from acosplatform.workflows.executor import execute_saved_workflow
 from apps.ops_api.routers import experiments, analytics, promotions, runs, approvals, incidents
 
 logging.basicConfig(level=logging.INFO)
@@ -99,7 +127,6 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_error_handler)
-app.mount("/ui", StaticFiles(directory=UI_DIR, html=True, check_dir=False), name="ui")
 
 _ALLOWED_ORIGINS = [
     origin.strip()
@@ -145,6 +172,7 @@ def startup():
     validate_auth_configuration(service="ops-api", environment=OPS_ENVIRONMENT)
     ensure_schema()
     ensure_default_workflow_registry(environment=OPS_ENVIRONMENT)
+    _seed_demo_routes()
     logger.info("Ops API ready")
 
 
@@ -186,12 +214,458 @@ class SandboxScenarioRequest(BaseModel):
     write_evidence: bool = True
 
 
+class WorkflowTestRunRequest(BaseModel):
+    tenant_id: str = "default"
+    environment: str = OPS_ENVIRONMENT
+    message: str = "Where is my order ORD-1001?"
+    input: dict[str, Any] = Field(default_factory=dict)
+
+
+class WorkflowExecuteRequest(BaseModel):
+    tenant_id: str = "default"
+    customer_id: str = "cust_1001"
+    environment: str = OPS_ENVIRONMENT
+    message: str = "Where is my order ORD-1001?"
+    order_id: str | None = None
+
+
+class ChannelLinkRequest(BaseModel):
+    id: str | None = None
+    type: str
+    tenant_id: str = "default"
+    environment: str = OPS_ENVIRONMENT
+    identity: str = ""
+    default_route: str = "order_status"
+    allowed_routes: list[str] = Field(default_factory=lambda: ["order_status", "return_refund", "loyalty_rewards", "vip_escalation"])
+    notification_targets: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ChannelTestRequest(BaseModel):
+    text: str = "ACOS channel test"
+    recipient: str = ""
+    binding_id: str | None = None
+
+
+class ChannelPairingRequest(BaseModel):
+    route_id: str
+    expires_in_hours: int | None = 72
+
+
+class SenderApprovalRequest(BaseModel):
+    customer_id: str | None = None
+    display_name: str | None = None
+
+
+class DemoRouteDispatchRequest(BaseModel):
+    message: str = "Where is my order ORD-1001?"
+    channel_binding_id: str = "whatsapp-support"
+    sender_external_id: str = "whatsapp:+447700900001"
+    display_name: str = "Demo Customer"
+    tenant_id: str = "default"
+    environment: str = OPS_ENVIRONMENT
+
+
+class CRMCaseCreateRequest(BaseModel):
+    customer_id: str
+    subject: str
+    summary: str = ""
+    status: str = "open"
+    priority: str = "medium"
+    channel: str = "whatsapp"
+
+
 def _utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _runtime_capabilities() -> dict[str, Any]:
     return get_runtime_capabilities()
+
+
+def _platform_mode() -> str:
+    try:
+        return "live" if check_connection() else "demo"
+    except Exception:
+        return "demo"
+
+
+def _roles_from_claims(claims: dict[str, Any]) -> list[str]:
+    roles: set[str] = set()
+    role = claims.get("role")
+    if isinstance(role, str) and role.strip():
+        roles.add(role.strip().lower())
+    claim_roles = claims.get("roles")
+    if isinstance(claim_roles, str):
+        roles.update({item.strip().lower() for item in claim_roles.split(",") if item.strip()})
+    elif isinstance(claim_roles, list):
+        roles.update({str(item).strip().lower() for item in claim_roles if str(item).strip()})
+    realm_access = claims.get("realm_access")
+    if isinstance(realm_access, dict):
+        realm_roles = realm_access.get("roles")
+        if isinstance(realm_roles, list):
+            roles.update({str(item).strip().lower() for item in realm_roles if str(item).strip()})
+    return sorted(roles)
+
+
+def _attach_provenance(records: list[dict[str, Any]], mode: str) -> list[dict[str, Any]]:
+    return [{**record, "provenance_mode": mode} for record in records]
+
+
+def _connector_bindings(environment: str = OPS_ENVIRONMENT) -> list[dict[str, Any]]:
+    stored_channels = {
+        binding.get("id"): binding
+        for binding in get_channel_bindings()
+        if binding.get("environment") in {environment, OPS_ENVIRONMENT}
+    }
+
+    shopify_probe = probe_shopify_admin({"probe": "shop"}, timeout_seconds=1.5, retries=0)
+    shopify_status = "healthy" if shopify_probe.get("status") == "ok" else "sandbox"
+    shopify_mode = "live" if shopify_probe.get("status") == "ok" else "sandbox"
+    salesforce_probe = probe_salesforce(timeout_seconds=1.5)
+    salesforce_status = "healthy" if salesforce_probe.get("status") == "ok" else "sandbox"
+    salesforce_mode = "live" if salesforce_probe.get("status") == "ok" else "sandbox"
+    whatsapp_probe = probe_whatsapp_cloud(
+        timeout_seconds=1.5,
+        config_override=(stored_channels.get("whatsapp-support") or {}).get("metadata"),
+    )
+    whatsapp_status = "healthy" if whatsapp_probe.get("status") == "ok" else "sandbox"
+    whatsapp_mode = "live" if whatsapp_probe.get("status") == "ok" else "sandbox"
+    telegram_probe = probe_telegram_bot(
+        timeout_seconds=1.5,
+        config_override=(stored_channels.get("telegram-ops") or {}).get("metadata"),
+    )
+    telegram_status = "healthy" if telegram_probe.get("status") == "ok" else "sandbox"
+    telegram_mode = "live" if telegram_probe.get("status") == "ok" else "sandbox"
+    shopify_details = {
+        "id": "shopify-primary",
+        "connector_type": "shopify",
+        "display_name": "Shopify Primary Store",
+        "environment": environment,
+        "status": shopify_status,
+        "mode": shopify_mode,
+        "supported_actions": [
+            "get_order",
+            "get_customer",
+            "get_product",
+            "create_return_intent",
+        ],
+    }
+    if shopify_probe.get("store_domain"):
+        shopify_details["store_domain"] = shopify_probe["store_domain"]
+    if shopify_probe.get("api_version"):
+        shopify_details["api_version"] = shopify_probe["api_version"]
+
+    return [
+        shopify_details,
+        {
+            "id": "salesforce-support",
+            "connector_type": "salesforce",
+            "display_name": "Salesforce Support Cloud",
+            "environment": environment,
+            "status": salesforce_status,
+            "mode": salesforce_mode,
+            "supported_actions": ["get_contact", "get_case", "create_case", "update_case"],
+            "instance_url": salesforce_probe.get("instance_url"),
+            "api_version": salesforce_probe.get("api_version"),
+        },
+        {
+            "id": "whatsapp-support",
+            "connector_type": "whatsapp",
+            "display_name": "WhatsApp Support Inbox",
+            "environment": environment,
+            "status": whatsapp_status,
+            "mode": whatsapp_mode,
+            "supported_actions": [
+                "inbound_message_trigger",
+                "send_message",
+                "send_template_message",
+                "handoff_tag",
+            ],
+            "phone_number_id": whatsapp_probe.get("phone_number_id"),
+            "display_phone_number": whatsapp_probe.get("display_phone_number"),
+            "verified_name": whatsapp_probe.get("verified_name"),
+        },
+        {
+            "id": "telegram-ops",
+            "connector_type": "telegram",
+            "display_name": "Telegram Ops Bot",
+            "environment": environment,
+            "status": telegram_status,
+            "mode": telegram_mode,
+            "supported_actions": ["send_message", "webhook_update"],
+            "bot_username": telegram_probe.get("username"),
+            "default_chat_id": telegram_probe.get("default_chat_id"),
+        },
+        {
+            "id": "commerce-ops",
+            "connector_type": "commerce",
+            "display_name": "Commerce Ops Adapter",
+            "environment": environment,
+            "status": "sandbox",
+            "mode": "sandbox",
+            "supported_actions": ["lookup_policy", "manual_review", "create_note"],
+        },
+    ]
+
+
+def _whatsapp_binding_overrides() -> list[dict[str, Any]]:
+    overrides = []
+    for binding in get_channel_bindings():
+        if binding.get("type") != "whatsapp":
+            continue
+        metadata = binding.get("metadata") or {}
+        if metadata.get("verify_token"):
+            overrides.append(metadata)
+    return overrides
+
+
+def _runtime_health() -> dict[str, Any]:
+    capabilities = _runtime_capabilities()
+    return {
+        "providers": capabilities,
+        "lmstudio": {
+            "enabled": capabilities.get("lmstudio_enabled", False),
+            "base_url": capabilities.get("lmstudio_base_url"),
+            "model": capabilities.get("lmstudio_model"),
+        },
+    }
+
+
+def _seed_demo_routes() -> None:
+    canonical_routes = [
+        {
+            "id": "order_status",
+            "name": "Order Status",
+            "description": "Track the latest order, explain shipment state, and notify ops.",
+            "workflow_id": DEMO_WORKFLOW_ID,
+            "workflow_family": "service",
+            "supported_channels": ["whatsapp", "telegram"],
+            "sample_trigger": "Where is my order ORD-1001?",
+            "systems": ["crm", "shopify", "salesforce", "whatsapp", "telegram"],
+            "preferred_runtime": "lmstudio_local",
+            "mode": "sandbox",
+        },
+        {
+            "id": "return_refund",
+            "name": "Return / Refund",
+            "description": "Prepare a return intent, summarize policy, and escalate when needed.",
+            "workflow_id": "wf-service",
+            "workflow_family": "service",
+            "supported_channels": ["whatsapp", "telegram"],
+            "sample_trigger": "I want to return my last order.",
+            "systems": ["crm", "shopify", "salesforce", "telegram"],
+            "preferred_runtime": "local_fallback",
+            "mode": "sandbox",
+        },
+        {
+            "id": "loyalty_rewards",
+            "name": "Loyalty Rewards",
+            "description": "Retrieve loyalty tier and available benefits before replying.",
+            "workflow_id": "wf-engagement",
+            "workflow_family": "engagement",
+            "supported_channels": ["whatsapp", "telegram"],
+            "sample_trigger": "Do I have any loyalty rewards?",
+            "systems": ["crm", "salesforce", "telegram"],
+            "preferred_runtime": "local_fallback",
+            "mode": "sandbox",
+        },
+        {
+            "id": "vip_escalation",
+            "name": "VIP Escalation",
+            "description": "Escalate priority cases for high-value customers and notify ops.",
+            "workflow_id": DEMO_WORKFLOW_ID,
+            "workflow_family": "service",
+            "supported_channels": ["whatsapp", "telegram"],
+            "sample_trigger": "This is my third failed delivery, escalate now.",
+            "systems": ["crm", "salesforce", "whatsapp", "telegram"],
+            "preferred_runtime": "lmstudio_local",
+            "mode": "sandbox",
+        },
+    ]
+    for route in canonical_routes:
+        save_demo_route(route)
+
+
+def _sanitize_phone_digits(value: str) -> str:
+    return "".join(char for char in str(value or "") if char.isdigit())
+
+
+def _build_whatsapp_pairing_link(binding: dict[str, Any], pair_code: str) -> str:
+    metadata = binding.get("metadata") or {}
+    chat_number = (
+        metadata.get("start_chat_number")
+        or metadata.get("display_phone_number")
+        or metadata.get("default_recipient")
+        or ""
+    )
+    digits = _sanitize_phone_digits(chat_number)
+    if not digits:
+        return ""
+    message = f"PAIR {pair_code}"
+    return f"https://wa.me/{digits}?text={quote(message)}"
+
+
+def _build_telegram_pairing_link(binding: dict[str, Any], pair_code: str) -> str:
+    metadata = binding.get("metadata") or {}
+    username = str(metadata.get("bot_username") or "").strip().lstrip("@")
+    if not username:
+        return ""
+    return f"https://t.me/{username}?start=pair_{pair_code}"
+
+
+def _build_pairing_start_link(binding: dict[str, Any], pair_code: str) -> str:
+    channel_type = (binding.get("type") or "").strip().lower()
+    if channel_type == "telegram":
+        return _build_telegram_pairing_link(binding, pair_code)
+    if channel_type == "whatsapp":
+        return _build_whatsapp_pairing_link(binding, pair_code)
+    return ""
+
+
+def _build_pairing_payload(binding: dict[str, Any], route: dict[str, Any], pairing: dict[str, Any], request: Request) -> dict[str, Any]:
+    base_url = str(request.base_url).rstrip("/")
+    start_link = _build_pairing_start_link(binding, pairing.get("pair_code", ""))
+    qr_url = f"{base_url}/api/v1/channels/pairings/{pairing.get('id')}/qr.svg"
+    return {
+        **pairing,
+        "channel_type": binding.get("type"),
+        "binding_identity": binding.get("identity") or binding.get("id"),
+        "route_name": route.get("name") or route.get("id"),
+        "sample_trigger": (pairing.get("metadata") or {}).get("sample_trigger") or route.get("sample_trigger") or "",
+        "start_link": start_link,
+        "manual_pair_text": f"PAIR {pairing.get('pair_code')}",
+        "qr_url": qr_url,
+        "pairing_mode": "scan_to_start",
+        "start_ready": bool(start_link),
+    }
+
+
+def _ensure_channel_pairing(binding: dict[str, Any], route: dict[str, Any], request: Request, expires_in_hours: int = 72) -> dict[str, Any]:
+    existing = get_channel_pairing_by_route(binding.get("id"), route.get("id"))
+    if existing:
+        return _build_pairing_payload(binding, route, existing, request)
+
+    pair_code = uuid4().hex[:8].upper()
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=max(int(expires_in_hours or 72), 1))
+    saved = save_channel_pairing(
+        {
+            "id": f"pair-{uuid4().hex[:10]}",
+            "channel_binding_id": binding.get("id"),
+            "route_id": route.get("id"),
+            "pair_code": pair_code,
+            "status": "active",
+            "metadata": {
+                "channel_type": binding.get("type"),
+                "sample_trigger": route.get("sample_trigger") or "",
+            },
+            "expires_at": expires_at,
+        }
+    )
+    return _build_pairing_payload(binding, route, saved, request)
+
+
+def _extract_order_reference(message: str, payload: dict[str, Any]) -> str:
+    order_id = str(payload.get("order_id") or "").strip()
+    if order_id:
+        return order_id
+    upper_message = message.upper()
+    for token in upper_message.replace("?", " ").replace(",", " ").split():
+        if token.startswith("ORD-"):
+            return token
+    return ""
+
+
+def _agent_tool_trace(agent: dict[str, Any], message: str, customer_id: str, tenant_id: str) -> list[dict[str, Any]]:
+    order_id = _extract_order_reference(message, {"order_id": None}) or (get_crm_customer_by_id(customer_id) or {}).get("last_order_id", "")
+    trace: list[dict[str, Any]] = []
+    bindings = list(agent.get("connector_bindings") or [])
+    if "shopify-primary" in bindings:
+        shopify_run = execute_shopify_action("get_order", {"order_id": order_id})
+        trace.append(
+            {
+                "system": "shopify",
+                "tool": "get_order",
+                "mode": shopify_run.get("mode", "sandbox"),
+                "status": shopify_run.get("status", "ok"),
+                "note": shopify_run.get("note"),
+                "result": shopify_run.get("result"),
+            }
+        )
+    if "salesforce-support" in bindings:
+        customer = get_crm_customer_by_id(customer_id)
+        salesforce_run = execute_salesforce_action(
+            "get_contact",
+            {"contact_id": (customer or {}).get("salesforce_contact_id")},
+        )
+        trace.append(
+            {
+                "system": "salesforce",
+                "tool": "get_contact",
+                "mode": salesforce_run.get("mode", "sandbox"),
+                "status": salesforce_run.get("status", "ok"),
+                "note": salesforce_run.get("note"),
+                "result": salesforce_run.get("result"),
+            }
+        )
+    if "whatsapp-support" in bindings:
+        whatsapp_run = execute_whatsapp_action(
+            "send_message",
+            {"to": "+440000000000", "message": f"Agent test for {tenant_id}: {message}"},
+            allow_live_send=False,
+            config_override=(get_channel_binding("whatsapp-support") or {}).get("metadata"),
+        )
+        trace.append(
+            {
+                "system": "whatsapp",
+                "tool": "send_message",
+                "mode": whatsapp_run.get("mode", "sandbox"),
+                "status": whatsapp_run.get("status", "ok"),
+                "note": whatsapp_run.get("note"),
+                "result": whatsapp_run.get("result"),
+            }
+        )
+    if "telegram-ops" in bindings:
+        telegram_run = send_telegram_message(
+            f"Agent test for {tenant_id}: {message}",
+            chat_id=None,
+            config_override=(get_channel_binding("telegram-ops") or {}).get("metadata"),
+        )
+        trace.append(
+            {
+                "system": "telegram",
+                "tool": "send_message",
+                "mode": telegram_run.get("mode", "sandbox"),
+                "status": telegram_run.get("status", "ok"),
+                "note": telegram_run.get("note"),
+                "result": telegram_run.get("result"),
+            }
+        )
+    trace.append(
+        {
+            "system": "crm",
+            "tool": "get_customer_profile",
+            "mode": "mock",
+            "status": "ok" if get_crm_customer_by_id(customer_id) else "not_found",
+            "result": get_crm_customer_by_id(customer_id) or {},
+        }
+    )
+    return trace
+
+
+def _build_agent_scorecard(agent: dict[str, Any]) -> dict[str, Any]:
+    scorecard = dict(agent.get("scorecard") or {})
+    scorecard.setdefault("connector_health_status", "unknown")
+    scorecard.setdefault("contract_validation_status", "unknown")
+    scorecard.setdefault("recent_run_failure_rate", None)
+    scorecard.setdefault("last_successful_run_at", None)
+    scorecard["last_test_at"] = agent.get("last_test_at")
+    scorecard["last_test_status"] = agent.get("last_test_status") or "unknown"
+    scorecard["evidence_links"] = [
+        {"type": "workflow", "id": workflow_id}
+        for workflow_id in list(agent.get("used_by_workflow_ids") or [])
+    ]
+    return scorecard
 
 
 def _validate_contract_payload(
@@ -491,6 +965,8 @@ def _mock_routes_allowed() -> bool:
 _PROVIDER_ALIAS = {
     "google adk": "google_genai",
     "google_genai": "google_genai",
+    "lmstudio": "lmstudio_local",
+    "lmstudio_local": "lmstudio_local",
     "local fallback": "local_fallback",
     "local_fallback": "local_fallback",
 }
@@ -518,7 +994,53 @@ def _normalize_agent_payload(agent: dict[str, Any]) -> dict[str, Any]:
     payload["runtime_provider"] = _to_provider_key(payload.get("runtime_provider") or payload.get("tech_stack"))
     payload["model_name"] = payload.get("model_name") or DEFAULT_MODEL
     payload["agent_version"] = payload.get("agent_version") or "v1"
+    payload["purpose"] = (payload.get("purpose") or "").strip() or (
+        f"Operate {payload.get('subsystem', 'General').lower()} workflows for {payload.get('name', 'agent')}."
+    )
+    payload["connector_bindings"] = list(payload.get("connector_bindings") or [])
+    payload["used_by_workflow_ids"] = list(payload.get("used_by_workflow_ids") or [])
+    code_payload = payload.get("code") if isinstance(payload.get("code"), dict) else {}
+    payload["code"] = {
+        "system_prompt": code_payload.get("system_prompt") or payload["purpose"],
+        "tool_bindings": list(code_payload.get("tool_bindings") or payload["bound_skills"]),
+        "runtime": {
+            "provider": payload["runtime_provider"],
+            "model": payload["model_name"],
+        },
+    }
+    payload["scorecard"] = payload.get("scorecard") or {
+        "connector_health_status": "healthy" if payload["connector_bindings"] else "unknown",
+        "contract_validation_status": "pass" if payload["bound_skills"] or payload["code"]["system_prompt"] else "unknown",
+        "recent_run_failure_rate": None,
+        "last_successful_run_at": None,
+    }
+    payload["last_test_status"] = payload.get("last_test_status") or "unknown"
     return payload
+
+
+def _mint_dev_role_token(role: str, subject: str = "dev-user") -> str:
+    normalized_role = (role or "ops").strip().lower()
+    if normalized_role not in {"admin", "ops", "analyst"}:
+        normalized_role = "ops"
+
+    jwt_secret = os.environ.get("OPS_JWT_SECRET", "").strip()
+    if not jwt_secret:
+        if _flag_enabled("ALLOW_INSECURE_DEV_AUTH", "0"):
+            return "dev-token"
+        raise RuntimeError("OPS_JWT_SECRET is not configured for local role bootstrap")
+
+    import jwt
+
+    issued_at = datetime.now(timezone.utc)
+    payload = {
+        "sub": subject,
+        "role": normalized_role,
+        "roles": [normalized_role],
+        "iss": "acos-local-dev",
+        "iat": int(issued_at.timestamp()),
+        "exp": int((issued_at + timedelta(hours=24)).timestamp()),
+    }
+    return jwt.encode(payload, jwt_secret, algorithm="HS256")
 
 
 def _normalize_skill_payload(skill: dict[str, Any]) -> dict[str, Any]:
@@ -609,15 +1131,410 @@ def billing(tenant_id: str = None, _claims: dict = Depends(READ_ACCESS)):
     return {"summary": get_cost_summary(), "by_tenant": get_usage()}
 
 
+@app.get("/api/v1/ops/context")
+def ops_context(claims: dict = Depends(READ_ACCESS)):
+    roles = _roles_from_claims(claims)
+    primary_role = roles[0] if roles else "viewer"
+    return {
+        "user_id": claims.get("sub") or claims.get("email") or "ops-user",
+        "display_name": claims.get("name") or claims.get("email") or claims.get("sub") or "ACOS Operator",
+        "roles": roles,
+        "primary_role": primary_role,
+        "tenant_id": "default",
+        "available_tenants": ["default"],
+        "environment": OPS_ENVIRONMENT,
+        "mode": _platform_mode(),
+    }
+
+
+@app.get("/api/v1/connectors/bindings")
+def list_connector_bindings(
+    environment: str = OPS_ENVIRONMENT,
+    _claims: dict = Depends(READ_ACCESS),
+):
+    bindings = _connector_bindings(environment=environment)
+    page_mode = "live" if any(binding.get("mode") == "live" for binding in bindings) else "sandbox"
+    return {"mode": page_mode, "bindings": bindings}
+
+
+@app.get("/api/v1/runtime/providers")
+def runtime_provider_health(_claims: dict = Depends(READ_ACCESS)):
+    return _runtime_health()
+
+
+@app.get("/api/v1/runtime/providers/lmstudio/health")
+def lmstudio_health(_claims: dict = Depends(READ_ACCESS)):
+    runtime = _runtime_health()
+    return runtime["lmstudio"]
+
+
+@app.get("/api/v1/channels")
+def list_channels(_claims: dict = Depends(READ_ACCESS)):
+    stored = {binding.get("id"): binding for binding in get_channel_bindings()}
+    connector_status = {binding.get("id"): binding for binding in _connector_bindings()}
+    channels = []
+    for binding in stored.values():
+        connector = connector_status.get(binding.get("id"), {})
+        channels.append(
+            {
+                **binding,
+                "status": connector.get("status", binding.get("status", "sandbox")),
+                "mode": connector.get("mode", binding.get("mode", "sandbox")),
+                "health": connector,
+            }
+        )
+    page_mode = "live" if any(channel.get("mode") == "live" for channel in channels) else "sandbox"
+    return {"mode": page_mode, "channels": channels}
+
+
+@app.get("/api/v1/channels/{binding_id}/pairings")
+def list_channel_pairings(binding_id: str, request: Request, _claims: dict = Depends(READ_ACCESS)):
+    binding = get_channel_binding(binding_id)
+    if not binding:
+        return JSONResponse(status_code=404, content={"error": "Channel not found"})
+    pairings = []
+    for route_id in binding.get("allowed_routes") or [binding.get("default_route")]:
+        route = get_demo_route(route_id)
+        if not route:
+            continue
+        pairings.append(_ensure_channel_pairing(binding, route, request))
+    return {"status": "success", "binding_id": binding_id, "pairings": pairings}
+
+
+@app.post("/api/v1/channels/{binding_id}/pairings")
+def create_channel_pairing(
+    binding_id: str,
+    payload: ChannelPairingRequest,
+    request: Request,
+    _claims: dict = Depends(OPERATE_ACCESS),
+):
+    binding = get_channel_binding(binding_id)
+    if not binding:
+        return JSONResponse(status_code=404, content={"error": "Channel not found"})
+    route = get_demo_route(payload.route_id)
+    if not route:
+        return JSONResponse(status_code=404, content={"error": "Demo route not found"})
+    pairing = _ensure_channel_pairing(binding, route, request, expires_in_hours=payload.expires_in_hours or 72)
+    return {"status": "success", "pairing": pairing}
+
+
+@app.post("/api/v1/channels/telegram/link")
+def link_telegram_channel(payload: ChannelLinkRequest, _claims: dict = Depends(OPERATE_ACCESS)):
+    metadata = dict(payload.metadata or {})
+    probe = probe_telegram_bot(config_override=metadata)
+    saved = save_channel_binding(
+        {
+            "id": payload.id or "telegram-ops",
+            "type": "telegram",
+            "tenant_id": payload.tenant_id,
+            "environment": payload.environment,
+            "identity": payload.identity or probe.get("display_name") or "Telegram Ops Bot",
+            "default_route": payload.default_route,
+            "allowed_routes": payload.allowed_routes,
+            "notification_targets": payload.notification_targets,
+            "status": "healthy" if probe.get("status") == "ok" else "sandbox",
+            "mode": "live" if probe.get("status") == "ok" else "sandbox",
+            "metadata": {
+                **metadata,
+                "bot_username": probe.get("username") or metadata.get("bot_username") or "",
+                "default_chat_id": metadata.get("default_chat_id") or "",
+            },
+        }
+    )
+    return {"status": "success", "channel": saved, "probe": probe}
+
+
+@app.get("/api/v1/channels/pairings/{pairing_id}/qr.svg")
+def channel_pairing_qr(pairing_id: str, request: Request):
+    pairing = get_channel_pairing(pairing_id)
+    if not pairing:
+        return JSONResponse(status_code=404, content={"error": "Pairing not found"})
+    binding = get_channel_binding(pairing.get("channel_binding_id"))
+    route = get_demo_route(pairing.get("route_id"))
+    if not binding or not route:
+        return JSONResponse(status_code=404, content={"error": "Pairing target not found"})
+
+    start_link = _build_pairing_start_link(binding, pairing.get("pair_code", ""))
+    if not start_link:
+        fallback_text = f"PAIR {pairing.get('pair_code')}"
+        svg = (
+            "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'>"
+            "<rect width='320' height='320' fill='#F6F7FB'/>"
+            "<rect x='12' y='12' width='296' height='296' rx='16' fill='#ffffff' stroke='#d0d7e2'/>"
+            "<text x='160' y='120' text-anchor='middle' font-family='Arial, sans-serif' font-size='18' fill='#1f2937'>"
+            "Scan-to-start unavailable"
+            "</text>"
+            f"<text x='160' y='170' text-anchor='middle' font-family='Courier New, monospace' font-size='20' fill='#111827'>{fallback_text}</text>"
+            "<text x='160' y='208' text-anchor='middle' font-family='Arial, sans-serif' font-size='12' fill='#6b7280'>"
+            "Add bot username or start chat number to enable QR deep-links."
+            "</text>"
+            "</svg>"
+        )
+        return Response(content=svg, media_type="image/svg+xml")
+
+    import qrcode
+    import qrcode.image.svg
+
+    image = qrcode.make(start_link, image_factory=qrcode.image.svg.SvgImage, box_size=10, border=3)
+    buffer = BytesIO()
+    image.save(buffer)
+    return Response(content=buffer.getvalue(), media_type="image/svg+xml")
+
+
+@app.post("/api/v1/channels/whatsapp/link")
+def link_whatsapp_channel(payload: ChannelLinkRequest, _claims: dict = Depends(OPERATE_ACCESS)):
+    metadata = dict(payload.metadata or {})
+    probe = probe_whatsapp_cloud(config_override=metadata)
+    saved = save_channel_binding(
+        {
+            "id": payload.id or "whatsapp-support",
+            "type": "whatsapp",
+            "tenant_id": payload.tenant_id,
+            "environment": payload.environment,
+            "identity": payload.identity or probe.get("verified_name") or "WhatsApp Support",
+            "default_route": payload.default_route,
+            "allowed_routes": payload.allowed_routes,
+            "notification_targets": payload.notification_targets,
+            "status": "healthy" if probe.get("status") == "ok" else "sandbox",
+            "mode": "live" if probe.get("status") == "ok" else "sandbox",
+            "metadata": {
+                **metadata,
+                "phone_number_id": probe.get("phone_number_id") or metadata.get("phone_number_id") or "",
+                "verified_name": probe.get("verified_name") or metadata.get("verified_name") or "",
+                "display_phone_number": probe.get("display_phone_number") or metadata.get("display_phone_number") or "",
+            },
+        }
+    )
+    return {"status": "success", "channel": saved, "probe": probe}
+
+
+@app.post("/api/v1/channels/{binding_id}/test")
+def send_channel_test(binding_id: str, payload: ChannelTestRequest, _claims: dict = Depends(OPERATE_ACCESS)):
+    binding = get_channel_binding(binding_id)
+    if not binding:
+        return JSONResponse(status_code=404, content={"error": "Channel not found"})
+    metadata = binding.get("metadata") or {}
+    if binding.get("type") == "telegram":
+        result = send_telegram_message(
+            payload.text,
+            chat_id=payload.recipient or metadata.get("default_chat_id"),
+            config_override=metadata,
+        )
+    elif binding.get("type") == "whatsapp":
+        result = execute_whatsapp_action(
+            "send_message",
+            {"to": payload.recipient, "message": payload.text},
+            allow_live_send=True,
+            config_override=metadata,
+        )
+    else:
+        return JSONResponse(status_code=400, content={"error": "Unsupported channel type"})
+    return {"status": "success", "binding_id": binding_id, "delivery": result}
+
+
+@app.get("/api/v1/channels/approvals")
+def list_channel_approvals(_claims: dict = Depends(READ_ACCESS)):
+    approvals_payload = []
+    for sender in get_channel_senders(approval_status="pending"):
+        approvals_payload.append(
+            {
+                **sender,
+                "channel": (get_channel_binding(sender.get("channel_binding_id")) or {}).get("type"),
+            }
+        )
+    return {"approvals": approvals_payload}
+
+
+@app.post("/api/v1/channels/approvals/{sender_id}/approve")
+def approve_channel_sender(sender_id: str, payload: SenderApprovalRequest, _claims: dict = Depends(OPERATE_ACCESS)):
+    sender = next((item for item in get_channel_senders() if item.get("id") == sender_id), None)
+    if not sender:
+        return JSONResponse(status_code=404, content={"error": "Sender approval request not found"})
+    sender["approval_status"] = "approved"
+    if payload.customer_id:
+        sender["customer_id"] = payload.customer_id
+    if payload.display_name:
+        sender["display_name"] = payload.display_name
+    sender = save_channel_sender(sender)
+    return {"status": "success", "sender": sender}
+
+
+@app.get("/api/v1/demo/routes")
+def list_demo_routes_endpoint(_claims: dict = Depends(READ_ACCESS)):
+    routes = get_demo_routes()
+    page_mode = "live" if any(route.get("mode") == "live" for route in routes) else "sandbox"
+    return {"mode": page_mode, "routes": routes}
+
+
+@app.post("/api/v1/demo/routes/{route_id}/simulate")
+def simulate_demo_route(route_id: str, payload: DemoRouteDispatchRequest, _claims: dict = Depends(OPERATE_ACCESS)):
+    existing_sender = get_channel_sender_by_external_id(payload.channel_binding_id, payload.sender_external_id)
+    sender = existing_sender or save_channel_sender(
+        {
+            "id": f"sender-{uuid4().hex[:10]}",
+            "channel_binding_id": payload.channel_binding_id,
+            "sender_external_id": payload.sender_external_id,
+            "display_name": payload.display_name,
+            "customer_id": "cust_1001" if payload.sender_external_id.endswith("0001") else None,
+            "approval_status": "approved",
+            "last_message": payload.message,
+            "last_seen_at": _utc_iso(),
+            "metadata": {"simulated": True},
+        }
+    )
+    if sender.get("approval_status") != "approved":
+        sender["approval_status"] = "approved"
+        sender = save_channel_sender(sender)
+    result = dispatch_demo_route(
+        route_id=route_id,
+        channel_binding_id=payload.channel_binding_id,
+        sender=sender,
+        message=payload.message,
+        tenant_id=payload.tenant_id,
+        environment=payload.environment,
+    )
+    return result
+
+
+@app.get("/api/mock/crm/customers")
+def list_mock_crm_customers(_claims: dict = Depends(READ_ACCESS)):
+    return {"customers": get_crm_customers()}
+
+
+@app.get("/api/mock/crm/customers/{customer_id}")
+def get_mock_crm_customer(customer_id: str, _claims: dict = Depends(READ_ACCESS)):
+    customer = get_crm_customer_by_id(customer_id)
+    if not customer:
+        return JSONResponse(status_code=404, content={"error": "Customer not found"})
+    return {"customer": customer, "cases": get_crm_cases(customer_id)}
+
+
+@app.get("/api/mock/crm/cases")
+def list_mock_crm_cases(customer_id: str | None = None, _claims: dict = Depends(READ_ACCESS)):
+    return {"cases": get_crm_cases(customer_id)}
+
+
+@app.post("/api/mock/crm/cases")
+def create_mock_crm_case(payload: CRMCaseCreateRequest, _claims: dict = Depends(OPERATE_ACCESS)):
+    case = save_crm_case(
+        {
+            "id": f"case_{uuid4().hex[:8]}",
+            "customer_id": payload.customer_id,
+            "tenant_id": "default",
+            "subject": payload.subject,
+            "status": payload.status,
+            "priority": payload.priority,
+            "channel": payload.channel,
+            "summary": payload.summary,
+            "metadata": {"created_via": "ops_api"},
+        }
+    )
+    return {"status": "success", "case": case}
+
+
+@app.get("/api/v1/connectors/whatsapp/webhook")
+@app.get("/connectors/whatsapp/webhook")
+def whatsapp_webhook_verify(
+    hub_mode: str | None = Query(default=None, alias="hub.mode"),
+    hub_verify_token: str | None = Query(default=None, alias="hub.verify_token"),
+    hub_challenge: str | None = Query(default=None, alias="hub.challenge"),
+):
+    verified, challenge = verify_whatsapp_webhook(hub_mode or "", hub_verify_token or "", hub_challenge or "")
+    if not verified:
+        for metadata in _whatsapp_binding_overrides():
+            verified, challenge = verify_whatsapp_webhook(
+                hub_mode or "",
+                hub_verify_token or "",
+                hub_challenge or "",
+                config_override=metadata,
+            )
+            if verified:
+                break
+    if not verified:
+        return JSONResponse(status_code=403, content={"error": "Webhook verification failed"})
+    return HTMLResponse(content=challenge, status_code=200)
+
+
+@app.post("/api/v1/connectors/whatsapp/webhook")
+@app.post("/connectors/whatsapp/webhook")
+async def whatsapp_webhook_ingest(request: Request):
+    payload = await request.json()
+    entries = payload.get("entry") if isinstance(payload, dict) else []
+    processed = []
+    for entry in entries if isinstance(entries, list) else []:
+        changes = entry.get("changes") if isinstance(entry, dict) else []
+        for change in changes if isinstance(changes, list) else []:
+            value = change.get("value") if isinstance(change, dict) else {}
+            contacts = value.get("contacts") if isinstance(value, dict) else []
+            messages = value.get("messages") if isinstance(value, dict) else []
+            display_name = (contacts[0] or {}).get("profile", {}).get("name", "WhatsApp sender") if contacts else "WhatsApp sender"
+            for message in messages if isinstance(messages, list) else []:
+                sender_external_id = f"whatsapp:{message.get('from')}"
+                body = (message.get("text") or {}).get("body") or ""
+                processed.append(
+                    ingest_channel_message(
+                        channel_binding_id="whatsapp-support",
+                        sender_external_id=sender_external_id,
+                        display_name=display_name,
+                        message=body,
+                        tenant_id="default",
+                        environment=OPS_ENVIRONMENT,
+                    )
+                )
+    return {
+        "status": "accepted",
+        "entries": len(entries) if isinstance(entries, list) else 0,
+        "processed": processed,
+    }
+
+
+@app.post("/api/v1/connectors/telegram/webhook")
+async def telegram_webhook_ingest(request: Request):
+    payload = await request.json()
+    message = payload.get("message") if isinstance(payload, dict) else {}
+    text = message.get("text") or ""
+    chat = message.get("chat") or {}
+    sender_external_id = f"telegram:{chat.get('id')}"
+    display_name = chat.get("title") or chat.get("username") or str(chat.get("id") or "Telegram sender")
+    result = ingest_channel_message(
+        channel_binding_id="telegram-ops",
+        sender_external_id=sender_external_id,
+        display_name=display_name,
+        message=text,
+        tenant_id="default",
+        environment=OPS_ENVIRONMENT,
+    )
+    return {"status": "accepted", "processed": [result]}
+
+
 @app.get("/api/v1/agents")
 @app.get("/agents")
 def list_agents(_claims: dict = Depends(READ_ACCESS)):
-    return {"agents": get_agents(), "runtime_capabilities": _runtime_capabilities()}
+    mode = _platform_mode()
+    return {
+        "mode": mode,
+        "agents": _attach_provenance(get_agents(), mode),
+        "runtime_capabilities": _runtime_capabilities(),
+    }
 
 
 @app.get("/api/v1/agents/providers")
 def agent_provider_capabilities(_claims: dict = Depends(READ_ACCESS)):
     return _runtime_capabilities()
+
+
+@app.get("/api/v1/agents/{agent_id}")
+@app.get("/agents/{agent_id}")
+def agent_detail(agent_id: str, _claims: dict = Depends(READ_ACCESS)):
+    agent = get_agent_by_id(agent_id)
+    if not agent:
+        return JSONResponse(status_code=404, content={"error": "Agent not found"})
+    mode = _platform_mode()
+    return {
+        "mode": mode,
+        "agent": {**agent, "provenance_mode": mode},
+        "scorecard": _build_agent_scorecard(agent),
+    }
 
 
 @app.post("/api/v1/agents")
@@ -642,7 +1559,7 @@ def update_agent(agent_id: str, updates: dict, _claims: dict = Depends(OPERATE_A
     if "bound_skills" in patch and "skills" not in patch:
         patch["skills"] = list(patch.get("bound_skills") or [])
     target.update(patch)
-    saved = save_agent(target)
+    saved = save_agent(_normalize_agent_payload(target))
     return {"status": "success", "agent": saved}
 
 
@@ -665,7 +1582,7 @@ def bind_skill_to_agent(
         bound_skills.append(payload.skill_id)
     agent["bound_skills"] = bound_skills
     agent["skills"] = sorted(set(list(agent.get("skills") or []) + [payload.skill_id]))
-    saved = save_agent(agent)
+    saved = save_agent(_normalize_agent_payload(agent))
     return {"status": "success", "agent": saved}
 
 
@@ -709,6 +1626,7 @@ def test_agent(
     configured_bound = list(agent.get("bound_skills") or agent.get("skills") or [])
     resolved_provider = provider if provider == "local_fallback" else runtime.get("provider", provider)
     duration_ms = round((perf_counter() - started) * 1000, 3)
+    system_tool_trace = _agent_tool_trace(agent, payload.message, payload.customer_id, payload.tenant_id)
 
     result = {
         "request_id": f"agt-test-{uuid4().hex[:10]}",
@@ -727,10 +1645,20 @@ def test_agent(
         "duration_ms": duration_ms,
         "runtime": runtime,
         "adk_result": adk_result,
+        "system_tools_used": system_tool_trace,
     }
     if runtime_errors or contract_errors:
         result["errors"] = runtime_errors + contract_errors
         result["error"] = result["errors"][0]
+    agent["last_test_at"] = result["timestamp"]
+    agent["last_test_status"] = result["status"]
+    agent["scorecard"] = {
+        **_build_agent_scorecard(agent),
+        "last_test_at": result["timestamp"],
+        "last_test_status": result["status"],
+        "tool_trace": system_tool_trace,
+    }
+    save_agent(agent)
     return result
 
 
@@ -995,8 +1923,11 @@ def list_workflows(
     environment: str = OPS_ENVIRONMENT,
     _claims: dict = Depends(READ_ACCESS),
 ):
+    mode = _platform_mode()
     return {
+        "mode": mode,
         "environment": environment,
+        "recommended_demo_workflow_id": DEMO_WORKFLOW_ID,
         "workflows": list_workflows_with_state(tenant_id=tenant_id, environment=environment),
     }
 
@@ -1011,7 +1942,10 @@ def workflow_detail(
     detail = get_workflow_detail(workflow_id, environment=environment)
     if not detail:
         return JSONResponse(status_code=404, content={"error": "Workflow not found"})
-    return detail
+    return {
+        **detail,
+        "mode": _platform_mode(),
+    }
 
 
 @app.patch("/api/v1/workflows/{workflow_id}")
@@ -1037,6 +1971,96 @@ def workflow_update(
     except ValueError as exc:
         return JSONResponse(status_code=404, content={"error": str(exc)})
     return {"version": version}
+
+
+@app.post("/api/v1/workflows/{workflow_id}/test-run")
+@app.post("/workflows/{workflow_id}/test-run")
+def workflow_test_run(
+    workflow_id: str,
+    payload: WorkflowTestRunRequest,
+    _claims: dict = Depends(OPERATE_ACCESS),
+):
+    try:
+        result = execute_saved_workflow(
+            workflow_id=workflow_id,
+            tenant_id=payload.tenant_id,
+            customer_id="ops-test-customer",
+            environment=payload.environment or OPS_ENVIRONMENT,
+            message=payload.message or str((payload.input or {}).get("message") or ""),
+            order_id=str((payload.input or {}).get("order_id") or ""),
+            channel_binding_id=str((payload.input or {}).get("channel_binding_id") or "whatsapp-support"),
+            sender_external_id=str((payload.input or {}).get("sender_external_id") or "whatsapp:+447700900001"),
+            allow_live_send=bool((payload.input or {}).get("send_live")),
+            persist_run=True,
+        )
+    except ValueError as exc:
+        return JSONResponse(status_code=404, content={"error": str(exc)})
+
+    tool_trace = result.get("tool_trace") or []
+    runtime_mode = "mixed" if any(item.get("mode") == "live" for item in tool_trace) else "sandbox"
+    agent_nodes = [
+        {
+            "node_id": item.get("node_id"),
+            "agent_id": ((item.get("result") or {}).get("runtime") or {}).get("provider"),
+            "agent_name": item.get("label"),
+            "status": item.get("status"),
+        }
+        for item in (result.get("node_trace") or [])
+        if item.get("node_type") == "agentNode"
+    ]
+    return {
+        "status": "pass",
+        "run_id": result.get("run_id"),
+        "mode": runtime_mode,
+        "workflow_id": workflow_id,
+        "workflow_version": (result.get("workflow") or {}).get("workflow_version"),
+        "tenant_id": payload.tenant_id,
+        "environment": payload.environment,
+        "connector_results": tool_trace,
+        "agent_summary": agent_nodes,
+        "message": payload.message,
+        "node_trace": result.get("node_trace") or [],
+        "response_text": result.get("response_text"),
+    }
+
+
+@app.post("/api/v1/workflows/{workflow_id}/execute")
+@app.post("/workflows/{workflow_id}/execute")
+def workflow_execute(
+    workflow_id: str,
+    payload: WorkflowExecuteRequest,
+    claims: dict = Depends(OPERATE_ACCESS),
+):
+    try:
+        result = execute_saved_workflow(
+            workflow_id=workflow_id,
+            tenant_id=payload.tenant_id,
+            customer_id=payload.customer_id,
+            environment=payload.environment or OPS_ENVIRONMENT,
+            message=payload.message,
+            order_id=payload.order_id,
+            channel_binding_id="whatsapp-support",
+            sender_external_id="",
+            allow_live_send=True,
+            persist_run=True,
+        )
+    except ValueError as exc:
+        return JSONResponse(status_code=404, content={"error": str(exc)})
+
+    return {
+        "status": "success",
+        "requested_workflow_id": workflow_id,
+        "requested_workflow_family": (get_workflow_detail(workflow_id, environment=payload.environment or OPS_ENVIRONMENT) or {}).get("workflow", {}).get("workflow_family"),
+        "journey": result.get("journey"),
+        "run_id": result.get("run_id"),
+        "trace": {"trace_id": result.get("run_id")},
+        "context": {"customer_id": payload.customer_id},
+        "workflow": result.get("workflow"),
+        "result": result.get("result"),
+        "execution_mode": "graph_live" if check_connection() else "graph_demo",
+        "node_trace": result.get("node_trace") or [],
+        "response_text": result.get("response_text"),
+    }
 
 
 @app.get("/api/v1/workflows/{workflow_id}/runs")
@@ -1289,6 +2313,18 @@ def dev_auth_bootstrap(token: str, redirect: str = "/ui/agents"):
     )
 
 
+@app.get("/dev/auth/bootstrap/{role}", response_class=HTMLResponse)
+def dev_auth_bootstrap_role(role: str, redirect: str = "/ui/workflows"):
+    env = OPS_ENVIRONMENT.strip().lower()
+    if env not in {"dev", "development", "local", "test", "testing"}:
+        return JSONResponse(status_code=404, content={"error": "Not found"})
+    try:
+        token = _mint_dev_role_token(role)
+    except RuntimeError as exc:
+        return JSONResponse(status_code=503, content={"error": str(exc)})
+    return dev_auth_bootstrap(token=token, redirect=redirect)
+
+
 @app.get("/", response_class=HTMLResponse)
 def serve_ui_root():
     if (UI_DIR / "index.html").exists():
@@ -1318,3 +2354,48 @@ def serve_ui_root():
         </html>
         """
     )
+
+
+def _serve_ui_file(path: str = ""):
+    index_file = UI_DIR / "index.html"
+    if not index_file.exists():
+        return HTMLResponse(
+            """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>ACOS Control Plane</title>
+            </head>
+            <body>
+              <p>The React UI has not been built yet.</p>
+            </body>
+            </html>
+            """,
+            status_code=503,
+        )
+
+    if not path or path == "/":
+        return FileResponse(index_file)
+
+    requested = (UI_DIR / path.lstrip("/")).resolve()
+    try:
+        requested.relative_to(UI_DIR.resolve())
+    except ValueError:
+        return JSONResponse(status_code=404, content={"error": "Not found"})
+
+    if requested.exists() and requested.is_file():
+        return FileResponse(requested)
+    return FileResponse(index_file)
+
+
+@app.get("/ui", response_class=HTMLResponse)
+@app.get("/ui/", response_class=HTMLResponse)
+def serve_ui_index():
+    return _serve_ui_file()
+
+
+@app.get("/ui/{path:path}", response_class=HTMLResponse)
+def serve_ui_path(path: str):
+    return _serve_ui_file(path)

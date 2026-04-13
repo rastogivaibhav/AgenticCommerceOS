@@ -54,6 +54,105 @@ def is_shopify_configured() -> bool:
     return load_shopify_config() is not None
 
 
+def execute_shopify_action(
+    action: str,
+    payload: dict[str, Any],
+    *,
+    timeout_seconds: float = _DEFAULT_TIMEOUT_SECONDS,
+    retries: int = 1,
+) -> dict[str, Any]:
+    """Execute a narrow set of Shopify Admin API actions with honest fallback."""
+    config = load_shopify_config()
+    if not config:
+        return {
+            "status": "ok",
+            "mode": "sandbox",
+            "action": action,
+            "connector_source": "local_fallback",
+            "note": "shopify_not_configured",
+            "result": _shopify_sandbox_result(action, payload),
+        }
+
+    action_key = (action or "").strip().lower()
+    if action_key == "get_order":
+        order_id = str(payload.get("order_id") or "").strip()
+        if not order_id:
+            return _unsupported_shopify_action(action_key, "missing_order_id", payload)
+        if order_id.isdigit():
+            endpoint = f"/orders/{order_id}.json"
+            params = {"status": "any"}
+        else:
+            endpoint = "/orders.json"
+            params = {"status": "any", "limit": 1, "name": order_id}
+    elif action_key == "get_customer":
+        customer_id = str(payload.get("customer_id") or "").strip()
+        if not customer_id:
+            return _unsupported_shopify_action(action_key, "missing_customer_id", payload)
+        if customer_id.isdigit():
+            endpoint = f"/customers/{customer_id}.json"
+            params = {}
+        else:
+            endpoint = "/customers/search.json"
+            params = {"query": customer_id}
+    elif action_key == "get_product":
+        product_id = str(payload.get("product_id") or "").strip()
+        if not product_id:
+            return _unsupported_shopify_action(action_key, "missing_product_id", payload)
+        if product_id.isdigit():
+            endpoint = f"/products/{product_id}.json"
+            params = {}
+        else:
+            endpoint = "/products.json"
+            params = {"limit": 1, "handle": product_id}
+    elif action_key == "create_return_intent":
+        return {
+            "status": "ok",
+            "mode": "sandbox",
+            "action": action_key,
+            "connector_source": "shopify_admin_api",
+            "note": "mutation_not_enabled_for_demo",
+            "result": _shopify_sandbox_result(action_key, payload),
+        }
+    else:
+        return _unsupported_shopify_action(action_key, "unsupported_action", payload)
+
+    response = _shopify_get(
+        config=config,
+        endpoint=endpoint,
+        params=params,
+        timeout_seconds=timeout_seconds,
+        retries=retries,
+    )
+    if not response["ok"]:
+        return {
+            "status": "ok",
+            "mode": "sandbox",
+            "action": action_key,
+            "connector_source": "shopify_admin_api",
+            "error": response.get("error"),
+            "note": "shopify_request_failed",
+            "result": _shopify_sandbox_result(action_key, payload),
+        }
+
+    body = response["body"]
+    if action_key == "get_order":
+        result = _normalize_order_result(body)
+    elif action_key == "get_customer":
+        result = _normalize_customer_result(body)
+    else:
+        result = _normalize_product_result(body)
+
+    return {
+        "status": "ok",
+        "mode": "live",
+        "action": action_key,
+        "connector_source": "shopify_admin_api",
+        "store_domain": config.store_domain,
+        "api_version": config.api_version,
+        "result": result,
+    }
+
+
 def probe_shopify_admin(
     input_payload: dict[str, Any],
     *,
@@ -256,4 +355,61 @@ def _normalize_product_result(body: dict[str, Any]) -> dict[str, Any]:
         "status": product.get("status"),
         "vendor": product.get("vendor"),
         "product_type": product.get("product_type"),
+    }
+
+
+def _normalize_customer_result(body: dict[str, Any]) -> dict[str, Any]:
+    customer = body.get("customer")
+    if not customer and isinstance(body.get("customers"), list):
+        customer = body["customers"][0] if body["customers"] else {}
+    customer = customer or {}
+    return {
+        "customer_id": customer.get("id"),
+        "email": customer.get("email"),
+        "first_name": customer.get("first_name"),
+        "last_name": customer.get("last_name"),
+        "state": customer.get("state"),
+    }
+
+
+def _unsupported_shopify_action(action: str, reason: str, payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "mode": "sandbox",
+        "action": action,
+        "connector_source": "local_fallback",
+        "note": reason,
+        "result": _shopify_sandbox_result(action, payload),
+    }
+
+
+def _shopify_sandbox_result(action: str, payload: dict[str, Any]) -> dict[str, Any]:
+    if action == "get_customer":
+        return {
+            "customer_id": payload.get("customer_id") or "cust_demo",
+            "email": "customer@example.com",
+            "first_name": "Demo",
+            "last_name": "Customer",
+            "state": "enabled",
+        }
+    if action == "get_product":
+        return {
+            "product_id": payload.get("product_id") or "prod_demo",
+            "title": "Demo Product",
+            "status": "active",
+            "vendor": "ACOS",
+            "product_type": "Demo",
+        }
+    if action == "create_return_intent":
+        return {
+            "order_id": payload.get("order_id") or "ORD-1001",
+            "status": "draft_return_intent",
+            "reason": payload.get("reason") or "customer_request",
+        }
+    return {
+        "order_id": payload.get("order_id") or "ORD-1001",
+        "name": payload.get("order_id") or "ORD-1001",
+        "financial_status": "paid",
+        "fulfillment_status": "in_transit",
+        "created_at": None,
     }

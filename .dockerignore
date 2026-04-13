@@ -17,3 +17,4 @@ tests/
 .idea/
 htmlcov/
 .coverage
+apps/ops_ui_v2/dist/

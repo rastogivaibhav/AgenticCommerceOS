@@ -2,224 +2,218 @@
 
 ## Purpose
 
-This document defines the target enterprise architecture for ACOS while staying grounded in the current repository.
+This document describes the architecture that is actually present in the repository today, plus the most important near-term gaps.
 
-## Baseline To Build From
+## Current Service Topology
 
-Current baseline:
-- `shopper-api` for customer-facing requests
-- `ops-api` for operational access
-- Postgres for runs, events, and experiments
-- modular Python packages for journeys, commerce capabilities, billing, replay, and tenancy
-- Docker and Compose already present
+### Experience Layer
 
-Target state should evolve this baseline instead of replacing it wholesale.
+Interfaces already implemented:
+- shopper API clients calling `shopper-api`
+- operators using the React ops UI served at `/ui` by `ops-api`
+- Slack and message-based clients calling `chat-api`
+- WhatsApp and Telegram channel participants entering flows through `ops-api` channel endpoints
 
-## Architectural Layers
+### API And Control Layer
 
-### 1. Experience Layer
-Interfaces that initiate work or consume operational insight.
+Current services:
+- `apps/shopper_api/main.py`
+  - `POST /journey`
+  - `POST /v1/journey`
+  - `GET /metrics`
+  - `GET /health`
+- `apps/ops_api/main.py`
+  - workflow, run, replay, analytics, billing, agent, skill, tenant, channel, demo-route, connector, sandbox, incident, and UI routes
+  - embedded static UI serving at `/ui`
+- `apps/chat_api/main.py`
+  - Slack/message intake
+  - workflow execution from messages
+  - async job creation and status retrieval
 
-Channels:
-- shopper web and mobile
-- contact center and support tooling
-- operator control plane
-- partner or marketplace APIs
+### Workflow And Runtime Layer
 
-### 2. API Gateway Layer
-The ingress layer that enforces:
-- authentication and authorization
-- tenant routing
-- rate limits
-- request validation
-- versioning
-- request tracing
+There are two execution modes in the current codebase:
 
-### 3. Orchestration Runtime Layer
-The brain of ACOS.
+1. Shopper journey runtime
+- implemented in `acosplatform/journey/engine.py`
+- resolves a journey family
+- resolves an active workflow version for that family and environment
+- executes modular commerce capabilities
+- applies ADK runtime support, policy checks, scoring, billing, metrics, traces, and context persistence
 
-Responsibilities:
-- intent classification
-- workflow selection
-- step execution
-- policy evaluation
-- retries and compensations
-- human handoff
-- run state persistence
+2. Saved workflow graph execution
+- implemented in `acosplatform/workflows/executor.py`
+- loads a saved workflow version and graph
+- executes graph nodes in dependency order
+- supports node types:
+  - `triggerNode`
+  - `connectorNode`
+  - `agentNode`
+  - `decisionNode`
+  - `humanNode`
+  - `endNode`
+- persists the execution as a run with `tool_trace` and `node_trace`
 
-### 4. Agent And Skill Layer
-Reusable execution assets.
+### Channel And Retail Ops Layer
 
-Core constructs:
-- agents
-- skills
-- prompts
-- tools and connectors
-- policies
-- model profiles
-- execution budgets
+`acosplatform/retail_ops/service.py` adds a channel-oriented orchestration layer on top of saved workflows:
+- sender discovery and approval
+- pairing/start-link onboarding for channel identities
+- route inference from inbound text
+- dispatch into demo routes
+- notification fan-out to configured target channels
 
-### 5. Commerce Domain Services Layer
-Business capabilities that should become durable services over time.
+This is the main bridge between channel intake and workflow execution in the current repository.
 
-Primary bounded contexts:
-- Catalog
-- Pricing
-- Promotions
-- Checkout
-- Orders
-- Returns
-- Loyalty
-- Personalization
-- Billing and Usage
-- Evaluation
+### Connector And Runtime Provider Layer
 
-### 6. Platform And Governance Layer
-Cross-cutting enterprise concerns:
-- identity and access management
-- tenancy
-- audit
-- observability
-- secrets and config
-- release management
-- compliance controls
+Current connector/provider modules:
+- `integrations/shopify/client.py`
+- `integrations/salesforce/client.py`
+- `integrations/whatsapp/client.py`
+- `integrations/telegram/client.py`
+- `integrations/adk/provider.py`
 
-## Bounded Context Map
+Supported runtime providers today:
+- `google_genai`
+- `lmstudio_local`
+- `local_fallback`
 
-### Channel Intake
-Normalizes requests from shopper or operator channels into typed commands and events.
+The connector model is intentionally honest about execution mode:
+- `live` when credentials and upstream systems are available
+- `configured_preview` when a connector is configured but live send is disabled or degraded
+- `sandbox` when the system falls back to local behavior
 
-### Journey Orchestration
-Owns workflow state, execution policy, step sequencing, replay, and run history.
+## Current Container Topology
 
-### Agent Management
-Owns agent definitions, allowed skills, model profiles, and execution guardrails.
-
-### Skill Registry
-Owns tools, schemas, connector bindings, test fixtures, and version history.
-
-### Commerce Core
-Owns deterministic business services such as catalog lookup, pricing, promotions, loyalty, checkout, orders, and returns.
-
-### Governance And Risk
-Owns policy evaluation, approval gates, audit, tenant isolation, and exception handling.
-
-### Analytics And Evaluation
-Owns cost, quality, usage, experimentation, and operational analytics.
-
-## Runtime Topology
-
-## Current Suggested Container Topology
-
+The local compose topology is:
 - `shopper-api`
 - `ops-api`
+- `chat-api`
 - `postgres`
-- `ops-ui` as a built static artifact served either by `ops-api` or a dedicated container
 
-## Near-Term Enterprise Topology
+`ops-ui` is built separately from `apps/ops_ui_v2` and served by `ops-api` from either:
+- `apps/ops_api/ui`
+- or `apps/ops_ui_v2/dist`
 
-- `edge-gateway`
-- `shopper-api`
-- `ops-api`
-- `workflow-runtime`
-- `agent-registry-service`
-- `skill-registry-service`
-- `policy-service`
-- `evaluation-service`
-- `postgres`
-- `redis`
-- `object-store`
-- `message-bus`
-- `ops-ui`
+## Current Request Flows
 
-## Data Model Foundations
+### Shopper Journey Flow
 
-The following objects should become first-class persisted resources:
+1. Request enters `shopper-api` with `X-API-Key`.
+2. Pydantic validation and tenant traffic controls are applied.
+3. `journey.engine.run_journey` resolves journey family and active workflow.
+4. Commerce services and ADK runtime logic run.
+5. Context, run, events, traces, metrics, and score are persisted.
+6. A structured result is returned with workflow and trace metadata.
 
-- Tenant
-- User
-- Agent
-- Skill
-- Workflow
-- WorkflowVersion
-- Policy
-- Connector
-- Run
-- RunStep
-- Event
-- EvaluationResult
-- Experiment
-- DeploymentPromotion
+### Saved Workflow Execution Flow
 
-## Integration Strategy
+1. Operator or API client calls an `ops-api` workflow execute or test-run endpoint.
+2. `workflows.executor.execute_saved_workflow` loads the active version for the environment.
+3. Graph nodes execute across connectors, agent runtime, decision logic, and human escalation.
+4. Tool and node traces are collected.
+5. A run is persisted in Postgres.
+6. The response includes workflow resolution, traces, and channel response artifacts.
 
-### Deterministic Before Generative
-Use deterministic business services for pricing, checkout, loyalty, and returns.
-Use LLMs for explanation, summarization, intent help, and decision support where governed.
+### Channel Demo Route Flow
 
-### Adapter Pattern For External Systems
-All external commerce and enterprise systems should be integrated through typed adapters.
+1. Inbound WhatsApp or Telegram message is received through `ops-api`.
+2. Channel binding and sender approval state are resolved.
+3. Pairing flow runs if a pair/start code is present.
+4. A demo route is inferred or selected.
+5. The route dispatches to a saved workflow execution.
+6. Customer reply and operator notifications are sent through the channel adapters.
 
-### Async Event Backbone
-Longer-running workflows should publish events rather than rely on synchronous chaining only.
+## Current Bounded Contexts In Code
 
-## Security Architecture
+### Journey Runtime
+- `acosplatform/journey`
+- `acosplatform/plugins`
+- `acosplatform/personalization`
+- `acosplatform/evaluation`
+- `acosplatform/billing`
 
-Enterprise minimums:
-- strong tenant isolation
-- environment-specific secrets
-- role-based access control
-- policy-based action authorization
-- audit logs for sensitive actions
-- immutable run history
-- model and tool allowlists
-- PII classification and redaction
-- approval gates for high-risk actions
+### Workflow Registry And Execution
+- `acosplatform/workflows`
+- `apps/ops_api` workflow endpoints
+- `apps/ops_ui_v2` workflow registry and editor UI
 
-## Observability Architecture
+### Channel And Retail Operations
+- `acosplatform/retail_ops`
+- channel, pairing, sender, and demo route endpoints in `apps/ops_api/main.py`
 
-Required pillars:
-- logs with correlation ids
-- metrics by tenant, workflow, skill, and environment
-- traces across end-to-end runs
-- run timelines in the control plane
-- business KPIs such as resolution rate, conversion, cost per run, and escalation rate
+### Platform And Governance
+- `acosplatform/auth`
+- `acosplatform/governance`
+- `acosplatform/tenancy`
+- `acosplatform/audit`
+- `acosplatform/observability`
+- `acosplatform/context`
 
-## Reliability And Operational Requirements
+### Persistence
+- `acosplatform/db`
+- `db/schema.sql`
 
-- stateless service containers where possible
-- idempotent workflow steps
-- retries with backoff for transient failures
-- dead-letter handling for failed asynchronous events
-- health endpoints for all services
-- startup checks for schema and dependency readiness
+## Persistence Foundations
 
-## Quality Requirements
+The current schema already includes first-class storage for:
+- workflows and versions
+- promotions
+- runs and events
+- audit events
+- context sessions, events, and memory
+- governance decisions
+- agents and skills
+- tenants
+- channels, senders, and pairings
+- demo routes
+- CRM customers and cases
+- products, orders, loyalty points
+- experiments
 
-Every slice should meet:
-- typed interfaces
-- migration-safe persistence
-- automated tests
-- container build success
-- documented operational behavior
-- backward-compatible API versioning where relevant
+This means ACOS has already moved beyond a purely in-code architecture for workflow and operational state.
 
-## Current-To-Target Gaps
+## Current UI Surface
 
-The main gaps between current state and target architecture are:
-- mock data instead of durable domain systems
-- orchestration logic embedded in code rather than workflow resources
-- incomplete control-plane UX
-- weak separation between runtime and control-plane concerns
-- limited policy, audit, and metrics enforcement in the execution path
-- no durable registry for agents, skills, or workflow versions
+The React UI currently exposes pages for:
+- Workflows
+- Workflow Editor
+- Agents
+- Skills
+- Analytics
+- Channels
+- Demo Routes
+- Tenants
 
-## Architectural Direction
+The UI is routed under `/ui` and uses `BrowserRouter` with `/ui/` as its basename.
 
-The next development phases should not try to solve everything at once.
-They should progressively convert the current prototype into:
+## Reliability And Security Foundations Present Today
 
-1. a trusted control-plane foundation
-2. a workflow-centric runtime
-3. a governed registry for agents and skills
-4. a production-grade operational platform
+- API-key auth on `shopper-api`
+- JWT role enforcement on ops routes
+- CORS allowlists
+- tenant rate limits, daily quotas, and in-flight caps
+- row-level security for context and governance tables
+- workflow promotion and rollback state
+- audit persistence for operational mutations
+- health and metrics endpoints on the main services
+- global exception handling with sanitized error responses
+- startup validation for auth and schema availability
+
+## Important Gaps
+
+The biggest remaining gaps are:
+- stronger separation between demo/mock data paths and live operator paths
+- deeper policy enforcement inside every saved workflow node execution path
+- broader automated test coverage for end-to-end channel and connector flows
+- fuller externalization of agent, skill, and connector version promotion
+- more complete asynchronous backbone for long-running workflow steps
+
+## Near-Term Architectural Direction
+
+The current codebase already has the right seams to continue evolving by:
+- strengthening the workflow graph model rather than replacing it
+- hardening live connector operations behind the existing sandbox/live contract
+- expanding the ops UI around the existing workflow, channel, and incident APIs
+- treating agents, skills, and connectors as increasingly versioned and promotable resources

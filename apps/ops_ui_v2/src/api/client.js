@@ -11,11 +11,12 @@ const API_BASE = resolveApiBase();
 const TOAST_EVENT = 'ops-api-toast';
 
 export function getOpsToken() {
-  return localStorage.getItem('ops_token') || 'dev-ops-token';
+  return localStorage.getItem('ops_token') || '';
 }
 
 export function getAuthHeaders() {
-  return { Authorization: `Bearer ${getOpsToken()}` };
+  const token = getOpsToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export function buildApiUrl(path) {
@@ -104,7 +105,10 @@ export async function apiJson(path, options = {}) {
     try {
       payload = await response.json();
       detail = payload?.error || payload?.detail || payload?.message || '';
-    } catch {}
+    } catch {
+      payload = null;
+      detail = '';
+    }
     throw new ApiError(detail || fallback, response.status, payload);
   }
   return response.json();

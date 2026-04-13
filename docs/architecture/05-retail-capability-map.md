@@ -2,265 +2,208 @@
 
 ## Purpose
 
-This document grounds ACOS in the real retail operating model.
-
-ACOS should not be treated as a generic AI workflow platform with retail-themed examples.
-It should be defined as the orchestration and governance layer across retail commerce capabilities.
+This document maps the current ACOS implementation to the retail operating capabilities it already supports, the capabilities it partially supports, and the gaps that are still mostly roadmap.
 
 ## Strategic Positioning
 
-ACOS is not intended to replace every retail system of record.
+ACOS currently acts as:
+- a retail workflow and operations layer
+- a control plane for governed AI-assisted commerce execution
+- a channel-aware service orchestration layer
+- a thin integration layer across CRM and commerce systems
 
-Instead, ACOS should sit as:
-- the orchestration layer across retail systems
-- the AI control plane for governed automation
-- the workflow and policy layer for customer and operator journeys
-- the operational analytics and intervention surface for AI-assisted commerce
+It does not try to replace the system of record for orders, CRM, loyalty, or catalog data.
 
-## Retail Value Chain Coverage
+## Capability Coverage By Domain
 
-ACOS should support the following retail domains.
+### 1. Discovery And Merchandising
 
-## 1. Discovery And Merchandising
+Implemented today:
+- natural-language shopper intake
+- journey routing into `discovery`
+- catalog recommendation and pricing/promotion assistance
+- explanation generation through the runtime provider layer
 
-Business capabilities:
-- search and browse assistance
-- product discovery
-- recommendations
-- promotions explanation
-- assortment and category guidance
-- campaign-aware personalization
+Current systems used:
+- local catalog/product data
+- ADK runtime provider layer
 
-Typical systems involved:
-- PIM
-- search platform
-- content platform
-- recommendation engine
-- pricing and promotions services
+Current maturity:
+- usable in the shopper runtime
+- still lighter than the service-flow and ops-plane portions of the platform
 
-ACOS role:
-- orchestrate discovery journeys
-- apply tenant and campaign policy
-- explain recommendations and offers
-- route intents to deterministic domain services
+### 2. Basket And Purchase Support
 
-## 2. Basket And Purchase
+Implemented today:
+- purchase-family routing
+- pricing, promotions, loyalty, and checkout guidance in the coded shopper journey runtime
+- workflow family and version tracking on purchase-related runs
 
-Business capabilities:
-- product selection support
-- price and offer calculation
-- basket assistance
-- checkout orchestration
-- payment handoff
-- fraud or policy checks
+Current systems used:
+- local commerce plugins
+- ADK runtime provider layer
 
-Typical systems involved:
-- pricing engine
-- promotions engine
-- cart service
-- checkout platform
-- payment gateway
-- fraud tooling
+Current maturity:
+- functional as guided assistance
+- not yet a deeply integrated checkout orchestration platform
 
-ACOS role:
-- coordinate basket-building and purchase support
-- provide AI assistance around deterministic cart and price actions
-- apply approval or policy rules for risky actions
+### 3. Fulfillment And Post-Purchase
 
-## 3. Fulfillment And Promise
+Implemented today:
+- order status flows
+- post-purchase workflow family
+- Shopify order lookup through connector nodes
+- channel-facing “where is my order” style support
+- notification of operators through configured channel targets
 
-Business capabilities:
-- availability checks
-- fulfillment option explanation
-- delivery promise communication
-- store pickup support
-- shipment tracking visibility
+Current systems used:
+- Shopify Admin API
+- channel bindings and demo routes
 
-Typical systems involved:
-- inventory service
-- OMS
-- WMS
-- shipping and carrier integrations
-- store systems
+Current maturity:
+- one of the strongest current slices in the repository
 
-ACOS role:
-- orchestrate customer and operator interactions around fulfillment
-- expose promise logic and exceptions through governed workflows
+### 4. Service Recovery And Escalation
 
-## 4. Post-Purchase Service
+Implemented today:
+- service-family workflows
+- Salesforce contact and case operations
+- human escalation node execution
+- CRM case persistence
+- incident and rollback surfaces in the ops API
 
-Business capabilities:
-- order status support
-- cancellation handling
-- change requests
-- return and exchange initiation
-- refund status
-- complaint handling
+Current systems used:
+- Salesforce REST API
+- CRM customer and case tables
+- workflow executor human nodes
 
-Typical systems involved:
-- OMS
-- service platform or CRM
-- returns platform
-- payment and refund services
-- logistics providers
+Current maturity:
+- strong demo and sandbox support
+- partial live support depending on connector credentials and runtime environment
 
-ACOS role:
-- orchestrate post-purchase workflows
-- apply service policies and approval gates
-- capture run history, handoffs, and outcome quality
+### 5. Loyalty And Customer Growth
 
-## 5. Loyalty And Customer Growth
+Implemented today:
+- loyalty balance and tier awareness
+- engagement workflow family
+- loyalty-related demo routes
+- CRM segmentation and preferred-channel context
 
-Business capabilities:
-- loyalty status and benefits
-- points earning and redemption
-- referral management
-- retention and win-back journeys
-- customer value segmentation
+Current systems used:
+- `loyalty_points`
+- `crm_customers`
+- shopper runtime and demo routes
 
-Typical systems involved:
-- loyalty platform
-- CRM or CDP
-- campaign management
-- customer analytics
+Current maturity:
+- useful as part of assisted journeys
+- not yet a full CRM/campaign automation product
 
-ACOS role:
-- combine customer context, policy, and workflow orchestration
-- manage governed AI-driven engagement journeys
+### 6. Omnichannel Service Entry
 
-## 6. Operator And Commerce Team Support
+Implemented today:
+- WhatsApp inbound verification and outbound messaging
+- Telegram bot probing, pairing, and outbound messaging
+- sender approval workflow
+- route inference from inbound messages
+- scan-to-start or pair-code channel onboarding
 
-Business capabilities:
-- incident investigation
-- journey replay
-- workflow tuning
-- agent and skill governance
-- campaign and pricing analysis
-- escalation handling
+Current systems used:
+- WhatsApp Cloud API
+- Telegram Bot API
+- channel binding/sender/pairing tables
 
-Typical systems involved:
-- control plane
-- observability stack
-- analytics tools
-- ticketing or ITSM
-- experimentation tooling
+Current maturity:
+- a real implemented slice, even though many deployments will still run in sandbox or preview mode until configured
 
-ACOS role:
-- serve as the control plane for operational oversight and intervention
+### 7. Operator And Commerce Team Support
 
-## Systems Of Record And Systems Of Intelligence
+Implemented today:
+- workflow registry and editor
+- agents and skills pages
+- analytics views
+- run inspection and replay
+- approval, promotion, rollback, and archive controls
+- channel and demo route operations
+- incident endpoints and audit views
 
-### Systems Of Record
-These remain authoritative:
-- PIM
-- OMS
-- payments
-- WMS
-- inventory
-- CRM
-- loyalty ledger
+Current systems used:
+- `ops-api`
+- `ops_ui_v2`
+- workflow, run, audit, and analytics endpoints
 
-### Systems Of Intelligence
-ACOS belongs here, but with governed write access:
-- intent understanding
-- workflow selection
-- AI-assisted reasoning
-- run evaluation
-- experimentation support
-- operator guidance
+Current maturity:
+- this is the most developed part of ACOS today
 
-## Retail Persona Coverage
+## Systems Of Record Versus ACOS
 
-The platform should serve:
+### Systems Of Record ACOS Integrates With
+
+- Shopify for commerce/order/product context
+- Salesforce for contact and case context
+- WhatsApp and Telegram for channel transport
+
+### Systems ACOS Owns Directly
+
+- workflow definitions and versions
+- workflow promotions
+- operational runs and traces
+- channel onboarding state
+- operator-facing agent and skill registry records
+- local CRM/demo routing state
+
+## Current Retail Personas Served
+
+The current implementation best serves:
 - ecommerce operations
-- contact center operations
+- service and support operations
+- platform engineers
+- workflow authors
+- operators managing channel demos and incident flows
+
+It partially serves:
 - merchandising
-- loyalty and CRM teams
-- platform engineering
-- risk and compliance
-- store or fulfillment operations where relevant
+- loyalty/CRM teams
 
-## Retail KPI Model
-
-ACOS success should be measured against retail outcomes, not only platform health.
-
-### Customer KPIs
-- containment rate
-- first-contact resolution
-- service CSAT
-- time to resolution
-- delivery promise clarity
-
-### Commercial KPIs
-- conversion support rate
-- average order value influence
-- promotion uptake
-- return rate influence
-- loyalty redemption and retention impact
-
-### Operational KPIs
-- escalation rate
-- replay volume
-- manual override rate
-- workflow failure rate
-- run latency
-
-### Financial KPIs
-- cost per resolved interaction
-- automation savings
-- support cost avoidance
-- margin protection through governed offers
-
-## Retail Capability Heat Map
-
-### Current Strength
-- discovery support
-- purchase guidance
-- post-purchase and returns prototype
-- run history and replay prototype
-
-### Emerging Capability
-- workflow governance
-- control-plane operations
-- policy-driven execution
-- experiment and evaluation operations
-
-### Missing But Strategic
-- inventory and fulfillment promise
-- payments and fraud governance
-- CRM and CDP integration
-- store operations support
-- campaign-aware and merchandising workflows
-
-## Recommended Retail Scope Sequence
-
-### Phase 1
-Digital commerce and service foundations:
-- discovery
-- purchase support
-- order tracking
-- returns
-- loyalty
-
-### Phase 2
-Enterprise retail operating model:
-- fulfillment promise
-- customer care operations
-- promotion and campaign governance
-- experiment operations
-
-### Phase 3
-Omnichannel control plane:
+It does not yet deeply serve:
 - store operations
-- cross-channel journeys
-- advanced approval and exception handling
-- brand and region operating models
+- supply chain operations
+- payments and fraud teams
 
-## Architectural Implication
+## Current Capability Heat Map
 
-To fulfill the vision of an operating system behind AI-driven commerce, ACOS must be designed to orchestrate across the retail capability map rather than embed all business logic inside itself.
+### Strongest Areas
 
-That means:
-- deterministic integration with systems of record
-- workflow and policy orchestration in ACOS
-- clear operator control over execution and exceptions
+- governed workflow operations
+- service and post-purchase retail demos
+- connector-backed order and CRM context
+- channel onboarding and dispatch
+- run persistence, replay, and operator visibility
+
+### Emerging Areas
+
+- shopper discovery and purchase assistance
+- agent and skill registry maturity
+- environment-aware promotion governance
+- analytics and experiment surfaces
+
+### Still Early Or Missing
+
+- inventory and fulfillment promise integrations
+- payment and fraud workflows
+- richer CRM/CDP synchronization
+- regional or brand-specific operating models
+- full omnichannel production hardening
+
+## Recommended Interpretation Of Current Scope
+
+The most accurate reading of the code today is:
+
+ACOS already provides a real retail service-operations slice, especially for order support and governed workflow operations, while discovery, purchase, and broader omnichannel capabilities are present but less mature.
+
+## Near-Term Capability Direction
+
+The most natural next steps from the current code are:
+- deepen the order-support and service slice into a more complete live operational workflow
+- expand workflow graph validation and policy enforcement
+- make agent, skill, and connector registry behavior more production-grade
+- extend retail coverage into richer fulfillment, returns, and loyalty operations

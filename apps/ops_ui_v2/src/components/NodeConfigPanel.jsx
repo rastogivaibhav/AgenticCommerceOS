@@ -1,110 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Database, Key, Settings2, PlayCircle, StopCircle, Cpu, Users } from 'lucide-react';
-import { apiFetch } from '../api/client';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Bot,
+  GitBranch,
+  MessageSquare,
+  Save,
+  Settings2,
+  ShoppingBag,
+  UserRound,
+  X,
+} from 'lucide-react';
+import { listAgents } from '../api/agentsAPI';
+import { getConnectorBindings } from '../api/opsAPI';
 
-function useAgents() {
-  const [agents, setAgents] = useState([]);
-  useEffect(() => {
-    apiFetch('/agents')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.agents) setAgents(d.agents); })
-      .catch(() => {});
-  }, []);
-  return agents;
-}
+const inputStyle = {
+  width: '100%',
+  padding: 9,
+  background: '#1f2937',
+  border: '1px solid #374151',
+  borderRadius: 6,
+  color: '#fff',
+  fontSize: 12,
+  boxSizing: 'border-box',
+};
 
-function useSkills() {
-  const [skills, setSkills] = useState([]);
-  useEffect(() => {
-    apiFetch('/skills')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.skills) setSkills(d.skills); })
-      .catch(() => {});
-  }, []);
-  return skills;
-}
+const labelStyle = {
+  display: 'block',
+  fontSize: 11,
+  color: '#9ca3af',
+  marginBottom: 5,
+  textTransform: 'uppercase',
+  letterSpacing: 0.4,
+};
 
-// ─── SHARED FORM CONTROLS ─────────────────────────────────────────────────────
-const inputStyle = { width: '100%', padding: '9px', background: '#1f2937', border: '1px solid #374151', borderRadius: '6px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' };
-const labelStyle = { display: 'block', fontSize: '11px', color: '#9ca3af', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.4px' };
-const sectionStyle = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', padding: '14px', borderRadius: '8px' };
+const sectionStyle = {
+  background: 'rgba(255,255,255,0.03)',
+  border: '1px solid rgba(255,255,255,0.07)',
+  padding: 14,
+  borderRadius: 8,
+};
+
+const CONNECTOR_ACTIONS = {
+  shopify: ['get_order', 'get_customer', 'get_product', 'create_return_intent'],
+  salesforce: ['get_contact', 'get_case', 'create_case', 'update_case'],
+  whatsapp: ['inbound_message_trigger', 'send_message', 'send_template_message', 'handoff_tag'],
+  commerce: ['lookup_policy', 'manual_review', 'create_note'],
+};
 
 function Field({ label, children }) {
   return (
-    <div style={{ marginBottom: '14px' }}>
+    <div style={{ marginBottom: 14 }}>
       <label style={labelStyle}>{label}</label>
       {children}
     </div>
   );
 }
 
-// ─── NODE-TYPE PANELS ─────────────────────────────────────────────────────────
-function StartPanel({ data, onChange }) {
+function PanelHeader({ icon, title, color }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14 }}>
+      {icon}
+      <span style={{ color, fontSize: 12, fontWeight: 600 }}>{title}</span>
+    </div>
+  );
+}
+
+function TriggerPanel({ data, onChange, bindings }) {
+  const whatsappBindings = bindings.filter((binding) => binding.connector_type === 'whatsapp');
   return (
     <div style={sectionStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
-        <PlayCircle size={14} color="#22c55e" />
-        <span style={{ color: '#22c55e', fontSize: '12px', fontWeight: 600 }}>Start Configuration</span>
-      </div>
+      <PanelHeader icon={<MessageSquare size={14} color="#8b5cf6" />} title="Trigger Settings" color="#8b5cf6" />
+      <Field label="Channel">
+        <select
+          value={data.channel || 'whatsapp'}
+          onChange={(event) => onChange('channel', event.target.value)}
+          style={inputStyle}
+        >
+          <option value="whatsapp">WhatsApp</option>
+          <option value="api">API</option>
+          <option value="webhook">Webhook</option>
+        </select>
+      </Field>
       <Field label="Trigger Type">
-        <select value={data.triggerType || 'manual'} onChange={e => onChange('triggerType', e.target.value)} style={inputStyle}>
-          <option value="manual">Manual</option>
-          <option value="webhook">Webhook (HTTP)</option>
-          <option value="schedule">Schedule (CRON)</option>
-          <option value="api">API Call</option>
+        <select
+          value={data.triggerType || 'inbound_message'}
+          onChange={(event) => onChange('triggerType', event.target.value)}
+          style={inputStyle}
+        >
+          <option value="inbound_message">Inbound message</option>
+          <option value="manual">Manual test</option>
+          <option value="webhook">Webhook event</option>
         </select>
       </Field>
-      {data.triggerType === 'schedule' && (
-        <Field label="CRON Expression">
-          <input type="text" value={data.cronExpr || ''} onChange={e => onChange('cronExpr', e.target.value)} placeholder="0 9 * * 1-5" style={inputStyle} />
-        </Field>
-      )}
-    </div>
-  );
-}
-
-function EndPanel({ data, onChange }) {
-  return (
-    <div style={sectionStyle}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
-        <StopCircle size={14} color="#ef4444" />
-        <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 600 }}>End Configuration</span>
-      </div>
-      <Field label="Outcome Type">
-        <select value={data.outcomeType || 'success'} onChange={e => onChange('outcomeType', e.target.value)} style={inputStyle}>
-          <option value="success">Success</option>
-          <option value="failure">Failure</option>
-          <option value="timeout">Timeout</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </Field>
-    </div>
-  );
-}
-
-function AgentPanel({ data, onChange, agents, color, title, icon }) {
-  return (
-    <div style={{ ...sectionStyle, borderColor: `${color}30` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
-        {icon}
-        <span style={{ color, fontSize: '12px', fontWeight: 600 }}>{title}</span>
-      </div>
-      <Field label="Bind Agent">
-        <select value={data.agentId || ''} onChange={e => onChange('agentId', e.target.value)} style={inputStyle}>
-          <option value="">— Select Agent —</option>
-          {agents.map(a => (
-            <option key={a.id || a.agent_id} value={a.id || a.agent_id}>
-              {a.name || a.id || a.agent_id}
+      <Field label="Binding">
+        <select
+          value={data.bindingId || ''}
+          onChange={(event) => onChange('bindingId', event.target.value)}
+          style={inputStyle}
+        >
+          <option value="">Select binding</option>
+          {whatsappBindings.map((binding) => (
+            <option key={binding.id} value={binding.id}>
+              {binding.display_name} ({binding.mode})
             </option>
           ))}
         </select>
       </Field>
-      <Field label="System Prompt Override">
+      <Field label="Sample Message">
         <textarea
           rows={3}
-          value={data.systemPrompt || ''}
-          onChange={e => onChange('systemPrompt', e.target.value)}
-          placeholder="Inject localized instructions..."
+          value={data.sampleMessage || ''}
+          onChange={(event) => onChange('sampleMessage', event.target.value)}
           style={{ ...inputStyle, resize: 'vertical' }}
         />
       </Field>
@@ -112,136 +117,324 @@ function AgentPanel({ data, onChange, agents, color, title, icon }) {
   );
 }
 
-function IntegrationPanel({ data, onChange, skills }) {
+function AgentPanel({ data, onChange, agents }) {
   return (
-    <div style={{ ...sectionStyle, borderColor: '#10b98130' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '14px' }}>
-        <Key size={14} color="#10b981" />
-        <span style={{ color: '#10b981', fontSize: '12px', fontWeight: 600 }}>Skill Binding</span>
-      </div>
-      <Field label="Skill / API">
-        <select value={data.skillId || ''} onChange={e => onChange('skillId', e.target.value)} style={inputStyle}>
-          <option value="">— Select Skill —</option>
-          {skills.map(s => (
-            <option key={s.id || s.skill_id} value={s.id || s.skill_id}>
-              {s.name || s.id || s.skill_id}
+    <div style={sectionStyle}>
+      <PanelHeader icon={<Bot size={14} color="#3b82f6" />} title="Agent Binding" color="#3b82f6" />
+      <Field label="Agent">
+        <select
+          value={data.agentId || ''}
+          onChange={(event) => onChange('agentId', event.target.value)}
+          style={inputStyle}
+        >
+          <option value="">Select agent</option>
+          {agents.map((agent) => (
+            <option key={agent.id} value={agent.id}>
+              {agent.name}
             </option>
           ))}
         </select>
       </Field>
-      <Field label="JSON Payload Template">
-        <textarea
-          rows={4}
-          value={data.payloadTemplate || ''}
-          onChange={e => onChange('payloadTemplate', e.target.value)}
-          placeholder={'{"id": "{{input.id}}"}'}
-          style={{ ...inputStyle, fontFamily: 'monospace', color: '#a78bfa', resize: 'vertical' }}
+      <Field label="Role">
+        <input
+          type="text"
+          value={data.role || 'primary_executor'}
+          onChange={(event) => onChange('role', event.target.value)}
+          style={inputStyle}
         />
       </Field>
     </div>
   );
 }
 
-// ─── MAIN PANEL ───────────────────────────────────────────────────────────────
+function ConnectorPanel({ data, onChange, bindings }) {
+  const connectorType = data.connectorType || 'shopify';
+  const filteredBindings = bindings.filter((binding) => binding.connector_type === connectorType);
+  const actions = CONNECTOR_ACTIONS[connectorType] || [];
+
+  return (
+    <div style={sectionStyle}>
+      <PanelHeader icon={<ShoppingBag size={14} color="#10b981" />} title="Connector Step" color="#10b981" />
+      <Field label="Connector">
+        <select
+          value={connectorType}
+          onChange={(event) => onChange('connectorType', event.target.value)}
+          style={inputStyle}
+        >
+          <option value="shopify">Shopify</option>
+          <option value="salesforce">Salesforce</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="commerce">Commerce Ops</option>
+        </select>
+      </Field>
+      <Field label="Binding">
+        <select
+          value={data.bindingId || ''}
+          onChange={(event) => onChange('bindingId', event.target.value)}
+          style={inputStyle}
+        >
+          <option value="">Select binding</option>
+          {filteredBindings.map((binding) => (
+            <option key={binding.id} value={binding.id}>
+              {binding.display_name} ({binding.mode})
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Action">
+        <select
+          value={data.action || actions[0] || ''}
+          onChange={(event) => onChange('action', event.target.value)}
+          style={inputStyle}
+        >
+          {actions.map((action) => (
+            <option key={action} value={action}>
+              {action}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Config JSON">
+        <textarea
+          rows={5}
+          value={JSON.stringify(data.config || {}, null, 2)}
+          onChange={(event) => {
+            try {
+              onChange('config', JSON.parse(event.target.value || '{}'));
+            } catch {
+              onChange('config_raw', event.target.value);
+            }
+          }}
+          style={{ ...inputStyle, fontFamily: 'monospace', resize: 'vertical' }}
+        />
+      </Field>
+    </div>
+  );
+}
+
+function DecisionPanel({ data, onChange }) {
+  return (
+    <div style={sectionStyle}>
+      <PanelHeader icon={<GitBranch size={14} color="#f59e0b" />} title="Decision Routing" color="#f59e0b" />
+      <Field label="Routing Rule">
+        <textarea
+          rows={4}
+          value={data.routingRule || ''}
+          onChange={(event) => onChange('routingRule', event.target.value)}
+          style={{ ...inputStyle, fontFamily: 'monospace', resize: 'vertical' }}
+        />
+      </Field>
+    </div>
+  );
+}
+
+function HumanPanel({ data, onChange, bindings }) {
+  const salesforceBindings = bindings.filter((binding) => binding.connector_type === 'salesforce');
+  return (
+    <div style={sectionStyle}>
+      <PanelHeader icon={<UserRound size={14} color="#ef4444" />} title="Human Escalation" color="#ef4444" />
+      <Field label="Queue">
+        <input
+          type="text"
+          value={data.queue || ''}
+          onChange={(event) => onChange('queue', event.target.value)}
+          style={inputStyle}
+        />
+      </Field>
+      <Field label="Case Binding">
+        <select
+          value={data.bindingId || ''}
+          onChange={(event) => onChange('bindingId', event.target.value)}
+          style={inputStyle}
+        >
+          <option value="">Select binding</option>
+          {salesforceBindings.map((binding) => (
+            <option key={binding.id} value={binding.id}>
+              {binding.display_name} ({binding.mode})
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Escalation Action">
+        <select
+          value={data.action || 'create_case'}
+          onChange={(event) => onChange('action', event.target.value)}
+          style={inputStyle}
+        >
+          <option value="create_case">create_case</option>
+          <option value="update_case">update_case</option>
+        </select>
+      </Field>
+    </div>
+  );
+}
+
+function EndPanel({ data, onChange }) {
+  return (
+    <div style={sectionStyle}>
+      <PanelHeader icon={<Settings2 size={14} color="#22c55e" />} title="Terminal State" color="#22c55e" />
+      <Field label="Outcome">
+        <select
+          value={data.outcomeType || 'success'}
+          onChange={(event) => onChange('outcomeType', event.target.value)}
+          style={inputStyle}
+        >
+          <option value="success">success</option>
+          <option value="escalated">escalated</option>
+          <option value="failure">failure</option>
+        </select>
+      </Field>
+    </div>
+  );
+}
+
 export default function NodeConfigPanel({ node, onClose, onSave }) {
-  const [formData, setFormData] = useState({});
-  const agents = useAgents();
-  const skills = useSkills();
+  const [formData, setFormData] = useState(() => node?.data || {});
+  const [agents, setAgents] = useState([]);
+  const [bindings, setBindings] = useState([]);
 
   useEffect(() => {
-    if (node) setFormData(node.data);
+    let isMounted = true;
+    Promise.all([listAgents(), getConnectorBindings()])
+      .then(([agentPayload, bindingPayload]) => {
+        if (!isMounted) return;
+        setAgents(agentPayload.agents || []);
+        setBindings(bindingPayload.bindings || []);
+      })
+      .catch((error) => {
+        console.error('Failed to load node config dependencies:', error);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const nodeLabel = useMemo(() => {
+    const labelMap = {
+      triggerNode: 'Trigger',
+      connectorNode: 'Connector',
+      agentNode: 'Agent',
+      decisionNode: 'Decision',
+      humanNode: 'Escalation',
+      endNode: 'End',
+    };
+    return labelMap[node?.type] || 'Node';
   }, [node]);
 
   if (!node) return null;
 
-  const handleChange = (key, value) => setFormData(prev => ({ ...prev, [key]: value }));
-
-  const typeLabels = {
-    startNode: 'Start Node', endNode: 'End Node',
-    orchestratorNode: 'Orchestrator', agentNode: 'Agent',
-    subAgentNode: 'Sub-Agent', triggerNode: 'Trigger',
-    integrationNode: 'Integration', logicNode: 'Logic',
+  const handleChange = (key, value) => {
+    setFormData((current) => ({ ...current, [key]: value }));
   };
 
   return (
-    <div style={{
-      width: '300px',
-      background: '#111318',
-      borderLeft: '1px solid #1f2937',
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      boxShadow: '-4px 0 24px rgba(0,0,0,0.5)',
-      position: 'absolute',
-      right: 0, top: 0,
-      zIndex: 10,
-      animation: 'slideInRight 0.15s ease-out',
-    }}>
-      <div style={{ padding: '14px 18px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ margin: 0, color: '#fff', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+    <div
+      style={{
+        width: 320,
+        background: '#111318',
+        borderLeft: '1px solid #1f2937',
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        boxShadow: '-4px 0 24px rgba(0,0,0,0.5)',
+        position: 'absolute',
+        right: 0,
+        top: 0,
+        zIndex: 10,
+      }}
+    >
+      <div
+        style={{
+          padding: '14px 18px',
+          borderBottom: '1px solid #1f2937',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            color: '#fff',
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 7,
+          }}
+        >
           <Settings2 size={14} color="#6b7280" />
-          {typeLabels[node.type] || 'Node Config'}
+          {nodeLabel} Settings
         </h3>
-        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#6b7280', cursor: 'pointer' }}>
+        <button
+          onClick={onClose}
+          style={{ background: 'transparent', border: 'none', color: '#6b7280', cursor: 'pointer' }}
+        >
           <X size={17} />
         </button>
       </div>
 
-      <div style={{ flexGrow: 1, overflowY: 'auto', padding: '16px' }}>
+      <div style={{ flexGrow: 1, overflowY: 'auto', padding: 16 }}>
         <Field label="Node ID">
-          <div style={{ padding: '7px 9px', background: 'rgba(255,255,255,0.03)', border: '1px dashed #374151', borderRadius: '4px', fontFamily: 'monospace', color: '#4b5563', fontSize: '11px' }}>
+          <div
+            style={{
+              padding: '7px 9px',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px dashed #374151',
+              borderRadius: 4,
+              fontFamily: 'monospace',
+              color: '#4b5563',
+              fontSize: 11,
+            }}
+          >
             {node.id}
           </div>
         </Field>
 
         <Field label="Label">
-          <input type="text" value={formData.label || ''} onChange={e => handleChange('label', e.target.value)} style={inputStyle} />
+          <input
+            type="text"
+            value={formData.label || ''}
+            onChange={(event) => handleChange('label', event.target.value)}
+            style={inputStyle}
+          />
         </Field>
 
-        {node.type === 'startNode' && <StartPanel data={formData} onChange={handleChange} />}
-        {node.type === 'endNode' && <EndPanel data={formData} onChange={handleChange} />}
-        {node.type === 'orchestratorNode' && (
-          <AgentPanel data={formData} onChange={handleChange} agents={agents} color="#a855f7" title="Orchestrator Binding" icon={<Cpu size={14} color="#a855f7" />} />
+        {node.type === 'triggerNode' && (
+          <TriggerPanel data={formData} onChange={handleChange} bindings={bindings} />
         )}
         {node.type === 'agentNode' && (
-          <AgentPanel data={formData} onChange={handleChange} agents={agents} color="#3b82f6" title="Agent Binding" icon={<Database size={14} color="#3b82f6" />} />
+          <AgentPanel data={formData} onChange={handleChange} agents={agents} />
         )}
-        {node.type === 'subAgentNode' && (
-          <AgentPanel data={formData} onChange={handleChange} agents={agents} color="#06b6d4" title="Sub-Agent Binding" icon={<Users size={14} color="#06b6d4" />} />
+        {node.type === 'connectorNode' && (
+          <ConnectorPanel data={formData} onChange={handleChange} bindings={bindings} />
         )}
-        {node.type === 'integrationNode' && <IntegrationPanel data={formData} onChange={handleChange} skills={skills} />}
-        {node.type === 'triggerNode' && (
-          <div style={sectionStyle}>
-            <Field label="Trigger Type">
-              <select value={formData.type || 'webhook'} onChange={e => handleChange('type', e.target.value)} style={inputStyle}>
-                <option value="webhook">Webhook</option>
-                <option value="cron">CRON Schedule</option>
-                <option value="manual">Manual</option>
-              </select>
-            </Field>
-          </div>
+        {node.type === 'decisionNode' && (
+          <DecisionPanel data={formData} onChange={handleChange} />
         )}
-        {node.type === 'logicNode' && (
-          <div style={sectionStyle}>
-            <Field label="Logic Type">
-              <select value={formData.logicType || 'switch'} onChange={e => handleChange('logicType', e.target.value)} style={inputStyle}>
-                <option value="switch">Switch / Conditional</option>
-                <option value="code">Custom Code Snippet</option>
-              </select>
-            </Field>
-            {formData.logicType === 'code' && (
-              <Field label="Code">
-                <textarea rows={5} value={formData.code || ''} onChange={e => handleChange('code', e.target.value)} placeholder="return input.score > 0.8;" style={{ ...inputStyle, fontFamily: 'monospace', resize: 'vertical' }} />
-              </Field>
-            )}
-          </div>
+        {node.type === 'humanNode' && (
+          <HumanPanel data={formData} onChange={handleChange} bindings={bindings} />
         )}
+        {node.type === 'endNode' && <EndPanel data={formData} onChange={handleChange} />}
       </div>
 
       <div style={{ padding: '14px 18px', borderTop: '1px solid #1f2937', background: 'rgba(0,0,0,0.2)' }}>
         <button
           onClick={() => onSave(node.id, formData)}
-          style={{ width: '100%', padding: '10px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', fontSize: '12px' }}
+          style={{
+            width: '100%',
+            padding: 10,
+            background: '#3b82f6',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 7,
+            fontSize: 12,
+          }}
         >
           <Save size={14} /> Save Node
         </button>

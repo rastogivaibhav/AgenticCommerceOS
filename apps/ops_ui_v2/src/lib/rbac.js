@@ -53,13 +53,7 @@ function toNormalizedRoleSet(payload) {
 export function getCurrentRoles() {
   const token = localStorage.getItem('ops_token') || '';
   const payload = parseJwtPayload(token);
-  const roles = toNormalizedRoleSet(payload);
-
-  // Local dev fallback keeps current behavior unless an explicit JWT is present.
-  if (roles.size === 0) {
-    roles.add('admin');
-  }
-  return roles;
+  return toNormalizedRoleSet(payload);
 }
 
 export function hasAnyRole(...allowedRoles) {

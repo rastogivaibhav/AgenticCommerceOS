@@ -10,13 +10,17 @@ import logging
 import os
 from typing import Any
 
+import requests
+
 from acosplatform.auth.sanitize import sanitize_user_message
 from integrations.adk.runtime import ADKRuntime, RuntimeTool, ToolContract, ToolContractError
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "gemini-2.0-flash"
-SUPPORTED_RUNTIME_PROVIDERS = ("google_genai", "local_fallback")
+LMSTUDIO_BASE_URL = (os.environ.get("LMSTUDIO_BASE_URL") or "").rstrip("/")
+LMSTUDIO_MODEL = (os.environ.get("LMSTUDIO_MODEL") or "").strip()
+SUPPORTED_RUNTIME_PROVIDERS = ("google_genai", "lmstudio_local", "local_fallback")
 ROADMAP_RUNTIME_PROVIDERS = (
     "crewai",
     "salesforce_agentforce",
@@ -26,6 +30,67 @@ ROADMAP_RUNTIME_PROVIDERS = (
 
 _adk_available = False
 _model = None
+
+
+def _lmstudio_base_candidates() -> list[str]:
+    if LMSTUDIO_BASE_URL:
+        return [LMSTUDIO_BASE_URL]
+    return ["http://localhost:1234/v1", "http://host.docker.internal:1234/v1"]
+
+
+def _probe_lmstudio(timeout_seconds: float = 1.5) -> tuple[bool, str | None]:
+    for base_url in _lmstudio_base_candidates():
+        try:
+            response = requests.get(
+                f"{base_url}/models",
+                timeout=max(float(timeout_seconds), 0.2),
+            )
+            response.raise_for_status()
+            payload = response.json() if response.content else {}
+            data = payload.get("data") if isinstance(payload, dict) else []
+            if isinstance(data, list) and data:
+                candidate = data[0] or {}
+                return True, candidate.get("id") or LMSTUDIO_MODEL or None
+            return True, LMSTUDIO_MODEL or None
+        except Exception:
+            continue
+    return False, None
+
+
+def _lmstudio_generate(prompt: str, *, timeout_seconds: float = 10.0) -> str:
+    available, detected_model = _probe_lmstudio(timeout_seconds=2.0)
+    if not available:
+        raise RuntimeError("LM Studio local server is unavailable")
+
+    model_name = LMSTUDIO_MODEL or detected_model
+    if not model_name:
+        raise RuntimeError("LM Studio local server has no loaded model")
+
+    last_error = None
+    for base_url in _lmstudio_base_candidates():
+        try:
+            response = requests.post(
+                f"{base_url}/chat/completions",
+                json={
+                    "model": model_name,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.2,
+                },
+                timeout=max(float(timeout_seconds), 0.5),
+            )
+            response.raise_for_status()
+            payload = response.json() if response.content else {}
+            choices = payload.get("choices") if isinstance(payload, dict) else []
+            if not isinstance(choices, list) or not choices:
+                raise RuntimeError("LM Studio response did not include choices")
+            message = (choices[0] or {}).get("message") or {}
+            content = message.get("content")
+            if not isinstance(content, str) or not content.strip():
+                raise RuntimeError("LM Studio returned an empty response")
+            return content
+        except Exception as exc:
+            last_error = exc
+    raise RuntimeError(str(last_error) if last_error else "LM Studio local server is unavailable")
 
 
 def _init_adk() -> None:
@@ -72,11 +137,29 @@ def _resolve_provider(
             )
         return "local_fallback", []
 
+    if requested_provider == "lmstudio_local":
+        available, _ = _probe_lmstudio()
+        if available:
+            return "lmstudio_local", []
+        if strict_provider:
+            return (
+                "lmstudio_local",
+                [
+                    "Configured runtime provider 'lmstudio_local' is unavailable. "
+                    "Start LM Studio local server and load a model before retrying."
+                ],
+            )
+        return "local_fallback", []
+
     return ("google_genai", []) if _adk_available and _model else ("local_fallback", [])
 
 
 def _should_use_genai(ctx: dict[str, Any]) -> bool:
     return ctx.get("__runtime_provider") == "google_genai" and _adk_available and _model is not None
+
+
+def _should_use_lmstudio(ctx: dict[str, Any]) -> bool:
+    return ctx.get("__runtime_provider") == "lmstudio_local"
 
 
 def _skill_recommendation(ctx: dict[str, Any], products: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -103,6 +186,22 @@ def _skill_recommendation(ctx: dict[str, Any], products: list[dict[str, Any]] | 
             }
         except Exception as exc:
             logger.warning(f"ADK recommendation skill failed: {exc}")
+
+    if _should_use_lmstudio(ctx):
+        try:
+            prompt = (
+                f"You are a shopping assistant. The customer says: '{message}'. "
+                f"Their preferences: {json.dumps(prefs)}. "
+                f"Available products: {json.dumps((products or [])[:3])}. "
+                "Give a brief, friendly recommendation in 2-3 sentences. "
+                "Mention specific product names and why they are a good fit."
+            )
+            return {
+                "recommendation_text": _lmstudio_generate(prompt),
+                "source": "lmstudio_local",
+            }
+        except Exception as exc:
+            logger.warning(f"LM Studio recommendation skill failed: {exc}")
 
     if products:
         top = products[0]
@@ -144,6 +243,20 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
         except Exception as exc:
             logger.warning(f"ADK explanation skill failed: {exc}")
 
+    if _should_use_lmstudio(ctx):
+        try:
+            prompt = (
+                f"You are a shopping assistant. The customer asked: '{message}'. "
+                f"Here is result context: {json.dumps(result or {}, default=str)[:500]}. "
+                "Provide a concise explanation in 2-3 sentences."
+            )
+            return {
+                "explanation_text": _lmstudio_generate(prompt),
+                "source": "lmstudio_local",
+            }
+        except Exception as exc:
+            logger.warning(f"LM Studio explanation skill failed: {exc}")
+
     return {
         "explanation_text": (
             "Results are personalized from your request, with active promotions and loyalty effects applied."
@@ -153,11 +266,15 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
 
 
 def _build_runtime(journey_type: str, provider: str) -> ADKRuntime:
+    model_name = DEFAULT_MODEL
+    if provider == "lmstudio_local":
+        _, detected_model = _probe_lmstudio()
+        model_name = LMSTUDIO_MODEL or detected_model or "lmstudio-local"
     runtime = ADKRuntime(
         journey_type=journey_type,
         provider=provider,
         contract_version="adk-tool-v1",
-        model_name=DEFAULT_MODEL,
+        model_name=model_name,
     )
 
     runtime.register_tool(
@@ -230,6 +347,7 @@ def run_adk(
         "journey_type": journey_type,
         "skills_used": used_tools,
         "runtime": runtime.metadata(),
+        "tool_trace": list(ctx.get("tool_trace") or []),
     }
     if "recommendation" in outputs:
         result["recommendation"] = outputs["recommendation"]
@@ -243,10 +361,14 @@ def run_adk(
 
 
 def get_runtime_capabilities() -> dict[str, Any]:
+    lmstudio_enabled, lmstudio_model = _probe_lmstudio()
     return {
         "supported_providers": list(SUPPORTED_RUNTIME_PROVIDERS),
         "roadmap_providers": list(ROADMAP_RUNTIME_PROVIDERS),
         "default_model": DEFAULT_MODEL,
-        "active_provider": "google_genai" if _adk_available else "local_fallback",
+        "active_provider": "google_genai" if _adk_available else ("lmstudio_local" if lmstudio_enabled else "local_fallback"),
         "genai_enabled": _adk_available,
+        "lmstudio_enabled": lmstudio_enabled,
+        "lmstudio_base_url": LMSTUDIO_BASE_URL or _lmstudio_base_candidates()[0],
+        "lmstudio_model": LMSTUDIO_MODEL or lmstudio_model,
     }

@@ -1,341 +1,410 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Clock, Hash, Wrench } from 'lucide-react';
-import { apiFetch } from '../api/client';
+import {
+  Activity,
+  ChevronRight,
+  Clock3,
+  FileCode2,
+  Gauge,
+  GitBranch,
+  PlayCircle,
+  Plus,
+  ShieldCheck,
+  Wrench,
+} from 'lucide-react';
+import { createAgent, getAgent, listAgents, testAgent } from '../api/agentsAPI';
+import { getConnectorBindings } from '../api/opsAPI';
 import { canOperate, isAnalyst } from '../lib/rbac';
 import './Lists.css';
 
-const STATUS_CLASSES = {
-  healthy: 'bg-success-container text-on-success-container',
-  degraded: 'bg-warning-container text-on-warning-container',
-  disabled: 'bg-warning-container text-on-warning-container',
-  error: 'bg-error-container text-on-error-container',
+const STATUS_TONE = {
+  healthy: 'healthy',
+  degraded: 'degraded',
+  disabled: 'degraded',
+  sandbox: 'degraded',
 };
 
-const DEMO_AGENTS = [
-  {
-    id: 'ag_marketing',
-    name: 'Campaign Manager',
-    subsystem: 'Marketing',
-    status: 'healthy',
-    calls: '12.4k',
-    uptime: '99.9%',
-    skills: ['sk_email_gen'],
-    bound_skills: ['sk_email_gen'],
-    grade: 'A+',
-    latency: '110ms',
-    runtime_provider: 'google_genai',
-    model_name: 'gemini-2.0-flash',
-    agent_version: 'v1',
-    history: [],
-  },
-  {
-    id: 'ag_returns',
-    name: 'Returns Processor',
-    subsystem: 'Reverse Logistics',
-    status: 'healthy',
-    calls: '1.2k',
-    uptime: '99.8%',
-    skills: ['sk_process_refund'],
-    bound_skills: ['sk_process_refund'],
-    grade: 'A',
-    latency: '310ms',
-    runtime_provider: 'local_fallback',
-    model_name: 'gemini-2.0-flash',
-    agent_version: 'v1',
-    history: [],
-  },
-];
+const TABS = ['Overview', 'Code', 'Scorecard', 'Usage'];
 
-const DEFAULT_RUNTIME_CAPABILITIES = {
-  supported_providers: ['google_genai', 'local_fallback'],
-  roadmap_providers: ['crewai', 'salesforce_agentforce', 'servicenow_agent', 'openai_agent'],
-  active_provider: 'local_fallback',
-  default_model: 'gemini-2.0-flash',
-};
+function ModeBadge({ mode }) {
+  const isLive = mode === 'live';
+  return (
+    <span
+      className={`status-badge ${isLive ? 'healthy' : 'degraded'}`}
+      style={{ textTransform: 'none' }}
+    >
+      {isLive ? 'Live data' : 'Demo data'}
+    </span>
+  );
+}
 
-const PROVIDER_LABELS = {
-  google_genai: 'Google GenAI',
-  local_fallback: 'Local Fallback',
-  crewai: 'CrewAI',
-  salesforce_agentforce: 'Salesforce Agentforce',
-  servicenow_agent: 'ServiceNow Agent',
-  openai_agent: 'OpenAI Agent',
-};
+function StatCard({ icon: Icon, label, value }) {
+  const IconComponent = Icon;
+  return (
+    <div
+      style={{
+        border: '1px solid var(--md-outline-variant)',
+        borderRadius: 16,
+        padding: 16,
+        background: 'var(--md-surface-variant)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          color: 'var(--md-on-surface-variant)',
+          fontSize: 12,
+          marginBottom: 8,
+          textTransform: 'uppercase',
+          letterSpacing: 0.4,
+        }}
+      >
+        <IconComponent size={14} />
+        {label}
+      </div>
+      <div style={{ color: 'var(--md-on-surface)', fontSize: 16, fontWeight: 600 }}>{value}</div>
+    </div>
+  );
+}
 
 export default function Agents() {
   const allowMutations = canOperate();
   const analystMode = isAnalyst();
-  const [agents, setAgents] = useState(DEMO_AGENTS);
-  const [runtimeCapabilities, setRuntimeCapabilities] = useState(DEFAULT_RUNTIME_CAPABILITIES);
+  const [agents, setAgents] = useState([]);
+  const [mode, setMode] = useState('demo');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAgentId, setSelectedAgentId] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showDeployModal, setShowDeployModal] = useState(false);
-  const [skillToBind, setSkillToBind] = useState('');
+  const [selectedAgent, setSelectedAgent] = useState(null);
+  const [scorecard, setScorecard] = useState(null);
+  const [activeTab, setActiveTab] = useState('Overview');
+  const [testMessage, setTestMessage] = useState('Where is my order ORD-1001?');
   const [testResult, setTestResult] = useState(null);
-  const [testMessage, setTestMessage] = useState('Check order status for ORD-1001');
-  const [form, setForm] = useState({
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState(null);
+  const [connectorBindings, setConnectorBindings] = useState([]);
+  const [createForm, setCreateForm] = useState({
     name: '',
-    subsystem: 'Marketing',
-    type: 'Task',
-    runtimeProvider: DEFAULT_RUNTIME_CAPABILITIES.active_provider,
-    modelName: DEFAULT_RUNTIME_CAPABILITIES.default_model,
-    agentVersion: 'v1',
-    deploymentCycle: 'Immediate',
+    purpose: '',
+    subsystem: 'Customer Service',
+    runtime_provider: 'local_fallback',
+    model_name: 'gemini-2.0-flash',
+    agent_version: 'v1',
+    system_prompt: '',
+    connector_bindings: [],
   });
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [isBindingSkill, setIsBindingSkill] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [apiError, setApiError] = useState(null);
 
-  const supportedProviderOptions = useMemo(() => runtimeCapabilities.supported_providers || [], [runtimeCapabilities]);
-  const roadmapProviderOptions = useMemo(() => runtimeCapabilities.roadmap_providers || [], [runtimeCapabilities]);
-
-  const fetchAgents = () => {
+  useEffect(() => {
+    let isMounted = true;
     setIsLoading(true);
-    apiFetch('/api/v1/agents')
-      .then((res) => res.json())
-      .then((data) => {
-        setAgents(data.agents || []);
-        if (data.runtime_capabilities) {
-          setRuntimeCapabilities(data.runtime_capabilities);
-        }
+    listAgents()
+      .then((payload) => {
+        if (!isMounted) return;
+        setAgents(payload.agents || []);
+        setMode(payload.mode || 'demo');
+        setSelectedAgentId((current) => current || payload.agents?.[0]?.id || null);
         setApiError(null);
       })
-      .catch((err) => {
-        console.error('Failed to load agents:', err);
-        setApiError(err.message);
+      .catch((error) => {
+        if (!isMounted) return;
+        setApiError(error.message);
       })
-      .finally(() => setIsLoading(false));
-  };
-
-  useEffect(() => {
-    fetchAgents();
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleDeploy = async (e) => {
-    e.preventDefault();
-    if (!allowMutations) return;
-    setIsDeploying(true);
-    const newId = `ag_${form.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
-    const newAgent = {
-      id: newId,
-      name: form.name,
-      subsystem: form.subsystem,
-      status: form.deploymentCycle === 'Immediate' ? 'healthy' : 'staged',
-      calls: '0',
-      uptime: '100%',
-      skills: [],
-      bound_skills: [],
-      grade: '-',
-      latency: '0ms',
-      history: [],
-      runtime_provider: form.runtimeProvider,
-      model_name: form.modelName || runtimeCapabilities.default_model || 'gemini-2.0-flash',
-      agent_version: form.agentVersion || 'v1',
-      type: form.type,
+  useEffect(() => {
+    let isMounted = true;
+    getConnectorBindings()
+      .then((payload) => {
+        if (!isMounted) return;
+        setConnectorBindings(payload.bindings || []);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setConnectorBindings([]);
+      });
+    return () => {
+      isMounted = false;
     };
-    try {
-      await apiFetch('/api/v1/agents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAgent),
-      });
-      setShowDeployModal(false);
-      setForm({
-        name: '',
-        subsystem: 'Marketing',
-        type: 'Task',
-        runtimeProvider: runtimeCapabilities.active_provider || supportedProviderOptions[0] || 'local_fallback',
-        modelName: runtimeCapabilities.default_model || 'gemini-2.0-flash',
-        agentVersion: 'v1',
-        deploymentCycle: 'Immediate',
-      });
-      fetchAgents();
-      setSelectedAgentId(newId);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsDeploying(false);
-    }
-  };
+  }, []);
 
-  const handleBindSkill = async () => {
-    if (!allowMutations || !selectedAgent || !skillToBind.trim()) return;
-    setIsBindingSkill(true);
-    try {
-      await apiFetch(`/api/v1/agents/${selectedAgent.id}/bind-skill`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ skill_id: skillToBind.trim() }),
+  useEffect(() => {
+    if (!selectedAgentId) return;
+    let isMounted = true;
+    setIsDetailLoading(true);
+    getAgent(selectedAgentId)
+      .then((payload) => {
+        if (!isMounted) return;
+        setSelectedAgent(payload.agent || null);
+        setScorecard(payload.scorecard || null);
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        setApiError(error.message);
+      })
+      .finally(() => {
+        if (isMounted) setIsDetailLoading(false);
       });
-      setSkillToBind('');
-      fetchAgents();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsBindingSkill(false);
-    }
-  };
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedAgentId]);
 
-  const handleTestRun = async () => {
+  const filteredAgents = useMemo(
+    () =>
+      agents.filter((agent) => {
+        const haystack = [
+          agent.name,
+          agent.subsystem,
+          agent.purpose,
+          agent.runtime_provider,
+          ...(agent.connector_bindings || []),
+        ]
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(searchTerm.toLowerCase());
+      }),
+    [agents, searchTerm],
+  );
+
+  const handleRunTest = async () => {
     if (!selectedAgent || !allowMutations) return;
     setIsTesting(true);
     setTestResult(null);
     try {
-      const response = await apiFetch(`/api/v1/agents/${selectedAgent.id}/test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: testMessage,
-          journey_type: 'post_purchase',
-          tenant_id: 'default',
-          customer_id: 'ops-test-customer',
-        }),
+      const result = await testAgent(selectedAgent.id, {
+        message: testMessage,
+        tenant_id: 'default',
+        customer_id: 'ops-test-customer',
+        journey_type: 'service',
       });
-      const data = await response.json();
-      setTestResult(data);
-      fetchAgents();
-    } catch (err) {
-      console.error(err);
-      setTestResult({ status: 'fail', error: err.message });
+      setTestResult(result);
+      const payload = await getAgent(selectedAgent.id);
+      setSelectedAgent(payload.agent || null);
+      setScorecard(payload.scorecard || null);
+    } catch (error) {
+      setTestResult({ status: 'fail', error: error.message });
     } finally {
       setIsTesting(false);
     }
   };
 
-  const toggleStatus = async () => {
-    if (!selectedAgent || !allowMutations) return;
-    const newStatus = selectedAgent.status === 'degraded' ? 'healthy' : 'degraded';
+  const handleCreateAgent = async (event) => {
+    event.preventDefault();
+    if (!allowMutations) return;
+    const normalizedName = createForm.name.trim();
+    if (!normalizedName) return;
+
+    setIsCreating(true);
+    setCreateError(null);
+    const agentId = `ag_${normalizedName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+
     try {
-      await apiFetch(`/api/v1/agents/${selectedAgent.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+      await createAgent({
+        id: agentId,
+        name: normalizedName,
+        purpose: createForm.purpose.trim(),
+        subsystem: createForm.subsystem,
+        runtime_provider: createForm.runtime_provider,
+        model_name: createForm.model_name,
+        agent_version: createForm.agent_version,
+        status: 'healthy',
+        calls: '0',
+        uptime: '100%',
+        grade: 'A+',
+        latency: '0ms',
+        bound_skills: [],
+        skills: [],
+        connector_bindings: createForm.connector_bindings,
+        used_by_workflow_ids: [],
+        code: {
+          system_prompt: createForm.system_prompt.trim(),
+          tool_bindings: [],
+          runtime: {
+            provider: createForm.runtime_provider,
+            model: createForm.model_name,
+          },
+        },
+        history: [],
       });
-      fetchAgents();
-    } catch (err) {
-      console.error(err);
+      const payload = await listAgents();
+      setAgents(payload.agents || []);
+      setMode(payload.mode || 'demo');
+      setSelectedAgentId(agentId);
+      setActiveTab('Overview');
+      setShowCreateModal(false);
+      setCreateForm({
+        name: '',
+        purpose: '',
+        subsystem: 'Customer Service',
+        runtime_provider: 'local_fallback',
+        model_name: 'gemini-2.0-flash',
+        agent_version: 'v1',
+        system_prompt: '',
+        connector_bindings: [],
+      });
+    } catch (error) {
+      setCreateError(error.message);
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  const filtered = agents.filter(
-    (a) =>
-      a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.subsystem.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+  const toggleConnectorBinding = (bindingId) => {
+    setCreateForm((current) => {
+      const next = new Set(current.connector_bindings || []);
+      if (next.has(bindingId)) {
+        next.delete(bindingId);
+      } else {
+        next.add(bindingId);
+      }
+      return { ...current, connector_bindings: Array.from(next) };
+    });
+  };
 
   return (
     <div className="page-container list-view">
-      {showDeployModal && (
+      {showCreateModal && (
         <div className="modal-overlay">
-          <div className="modal-card" style={{ maxWidth: 680 }}>
-            <h2>Create New Agent</h2>
-            <p className="muted">Configure and provision an execution-ready commerce agent.</p>
-            <form onSubmit={handleDeploy} className="modal-form">
+          <div className="modal-card" style={{ maxWidth: 620 }}>
+            <h2>Create Agent</h2>
+            <p className="muted">
+              Register a runtime agent that can be bound into workflows and tested from the ops plane.
+            </p>
+            {createError && (
+              <p className="text-on-error-container" style={{ marginTop: 12 }}>
+                {createError}
+              </p>
+            )}
+            <form onSubmit={handleCreateAgent} className="modal-form">
               <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <label>
                   Agent Name
                   <input
                     required
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g. VIP Concierge"
+                    value={createForm.name}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, name: event.target.value }))}
+                    placeholder="Order Exception Agent"
                   />
                 </label>
                 <label>
-                  Subsystem Wrapper
-                  <select value={form.subsystem} onChange={(e) => setForm({ ...form, subsystem: e.target.value })}>
-                    <option value="Marketing">Marketing</option>
+                  Purpose
+                  <input
+                    value={createForm.purpose}
+                    onChange={(event) => setCreateForm((current) => ({ ...current, purpose: event.target.value }))}
+                    placeholder="Resolve order exceptions and governed escalations."
+                  />
+                </label>
+                <label>
+                  Subsystem
+                  <select
+                    value={createForm.subsystem}
+                    onChange={(event) =>
+                      setCreateForm((current) => ({ ...current, subsystem: event.target.value }))
+                    }
+                  >
                     <option value="Customer Service">Customer Service</option>
                     <option value="Fulfillment">Fulfillment</option>
+                    <option value="Marketing">Marketing</option>
                     <option value="Reverse Logistics">Reverse Logistics</option>
                   </select>
                 </label>
-
-                <label>
-                  Execution Mode
-                  <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-                    <option value="Task">Task Execution</option>
-                    <option value="Conversational">Conversational</option>
-                    <option value="Orchestrator">Orchestrator</option>
-                  </select>
-                </label>
-
                 <label>
                   Runtime Provider
                   <select
-                    value={form.runtimeProvider}
-                    onChange={(e) => setForm({ ...form, runtimeProvider: e.target.value })}
+                    value={createForm.runtime_provider}
+                    onChange={(event) =>
+                      setCreateForm((current) => ({ ...current, runtime_provider: event.target.value }))
+                    }
                   >
-                    <optgroup label="Supported Now">
-                      {supportedProviderOptions.map((provider) => (
-                        <option key={provider} value={provider}>
-                          {PROVIDER_LABELS[provider] || provider}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Roadmap (Not Yet Supported)">
-                      {roadmapProviderOptions.map((provider) => (
-                        <option key={provider} value={provider} disabled>
-                          {PROVIDER_LABELS[provider] || provider}
-                        </option>
-                      ))}
-                    </optgroup>
+                    <option value="local_fallback">local_fallback</option>
+                    <option value="lmstudio_local">lmstudio_local</option>
+                    <option value="google_genai">google_genai</option>
                   </select>
                 </label>
-
                 <label>
-                  Model Name
+                  Model
                   <input
-                    value={form.modelName}
-                    onChange={(e) => setForm({ ...form, modelName: e.target.value })}
+                    value={createForm.model_name}
+                    onChange={(event) =>
+                      setCreateForm((current) => ({ ...current, model_name: event.target.value }))
+                    }
                     placeholder="gemini-2.0-flash"
                   />
                 </label>
                 <label>
                   Agent Version
                   <input
-                    value={form.agentVersion}
-                    onChange={(e) => setForm({ ...form, agentVersion: e.target.value })}
+                    value={createForm.agent_version}
+                    onChange={(event) =>
+                      setCreateForm((current) => ({ ...current, agent_version: event.target.value }))
+                    }
                     placeholder="v1"
                   />
                 </label>
-              </div>
-
-              <div className="lifecycle-options" style={{ marginTop: 24 }}>
-                <h4 style={{ margin: '0 0 12px 0' }} className="text-on-surface">
-                  Deployment Lifecycle Timing
-                </h4>
-                <div style={{ display: 'flex', gap: 24 }}>
-                  <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      value="Immediate"
-                      checked={form.deploymentCycle === 'Immediate'}
-                      onChange={(e) => setForm({ ...form, deploymentCycle: e.target.value })}
-                    />
-                    Deploy Immediately (Active)
-                  </label>
-                  <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                    <input
-                      type="radio"
-                      value="Next Cycle"
-                      checked={form.deploymentCycle === 'Next Cycle'}
-                      onChange={(e) => setForm({ ...form, deploymentCycle: e.target.value })}
-                    />
-                    Stage for Next Release Cycle
-                  </label>
+                <label style={{ gridColumn: '1 / -1' }}>
+                  System Prompt
+                  <textarea
+                    rows="4"
+                    value={createForm.system_prompt}
+                    onChange={(event) =>
+                      setCreateForm((current) => ({ ...current, system_prompt: event.target.value }))
+                    }
+                    placeholder="Use Shopify and Salesforce evidence before answering or escalating."
+                  />
+                </label>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div style={{ marginBottom: 8, color: 'var(--md-on-surface)', fontSize: 14 }}>
+                    Connector Bindings
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+                    {connectorBindings.map((binding) => (
+                      <label
+                        key={binding.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: 10,
+                          border: '1px solid var(--md-outline-variant)',
+                          borderRadius: 12,
+                          background: 'var(--md-surface-variant)',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={(createForm.connector_bindings || []).includes(binding.id)}
+                          onChange={() => toggleConnectorBinding(binding.id)}
+                        />
+                        <span>
+                          <strong>{binding.display_name}</strong>
+                          <br />
+                          <span className="secondary-cell">{binding.connector_type}</span>
+                        </span>
+                      </label>
+                    ))}
+                    {connectorBindings.length === 0 && (
+                      <div className="secondary-cell">No connector bindings available.</div>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              <div className="modal-actions" style={{ marginTop: 32 }}>
-                <button type="button" className="secondary-button" onClick={() => setShowDeployModal(false)}>
-                  Cancel Drop
+              <div className="modal-actions" style={{ marginTop: 24 }}>
+                <button type="button" className="secondary-button" onClick={() => setShowCreateModal(false)}>
+                  Cancel
                 </button>
-                <button type="submit" className="primary-button" disabled={isDeploying || !form.name.trim()}>
-                  {isDeploying ? 'Deploying...' : form.deploymentCycle === 'Immediate' ? 'Deploy Now' : 'Stage Agent'}
+                <button type="submit" className="primary-button" disabled={isCreating || !createForm.name.trim()}>
+                  {isCreating ? 'Creating...' : 'Create Agent'}
                 </button>
               </div>
             </form>
@@ -345,28 +414,26 @@ export default function Agents() {
 
       <header className="page-header sticky-header">
         <div>
-          <div className="eyebrow">ACOS Ecosystem</div>
-          <h1>System Agents</h1>
-          <p className="muted">Monitor and manage the autonomous agents across diverse operational domains.</p>
-          {analystMode && (
-            <p className="muted" style={{ marginTop: 8 }}>
-              Analyst role: read-only mode is active on this screen.
-            </p>
-          )}
+          <div className="eyebrow">Workflow Runtime Inventory</div>
+          <h1>Agent Registry</h1>
+          <p className="muted">
+            Inspect the agents behind live workflows, review executable configuration, and verify
+            scorecards before promotion.
+          </p>
+          <div style={{ display: 'flex', gap: 12, marginTop: 12, alignItems: 'center' }}>
+            <ModeBadge mode={mode} />
+            {analystMode && <span className="muted">Analyst role: verification is read-only.</span>}
+          </div>
         </div>
         <div className="header-actions">
           <input
             className="search-input"
-            placeholder="Search agents..."
+            placeholder="Search agents, runtimes, connectors..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(event) => setSearchTerm(event.target.value)}
           />
-          <button
-            className="primary-button"
-            onClick={() => setShowDeployModal(true)}
-            disabled={!allowMutations}
-            title={!allowMutations ? 'Read-only for analyst role' : ''}
-          >
+          <button className="primary-button" disabled={!allowMutations} onClick={() => setShowCreateModal(true)}>
+            <Plus size={16} style={{ marginRight: 6 }} />
             Create Agent
           </button>
         </div>
@@ -380,57 +447,54 @@ export default function Agents() {
                 <thead>
                   <tr>
                     <th>Agent</th>
-                    <th>Subsystem</th>
+                    <th>Runtime</th>
+                    <th>Connectors</th>
                     <th>Status</th>
-                    <th>Vol.</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                      <tr key={`skel-${i}`}>
+                    Array.from({ length: 4 }).map((_, index) => (
+                      <tr key={`agent-skeleton-${index}`}>
                         <td colSpan="5">
-                          <div className="skeleton-row" style={{ width: '100%', height: '40px' }}></div>
+                          <div className="skeleton-row" style={{ width: '100%', height: 40 }} />
                         </td>
                       </tr>
                     ))
-                  ) : filtered.length === 0 ? (
+                  ) : filteredAgents.length === 0 ? (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', padding: '32px' }} className="muted">
-                        {apiError ? (
-                          <span className="text-on-error-container">
-                            API unavailable - check that the Ops API is running on port 8081
-                          </span>
-                        ) : (
-                          'No agents found.'
-                        )}
+                      <td colSpan="5" style={{ textAlign: 'center', padding: 32 }} className="muted">
+                        {apiError || 'No agents found.'}
                       </td>
                     </tr>
                   ) : (
-                    filtered.map((agent) => (
+                    filteredAgents.map((agent) => (
                       <tr
                         key={agent.id}
                         className={`interactive-row ${selectedAgentId === agent.id ? 'selected-row' : ''}`}
-                        onClick={() => setSelectedAgentId(agent.id)}
+                        onClick={() => {
+                          setSelectedAgentId(agent.id);
+                          setActiveTab('Overview');
+                        }}
                       >
                         <td>
                           <div className="primary-cell">{agent.name}</div>
+                          <div className="secondary-cell">{agent.purpose}</div>
                           <div className="secondary-cell mono">{agent.id}</div>
                         </td>
                         <td>
-                          <span className="tag-subsystem">{agent.subsystem}</span>
+                          <div className="primary-cell" style={{ fontSize: 14 }}>
+                            {agent.runtime_provider}
+                          </div>
+                          <div className="secondary-cell">{agent.model_name}</div>
                         </td>
+                        <td className="metric-cell">{(agent.connector_bindings || []).join(', ') || 'None'}</td>
                         <td>
-                          <span
-                            className={`${
-                              STATUS_CLASSES[agent.status?.toLowerCase()] ?? 'bg-surface-variant text-on-surface-variant'
-                            } text-xs px-3 py-1 rounded-full font-medium`}
-                          >
+                          <span className={`status-badge ${STATUS_TONE[agent.status] || 'degraded'}`}>
                             {agent.status}
                           </span>
                         </td>
-                        <td className="metric-cell">{agent.calls}</td>
                         <td>
                           <ChevronRight size={16} className="text-muted" />
                         </td>
@@ -448,142 +512,184 @@ export default function Agents() {
             <div className="editor-widget glass-card">
               <div className="widget-header">
                 <div>
-                  <div className="eyebrow">Agent Editor</div>
+                  <div className="eyebrow">Agent Detail</div>
                   <h2 className="text-on-surface">{selectedAgent.name}</h2>
+                  <p className="muted" style={{ marginTop: 6 }}>{selectedAgent.purpose}</p>
                 </div>
                 <button className="close-btn" onClick={() => setSelectedAgentId(null)}>
                   x
                 </button>
               </div>
 
-              <div className="widget-content">
-                <div className="report-card">
-                  <div className="rc-metric">
-                    <span className="rc-label">Grade</span>
-                    <span className={`rc-value grade-${selectedAgent.grade?.[0] || 'pending'}`}>{selectedAgent.grade}</span>
-                  </div>
-                  <div className="rc-metric">
-                    <span className="rc-label">Avg Latency</span>
-                    <span className="rc-value">{selectedAgent.latency}</span>
-                  </div>
-                  <div className="rc-metric">
-                    <span className="rc-label">Uptime</span>
-                    <span className="rc-value">{selectedAgent.uptime}</span>
-                  </div>
-                </div>
-
-                <div className="widget-section">
-                  <h3 className="text-on-surface">
-                    <Wrench size={16} /> Runtime
-                  </h3>
-                  <div className="tag-cloud">
-                    <span className="skill-tag">{selectedAgent.runtime_provider || 'local_fallback'}</span>
-                    <span className="skill-tag">{selectedAgent.model_name || 'gemini-2.0-flash'}</span>
-                    <span className="skill-tag">{selectedAgent.agent_version || 'v1'}</span>
-                  </div>
-                </div>
-
-                <div className="widget-section">
-                  <h3 className="text-on-surface">
-                    <Wrench size={16} /> Associated Skills
-                  </h3>
-                  <div className="tag-cloud">
-                    {(selectedAgent.bound_skills || selectedAgent.skills || []).length > 0 ? (
-                      (selectedAgent.bound_skills || selectedAgent.skills || []).map((skill) => (
-                        <span key={skill} className="skill-tag">
-                          {skill}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-muted text-sm">No skills associated</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <input
-                      className="search-input"
-                      style={{ width: '100%' }}
-                      placeholder="skill id (e.g. sk_catalog_search)"
-                      value={skillToBind}
-                      onChange={(e) => setSkillToBind(e.target.value)}
-                    />
-                    <button
-                      className="secondary-button compact"
-                      disabled={!allowMutations || isBindingSkill || !skillToBind.trim()}
-                      onClick={handleBindSkill}
-                    >
-                      {isBindingSkill ? 'Binding...' : 'Bind Skill'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="widget-section">
-                  <h3 className="text-on-surface">Test Run</h3>
-                  <input
-                    className="search-input"
-                    style={{ width: '100%' }}
-                    value={testMessage}
-                    onChange={(e) => setTestMessage(e.target.value)}
-                    placeholder="Test prompt"
-                  />
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  borderBottom: '1px solid var(--md-outline-variant)',
+                  paddingBottom: 12,
+                  marginBottom: 16,
+                  flexWrap: 'wrap',
+                }}
+              >
+                {TABS.map((tab) => (
                   <button
-                    className="secondary-button compact mt-3"
-                    disabled={!allowMutations || isTesting}
-                    onClick={handleTestRun}
+                    key={tab}
+                    type="button"
+                    className={activeTab === tab ? 'primary-button compact' : 'secondary-button compact'}
+                    onClick={() => setActiveTab(tab)}
                   >
-                    {isTesting ? 'Running...' : 'Run Agent Test'}
+                    {tab}
                   </button>
-                  {testResult && (
-                    <div className="lint-panel" style={{ marginTop: 12 }}>
-                      <div className="lint-header">Status: {testResult.status || 'unknown'}</div>
-                      <div className="lint-success">
-                        Provider: {testResult.runtime_provider || '-'} | Model: {testResult.model_name || '-'} | Duration:{' '}
-                        {testResult.duration_ms ?? '-'} ms
-                      </div>
-                      {testResult.error && (
-                        <div className="text-on-error-container text-sm" style={{ marginTop: 8 }}>
-                          {testResult.error}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="widget-section" style={{ flexGrow: 1 }}>
-                  <h3 className="text-on-surface">
-                    <Clock size={16} /> Recent History
-                  </h3>
-                  <div className="history-list">
-                    {selectedAgent.history?.length > 0 ? (
-                      selectedAgent.history.map((run) => (
-                        <div key={run.id} className="history-item">
-                          <div className="h-left">
-                            <Hash size={14} />
-                            <span className="h-id mono">{run.id}</span>
-                          </div>
-                          <div className="h-right">
-                            <span className={`h-outcome ${(run.outcome || '').toLowerCase()}`}>{run.outcome}</span>
-                            <span className="h-time">{run.time}</span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-muted text-sm">No recent runs</div>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
 
-              <div className="widget-footer">
-                <button className="primary-button" disabled={!allowMutations}>
-                  Save Configuration
-                </button>
-                <button
-                  className={`danger-button outline ${selectedAgent.status === 'degraded' ? 'enable-btn' : ''}`}
-                  onClick={toggleStatus}
-                  disabled={!allowMutations}
-                >
-                  {selectedAgent.status === 'degraded' ? 'Enable Agent' : 'Disable Agent'}
-                </button>
+              <div className="widget-content" style={{ gap: 20 }}>
+                {isDetailLoading ? (
+                  <div className="muted">Loading agent detail...</div>
+                ) : (
+                  <>
+                    {activeTab === 'Overview' && (
+                      <>
+                        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                          <StatCard icon={Wrench} label="Runtime" value={`${selectedAgent.runtime_provider} / ${selectedAgent.model_name}`} />
+                          <StatCard icon={Clock3} label="Last Test" value={selectedAgent.last_test_at || 'No evidence'} />
+                          <StatCard icon={GitBranch} label="Version" value={selectedAgent.agent_version || 'v1'} />
+                          <StatCard icon={ShieldCheck} label="Provenance" value={selectedAgent.provenance_mode || mode} />
+                        </div>
+
+                        <div className="widget-section">
+                          <h3 className="text-on-surface">Connector Bindings</h3>
+                          <div className="tag-cloud">
+                            {(selectedAgent.connector_bindings || []).map((binding) => (
+                              <span key={binding} className="skill-tag">{binding}</span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="widget-section">
+                          <h3 className="text-on-surface">Bound Tools</h3>
+                          <div className="tag-cloud">
+                            {(selectedAgent.bound_skills || []).map((skill) => (
+                              <span key={skill} className="skill-tag">{skill}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {activeTab === 'Code' && (
+                      <div className="widget-section" style={{ marginTop: 0 }}>
+                        <h3 className="text-on-surface">
+                          <FileCode2 size={16} /> Executable Definition
+                        </h3>
+                        <pre
+                          style={{
+                            margin: 0,
+                            padding: 16,
+                            borderRadius: 12,
+                            overflowX: 'auto',
+                            background: '#111827',
+                            color: '#d1d5db',
+                            fontSize: 12,
+                            lineHeight: 1.6,
+                            border: '1px solid rgba(255,255,255,0.08)',
+                          }}
+                        >
+                          {JSON.stringify(selectedAgent.code || {}, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+
+                    {activeTab === 'Scorecard' && (
+                      <>
+                        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                          <StatCard
+                            icon={ShieldCheck}
+                            label="Connector Health"
+                            value={scorecard?.connector_health_status || 'unknown'}
+                          />
+                          <StatCard
+                            icon={Activity}
+                            label="Contract Validation"
+                            value={scorecard?.contract_validation_status || 'unknown'}
+                          />
+                          <StatCard
+                            icon={Gauge}
+                            label="Failure Rate"
+                            value={
+                              scorecard?.recent_run_failure_rate === null || scorecard?.recent_run_failure_rate === undefined
+                                ? 'No data'
+                                : `${Math.round(scorecard.recent_run_failure_rate * 100)}%`
+                            }
+                          />
+                          <StatCard
+                            icon={Clock3}
+                            label="Last Success"
+                            value={scorecard?.last_successful_run_at || 'No data'}
+                          />
+                        </div>
+
+                        <div className="widget-section">
+                          <h3 className="text-on-surface">Verification</h3>
+                          <input
+                            className="search-input"
+                            style={{ width: '100%' }}
+                            value={testMessage}
+                            onChange={(event) => setTestMessage(event.target.value)}
+                          />
+                          <button
+                            className="secondary-button compact mt-3"
+                            disabled={!allowMutations || isTesting}
+                            onClick={handleRunTest}
+                          >
+                            <PlayCircle size={14} />
+                            {isTesting ? 'Running test...' : 'Run agent verification'}
+                          </button>
+                          {testResult && (
+                            <div className="lint-panel" style={{ marginTop: 12 }}>
+                              <div className="lint-header">Status: {testResult.status}</div>
+                              <div className="lint-success">
+                                Provider: {testResult.runtime_provider || '-'} | Model:{' '}
+                                {testResult.model_name || '-'} | Duration: {testResult.duration_ms ?? '-'} ms
+                              </div>
+                              {(testResult.system_tools_used || []).length > 0 && (
+                                <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                                  {(testResult.system_tools_used || []).map((step, index) => (
+                                    <div key={`${step.system}-${step.tool}-${index}`} className="secondary-cell">
+                                      {step.system} / {step.tool} | {step.mode} | {step.status}
+                                      {step.note ? ` | ${step.note}` : ''}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {testResult.error && (
+                                <div className="text-on-error-container text-sm" style={{ marginTop: 8 }}>
+                                  {testResult.error}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {activeTab === 'Usage' && (
+                      <div className="widget-section">
+                        <h3 className="text-on-surface">Used by Workflows</h3>
+                        <div className="history-list">
+                          {(selectedAgent.used_by_workflow_ids || []).map((workflowId) => (
+                            <div key={workflowId} className="history-item">
+                              <div className="h-left">
+                                <GitBranch size={14} />
+                                <span className="h-id mono">{workflowId}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -2,479 +2,179 @@
 
 ## Purpose
 
-This document defines the canonical resource model for ACOS.
+This document maps the current ACOS persistence model to the platform concepts used by the APIs and UI.
 
-Its job is to prevent architectural drift as the platform grows from prototype to enterprise operating system.
-Every new slice should align its APIs, persistence, and UI to these core objects.
+It is intentionally grounded in the tables and records that exist today.
 
 ## Modeling Principles
 
-### Explicit Ownership
-Each resource must have a single owning bounded context.
-
 ### Stable Identity
-Each resource needs a stable primary identifier that survives version changes.
+Business objects such as workflows, tenants, agents, skills, channels, and CRM records use stable primary identifiers.
 
-### Versioned Change
-Mutable operational resources should separate stable identity from versioned definition.
+### Version Where It Matters
+Workflow definitions separate stable workflow identity from versioned workflow artifacts and environment promotions.
 
 ### Tenant Awareness
-Resources must declare whether they are:
-- global
-- tenant-scoped
-- environment-scoped
-- run-scoped
+Many resources are tenant-scoped even when the default demo data currently uses `default`.
+
+### Environment Awareness
+Workflow activation and some channel configuration depend on environment.
 
 ### Auditability
-Any mutable resource must support created, updated, approved, and activated history.
+Control-plane mutations should leave audit or promotion history whenever they affect live behavior.
 
-## Core Resource Catalog
+## Current Resource Catalog
 
-## 1. Tenant
+| Resource | Backing table(s) | Scope | Current notes |
+|---|---|---|---|
+| Tenant | `tenants` | Tenant-scoped | Stores currency, tax rate, features, promo rules, and connector routes |
+| Workflow | `workflows` | Tenant-scoped | Stable workflow identity and family |
+| Workflow Version | `workflow_versions` | Workflow-scoped | Stores graph definition, schemas, lifecycle, approval metadata |
+| Workflow Promotion | `workflow_promotions` | Environment-scoped | Tracks active version per target environment |
+| Run | `runs` | Run-scoped | Stores execution input, output, workflow id/version, cost, score, metadata |
+| Event | `events` | Run-scoped | Timestamped execution events tied to a run |
+| Audit Event | `audit_events` | Tenant and environment-aware | Immutable control-plane action record |
+| Context Session | `context_sessions` | Tenant and customer-scoped | Conversation or journey context boundary |
+| Context Event | `context_events` | Session-scoped | Structured context timeline |
+| Context Memory | `context_memory` | Tenant and customer-scoped | Durable keyed memory with freshness and expiry |
+| Governance Decision | `governance_decisions` | Tenant-scoped | Records allow/deny-style policy decisions |
+| Agent | `agents` | Registry-scoped, tenant-aware in usage | Holds purpose, skills, connectors, runtime provider, scorecard, test history |
+| Skill | `skills` | Registry-scoped | Holds code, contracts, execution mode, timeout, retries |
+| Channel Binding | `channel_bindings` | Tenant and environment-scoped | WhatsApp/Telegram channel configuration and route permissions |
+| Channel Sender | `channel_senders` | Binding-scoped | Approved or pending sender identity within a channel |
+| Channel Pairing | `channel_pairings` | Binding-scoped | Scan-to-start or pair-code onboarding record |
+| Demo Route | `demo_routes` | Tenant-aware operational config | Route-to-workflow mapping for retail demo flows |
+| CRM Customer | `crm_customers` | Tenant-scoped | Channel preference, loyalty tier, external IDs, segmentation |
+| CRM Case | `crm_cases` | Customer and tenant-scoped | Service/escalation records |
+| Product | `products` | Catalog-scoped | Basic catalog items for demo and local operations |
+| Order | `orders` | Customer and tenant-scoped | Local order record used by runtime and retail flows |
+| Loyalty Balance | `loyalty_points` | Customer-scoped | Current loyalty score/balance |
+| Experiment | `experiments` | Global or tenant-aware operational data | Stores simple A/B-style experiment records |
 
-### Purpose
-Represents a business boundary for brand, region, operating rules, data isolation, and reporting.
+## Current Resource Details
 
-### Ownership
-Platform and governance.
+### Tenant
 
-### Scope
-Tenant-scoped root object.
-
-### Minimum Fields
-- `tenant_id`
+Current fields emphasize operational configuration:
+- `id`
 - `name`
-- `status`
-- `brand_code`
-- `region`
-- `default_currency`
-- `feature_flags`
-- `data_residency_policy`
-- `created_at`
-- `updated_at`
-
-### Invariants
-- tenant ids are immutable
-- tenant status controls runtime eligibility
-- tenant configuration cannot bypass global security controls
-
-## 2. Environment
-
-### Purpose
-Represents the deployment stage for ACOS resources and runtime behavior.
-
-### Ownership
-Platform engineering.
-
-### Minimum Fields
-- `environment_id`
-- `name`
-- `type` such as `dev`, `test`, `stage`, `prod`
-- `status`
-- `release_policy`
-- `created_at`
-
-### Invariants
-- production requires stricter approval policy than lower environments
-- resources may be promoted across environments without changing logical identity
-
-## 3. User
-
-### Purpose
-Represents a human operator or system principal interacting with ACOS.
-
-### Ownership
-Identity and access management.
-
-### Minimum Fields
-- `user_id`
-- `display_name`
-- `email`
-- `role_assignments`
-- `tenant_access`
-- `status`
-- `created_at`
-
-### Invariants
-- authorization is role- and tenant-aware
-- privileged actions must be attributable to a user or service principal
-
-## 4. Agent
-
-### Purpose
-Represents a named execution role that can operate within workflows using approved skills.
-
-### Ownership
-Agent management bounded context.
-
-### Scope
-Tenant-scoped, environment-promotable.
-
-### Stable Fields
-- `agent_id`
-- `tenant_id`
-- `name`
-- `description`
-- `owner_team`
-- `status`
-- `created_at`
-- `updated_at`
-
-### Versioned Fields
-- `version`
-- `model_profile`
-- `system_behavior_contract`
-- `allowed_skill_ids`
-- `execution_budget`
-- `escalation_rules`
-- `policy_bindings`
-
-### Invariants
-- an active agent version must reference only approved skill versions
-- an agent cannot execute outside tenant and environment policy boundaries
-
-## 5. Skill
-
-### Purpose
-Represents a reusable capability with typed contracts and governed execution semantics.
-
-### Ownership
-Skill registry bounded context.
-
-### Scope
-Global or tenant-scoped depending on type.
-
-### Stable Fields
-- `skill_id`
-- `name`
-- `category`
-- `owner_team`
-- `scope`
-- `status`
-
-### Versioned Fields
-- `version`
-- `input_schema`
-- `output_schema`
-- `execution_mode` such as `deterministic`, `connector`, `ai-assisted`
-- `connector_binding`
-- `timeout_policy`
-- `retry_policy`
-- `risk_classification`
-- `test_fixtures`
-
-### Invariants
-- every skill version must declare typed input and output contracts
-- any side-effecting skill must declare idempotency and compensation expectations
-
-## 6. Connector
-
-### Purpose
-Represents the governed integration contract between ACOS and an external system.
-
-### Ownership
-Integration platform.
-
-### Minimum Fields
-- `connector_id`
-- `name`
-- `system_type`
-- `owner_team`
-- `authentication_mode`
-- `data_classification`
-- `status`
-
-### Versioned Fields
-- `api_contract_version`
-- `endpoint_configuration`
-- `rate_limits`
-- `error_mapping_rules`
-- `observability_contract`
-
-### Invariants
-- no skill may invoke an external system without a declared connector
-- connector contracts must be environment-aware
-
-## 7. Workflow
-
-### Purpose
-Represents a named business process family such as discovery, purchase, service, or post-purchase.
-
-### Ownership
-Journey orchestration.
-
-### Stable Fields
-- `workflow_id`
-- `tenant_id`
-- `name`
-- `workflow_family`
-- `business_owner`
-- `status`
-- `created_at`
-- `updated_at`
-
-### Versioned Fields
-- `version`
-- `entry_conditions`
-- `step_definitions`
-- `agent_bindings`
-- `policy_bindings`
-- `input_schema`
-- `output_schema`
-- `rollback_strategy`
-- `telemetry_contract`
-
-### Invariants
-- a workflow version must be immutable once approved
-- an active workflow version must be associated with a promotion record
-- write steps must define preconditions and postconditions
-
-## 8. Workflow Version
-
-### Purpose
-The deployable versioned artifact of a workflow.
-
-### Ownership
-Journey orchestration.
-
-### Minimum Fields
-- `workflow_version_id`
-- `workflow_id`
-- `version`
-- `lifecycle_state`
-- `change_summary`
-- `validation_status`
-- `approved_by`
-- `approved_at`
-- `artifact_hash`
-
-### Invariants
-- exactly zero or one version is active per workflow per environment
-- version artifacts are immutable after approval
-
-## 9. Policy
-
-### Purpose
-Defines governance constraints for workflows, skills, agents, tenants, and actions.
-
-### Ownership
-Governance and risk.
-
-### Stable Fields
-- `policy_id`
-- `name`
-- `policy_type`
-- `owner_team`
-- `scope`
-- `status`
-
-### Versioned Fields
-- `version`
-- `conditions`
-- `actions`
-- `approval_requirements`
-- `exception_rules`
-- `evidence_requirements`
-
-### Invariants
-- policies must be independently versionable from workflows
-- production policy exceptions must be time-bound and auditable
-
-## 10. Run
-
-### Purpose
-Represents a single execution of a workflow version.
-
-### Ownership
-Journey orchestration runtime.
-
-### Minimum Fields
-- `run_id`
-- `tenant_id`
-- `environment_id`
-- `workflow_id`
-- `workflow_version_id`
-- `entry_channel`
-- `initiator_type`
-- `initiator_id`
-- `status`
-- `started_at`
-- `completed_at`
-- `correlation_id`
-
-### Invariants
-- every run must reference the exact workflow version used
-- terminal statuses must be explicit
-- all run mutations must be append-only in event history
-
-## 11. Run Step
-
-### Purpose
-Represents a single executed step within a run.
-
-### Ownership
-Journey orchestration runtime.
-
-### Minimum Fields
-- `run_step_id`
-- `run_id`
-- `step_name`
-- `step_type`
-- `sequence_number`
-- `agent_id`
-- `skill_id`
-- `status`
-- `started_at`
-- `completed_at`
-- `input_ref`
-- `output_ref`
-
-### Invariants
-- steps must preserve execution order and causality
-- failed steps must declare failure reason and retry state
-
-## 12. Event
-
-### Purpose
-Represents an immutable fact emitted by the system.
-
-### Ownership
-Shared event model.
-
-### Minimum Fields
-- `event_id`
-- `event_type`
-- `resource_type`
-- `resource_id`
-- `tenant_id`
-- `environment_id`
-- `timestamp`
-- `actor_type`
-- `actor_id`
-- `payload`
-
-### Invariants
-- events are immutable
-- sensitive fields must be redacted according to data policy
-
-## 13. Evaluation Result
-
-### Purpose
-Represents the assessment of run quality, safety, cost, and business performance.
-
-### Ownership
-Analytics and evaluation.
-
-### Minimum Fields
-- `evaluation_id`
-- `run_id`
-- `tenant_id`
-- `quality_score`
-- `safety_score`
-- `cost_score`
-- `business_outcome_score`
-- `evaluated_at`
-
-### Invariants
-- evaluation criteria must be versioned
-- evaluation should preserve raw evidence references where allowed
-
-## 14. Deployment Promotion
-
-### Purpose
-Represents the promotion of a workflow, skill, or policy version into an environment.
-
-### Ownership
-Release governance.
-
-### Minimum Fields
-- `promotion_id`
-- `resource_type`
-- `resource_id`
-- `resource_version`
-- `source_environment`
-- `target_environment`
-- `status`
-- `requested_by`
-- `approved_by`
-- `promoted_at`
-
-### Invariants
-- production promotions require explicit approval
-- rollback must reference the superseded version
-
-## 15. Approval Decision
-
-### Purpose
-Represents a governed decision for release, exception, or risky workflow action.
-
-### Ownership
-Governance and risk.
-
-### Minimum Fields
-- `approval_id`
-- `approval_type`
-- `subject_type`
-- `subject_id`
-- `decision`
-- `decided_by`
-- `decided_at`
-- `rationale`
-
-### Invariants
-- approvals must preserve full decision history
-- denials and overrides must be audit logged
-
-## Relationship Model
-
-High-level relationships:
-- one `Tenant` has many `Workflow`, `Agent`, `Run`, and policy bindings
-- one `Workflow` has many `WorkflowVersion`
-- one `WorkflowVersion` references many step definitions
-- step definitions reference `Agent`, `Skill`, and `Policy`
-- one `Run` references one `WorkflowVersion`
-- one `Run` has many `RunStep` and `Event`
-- one `EvaluationResult` belongs to one `Run`
-- one `DeploymentPromotion` targets one versioned resource
-
-## Minimum API Contract Rules
-
-Each top-level resource API should expose:
-- list
-- get detail
-- create draft or initial record
-- update draft where applicable
-- validate
-- approve where applicable
-- activate or promote where applicable
-- audit history
-
-## Minimum Persistence Rules
-
-Each versioned resource should separate:
-- stable identity table
-- version table
-- activation or promotion table
-- audit or event history
-
-## Current Repository Mapping
-
-Current code to future resource mapping:
-- current journey code paths map to future `Workflow` and `WorkflowVersion`
-- current plugin modules map to future `Skill`
-- current tenant config maps to future `Tenant`
-- current runs and events already map partially to future `Run` and `Event`
-- current replay and scoring logic map to future `Run`, `RunStep`, and `EvaluationResult`
-
-## Near-Term Implementation Recommendation
-
-Implement in this order:
-
-1. `Workflow` and `WorkflowVersion`
-2. `DeploymentPromotion`
-3. `Run` linkage to workflow versions
-4. `Agent`
-5. `Skill`
-6. `Policy`
-
-This order best fits the current repository and the control-plane-first strategy.
+- `currency`
+- `tax_rate`
+- `promo_rules`
+- `features`
+- `connector_routes`
+
+This is lighter than a full enterprise tenant model, but it is already enough to drive journey configuration and channel routing.
+
+### Workflow And Workflow Version
+
+This is the most mature versioned resource pair in the codebase.
+
+Key current invariants:
+- workflow identity is stable
+- versions are stored separately
+- promotions decide which version is active in an environment
+- workflow execution stores the chosen workflow id and version on the run
+
+### Run
+
+Runs are the canonical execution record.
+
+Current fields cover:
+- request identity
+- tenant/customer scope
+- journey
+- workflow id/version
+- environment
+- structured input/output
+- cost and score
+- agent and skill metadata
+- creation timestamp
+
+### Agent
+
+Agents are currently treated as first-class operational registry objects.
+
+Current fields include:
+- `id`, `name`, `subsystem`, `purpose`
+- status, uptime, latency, calls
+- `skills`, `bound_skills`
+- `connector_bindings`
+- `used_by_workflow_ids`
+- `runtime_provider`, `model_name`, `agent_version`
+- `scorecard`, `history`, `code`
+- last test metadata
+
+This is already more concrete than the earlier aspirational “agent management” model.
+
+### Skill
+
+Skills are registry records with both UI-facing and execution-facing properties:
+- `id`, `name`, `category`, `type`
+- source `code`
+- `input_schema`, `output_schema`
+- `execution_mode`
+- `timeout_seconds`
+- `retries`
+- lint warnings and usage count
+
+### Channel Model
+
+The channel model is now a distinct part of the resource graph:
+
+- `channel_bindings`
+  - configured identity, environment, allowed routes, notification targets, metadata
+- `channel_senders`
+  - discovered inbound participants with approval state
+- `channel_pairings`
+  - controlled onboarding from QR or start-link flows
+
+This model supports the current WhatsApp and Telegram onboarding and dispatch flows.
+
+### CRM Model
+
+The current CRM model is intentionally small but operationally useful:
+- `crm_customers` links customer identity to phone/email, loyalty tier, channel preference, and external CRM/commerce IDs
+- `crm_cases` stores escalation and service activity
+
+These resources are used directly by the workflow executor and retail routing service.
+
+## Tenant And Environment Boundaries
+
+Current behavior is uneven but clearly trending in the right direction:
+- many resources carry `tenant_id`
+- workflow execution stores `environment_id`
+- workflow promotions are explicitly environment-targeted
+- channel bindings also carry environment
+- row-level security is enabled for context and governance tables
+
+The next step is to make tenant and environment constraints more uniformly enforced across every operational resource.
+
+## Canonical Relationships
+
+The most important live relationships are:
+- tenant -> workflows
+- workflow -> workflow versions
+- workflow version -> workflow promotions
+- workflow execution -> runs
+- run -> events
+- workflow/demo route -> agents, skills, connectors, channels
+- channel binding -> sender -> pairing -> demo route -> workflow
+- customer -> cases, orders, loyalty state, context memory
+
+## Gaps Compared With A Fully Mature Model
+
+Still missing or only partially represented:
+- first-class version objects for agents and skills
+- explicit connector registry tables separate from bindings and probes
+- richer environment objects beyond string identifiers
+- broader immutable artifact metadata such as hashes for all promotable resources
+- generalized approval records beyond workflow promotions and audit events
+
+## Guidance For Future Changes
+
+When adding new platform behavior:
+- prefer extending existing canonical resources before inventing parallel objects
+- keep workflow identity/version/promotion separation intact
+- attach tenant and environment metadata early
+- persist operator-visible state so the UI and API do not depend on hidden runtime-only behavior

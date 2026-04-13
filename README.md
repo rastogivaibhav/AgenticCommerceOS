@@ -1,5 +1,5 @@
 # ACOS Control Plane
-### Agentic commerce runtime + governed operations plane
+### Agentic commerce runtime plus governed operations plane
 
 [![GitHub Repo](https://img.shields.io/badge/GitHub-AgenticCommerceOS-181717?logo=github)](https://github.com/rastogivaibhav/AgenticCommerceOS)
 [![Stars](https://img.shields.io/github/stars/rastogivaibhav/AgenticCommerceOS?style=social)](https://github.com/rastogivaibhav/AgenticCommerceOS/stargazers)
@@ -8,86 +8,128 @@
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB)](https://www.python.org/)
 [![Docker Compose](https://img.shields.io/badge/docker%20compose-ready-2496ED)](./docker-compose.yml)
 
-ACOS is for teams running **AI-powered commerce journeys** in production, where approvals, rollback, tenant controls, and incident response are non-negotiable.
+ACOS is a Python and React platform for running AI-assisted commerce journeys with explicit workflow versions, operator controls, tenant-aware protections, and connector-backed service flows.
 
-## Why This Exists
-If this looked like n8n, that is on us.
+Today the repository ships a working split between:
+- `shopper-api` for customer-facing journey execution
+- `ops-api` for workflow governance, replay, approvals, channels, agents, skills, and analytics
+- `chat-api` for Slack and message-driven workflow execution
+- `ops_ui_v2` for the control-plane UI served by `ops-api`
+- PostgreSQL persistence for runs, workflow versions, audit, context, CRM, channels, agents, and skills
 
-ACOS is **not** a generic automation canvas.
-It is an **agentic commerce system** with:
-- a dedicated shopper runtime (`shopper-api`) for journey execution,
-- and a dedicated ops plane (`ops-api`) for governance and release control.
+## What Ships Today
 
-What ACOS solves:
-- Commerce journeys need domain contracts (`/v1/journey`), not generic node chaining.
-- Promotions need approval + audit + rollback, not ad-hoc scripts.
-- Operators need run-level investigation tied to workflow versions.
-- Multi-tenant traffic needs hard limits to prevent noisy-neighbor failure.
+- Versioned workflow registry with seeded workflow families for `discovery`, `purchase`, `post_purchase`, `service`, and `engagement`
+- Graph-based workflow execution for saved workflows with node types for triggers, connectors, agents, decisions, human handoff, and end states
+- Shopper runtime execution on `POST /v1/journey` with API-key auth, tenant traffic guards, metrics, and workflow resolution
+- Ops-plane controls for create, approve, promote, rollback, archive, test-run, and execute workflow versions
+- Agent and skill inventory with test endpoints and runtime-provider visibility
+- Channel binding, sender approval, pairing, QR/start-link onboarding, and demo route dispatch for WhatsApp and Telegram
+- Connector probes and action execution for Shopify, Salesforce, WhatsApp Cloud API, Telegram Bot API, plus runtime provider selection across Google GenAI, LM Studio, and local fallback
+- Persisted runs, events, audit events, context sessions/memory, governance decisions, CRM customers/cases, products, orders, tenants, agents, skills, and demo routes
+- A React ops UI with pages for Workflows, Agents, Skills, Analytics, Channels, Demo Routes, and Tenants
 
-## What You Can Do With It
-- Execute customer journeys on `shopper-api` via `/v1/journey` with API-key auth.
-- Manage workflow lifecycle in `ops-api`: draft, approve, promote, rollback, archive.
-- Enforce role-based governance for high-risk operations.
-- Track runs, inspect timelines, replay, and investigate incidents.
-- Capture immutable audit records for control-plane mutations.
-- Apply tenant rate limits, quotas, and in-flight caps.
-- Generate production gate evidence artifacts for go/no-go decisions.
-
-## Architecture (High-Level)
-ACOS separates runtime execution from operations governance.
+## Architecture At A Glance
 
 ```text
-                 +-----------------------------+
-                 |       Ops UI (React)        |
-                 | served by ops-api (/ui)     |
-                 +--------------+--------------+
+                          +-----------------------------------+
+                          | Ops UI (React + Vite build)       |
+                          | served by ops-api at /ui          |
+                          +----------------+------------------+
+                                           |
+                                           v
++---------------------+     +------------------------------+     +----------------------+
+| shopper-api :8080   |     | ops-api :8081                |     | chat-api :8001       |
+| /v1/journey         |     | workflows, channels, agents, |     | Slack + message/job  |
+| API key auth        |     | skills, replay, analytics    |     | workflow execution   |
++----------+----------+     +---------------+--------------+     +-----------+----------+
+           |                                |                                  |
+           +--------------------+-----------+----------------------------------+
                                 |
                                 v
-+-------------------+   +-------------------+   +-------------------+
-| shopper-api :8080 |   |   ops-api :8081   |   |   chat-api :8001  |
-| /v1/journey       |   | workflow governance|   | channel bridge    |
-| X-API-Key auth    |   | approvals + audit  |   | slack/chat        |
-+---------+---------+   +---------+---------+   +---------+---------+
-          \____________________|___________________________/
-                               v
-                    +------------------------+
-                    | PostgreSQL (db:5432)   |
-                    | workflows/runs/audit   |
-                    +------------------------+
+                  +------------------------------------------+
+                  | PostgreSQL                               |
+                  | runs, workflow versions, promotions,     |
+                  | audit, context, CRM, channels, agents    |
+                  +------------------------------------------+
+                                |
+                                v
+          +-----------------------------------------------------------+
+          | External systems and runtime providers                    |
+          | Shopify | Salesforce | WhatsApp | Telegram | Google GenAI |
+          | LM Studio | local fallback                                 |
+          +-----------------------------------------------------------+
 ```
 
-Core packages in `acosplatform/`: `journey`, `workflows`, `governance`, `audit`, `observability`, `tenancy`, `replay`, `db`.
+## Repository Layout
 
-## Quick Start (CRITICAL)
-Run ACOS locally and hit both runtime and ops endpoints.
+```text
+apps/
+  shopper_api/   customer-facing runtime API
+  ops_api/       control-plane API and embedded UI serving
+  chat_api/      Slack/message gateway
+  ops_ui_v2/     React control-plane frontend
+
+acosplatform/
+  journey/       shopper runtime orchestration
+  workflows/     workflow registry and graph executor
+  retail_ops/    channel intake and demo route dispatch
+  db/            repository layer and schema helpers
+  governance/    authorization and policy helpers
+  observability/ metrics, traces, SLO helpers
+  tenancy/       tenant-aware traffic controls
+  replay/        replay services
+
+integrations/
+  adk/           runtime provider abstraction
+  shopify/       Shopify Admin API probe/actions
+  salesforce/    Salesforce REST actions
+  whatsapp/      WhatsApp Cloud API helpers
+  telegram/      Telegram Bot API helpers
+
+db/schema.sql    bootstrap schema for local Postgres
+docs/            architecture, runbooks, readiness docs
+```
+
+## Quick Start
 
 ```bash
 git clone https://github.com/rastogivaibhav/AgenticCommerceOS.git
 cd AgenticCommerceOS
 cp .env.example .env
-# Windows PowerShell: copy .env.example .env
-
 docker compose up --build -d
 ```
 
 Verify services:
 
 ```bash
-curl http://localhost:8080/health   # shopper runtime
-curl http://localhost:8081/health   # ops control plane
+curl http://localhost:8080/health
+curl http://localhost:8081/health
+curl http://localhost:8001/health
 ```
 
-Open ops UI:
-- http://localhost:8081/ui/
+Open the control plane:
+- [http://localhost:8081/ui/](http://localhost:8081/ui/)
 
-Mint an ops token for examples:
+Bootstrap a local ops token when dev auth is enabled:
 
 ```bash
 python scripts/mint_dev_jwt.py --role admin --secret "$OPS_JWT_SECRET"
 ```
 
-## Example Usage
-Run a shopper journey (runtime plane):
+Optional frontend-only development:
+
+```bash
+cd apps/ops_ui_v2
+npm install
+npm run dev
+```
+
+## Core APIs
+
+### Shopper Runtime
+
+Execute a shopper journey:
 
 ```bash
 curl -X POST http://localhost:8080/v1/journey \
@@ -101,121 +143,150 @@ curl -X POST http://localhost:8080/v1/journey \
   }'
 ```
 
-List workflows (ops plane):
+The response includes:
+- `run_id`
+- resolved `journey`
+- selected `workflow` and version
+- `trace` id
+- contextual result payload with cost, score, policy, and runtime metadata
+
+### Ops Control Plane
+
+List workflows:
 
 ```bash
-curl -X GET http://localhost:8081/api/v1/workflows \
+curl http://localhost:8081/api/v1/workflows \
   -H "Authorization: Bearer <OPS_TOKEN>"
 ```
 
 Promote a workflow version:
 
 ```bash
-curl -X POST http://localhost:8081/api/v1/workflows/wf_discovery_primary/versions/v3/promote \
+curl -X POST http://localhost:8081/api/v1/workflows/wf-order-support-demo/versions/v1/promote \
   -H "Authorization: Bearer <OPS_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "target_environment": "prod",
     "source_environment": "stage",
-    "approval_note": "Approved for bounded pilot cutover"
+    "approval_note": "Approved for controlled cutover"
   }'
 ```
 
-Fetch audit verification:
+Execute a saved workflow through the graph executor:
 
 ```bash
-curl -X GET "http://localhost:8081/api/audit?workflow_id=wf_discovery_primary" \
+curl -X POST http://localhost:8081/api/v1/workflows/wf-order-support-demo/execute \
+  -H "Authorization: Bearer <OPS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tenant_id": "default",
+    "customer_id": "cust_1001",
+    "environment": "dev",
+    "message": "Where is my order ORD-1001?"
+  }'
+```
+
+List channels and demo routes:
+
+```bash
+curl http://localhost:8081/api/v1/channels \
+  -H "Authorization: Bearer <OPS_TOKEN>"
+
+curl http://localhost:8081/api/v1/demo/routes \
   -H "Authorization: Bearer <OPS_TOKEN>"
 ```
 
-## Core Concepts
-| Concept | Meaning | Why it matters |
-|---|---|---|
-| Workflow | Versioned definition of behavior | Safe change management |
-| Version | Immutable revision | Predictable promotion + rollback |
-| Run | Execution instance tied to workflow version | Fast root-cause analysis |
-| Promotion | Controlled environment transition | Release governance |
-| Approval | Role-gated authorization | Risk control |
-| Audit Event | Immutable operation record | Compliance and traceability |
-| Tenant Controls | Per-tenant throughput boundaries | Noisy-neighbor isolation |
-| Evidence Pack | Artifact + runbook + sign-off record | Defensible go-live decisions |
+### Chat API
 
-## Integrations / Extensibility
-- MCP-compatible product and capability connectors.
-- Slack/chat channel bridging through `chat-api`.
-- Stripe-compatible payment workflows in shopper flows.
-- Optional AgentFabric hooks via environment configuration.
-- Pluggable domain components under `acosplatform/plugins/`.
+The chat gateway exposes Slack and message-driven workflow endpoints, including:
+- `/api/chat/message`
+- `/api/messages/send`
+- `/api/workflows/execute-message`
+- `/api/jobs/{job_id}/status`
 
-## Real Use Cases
-- Retail operations control plane with approval-backed promotions and rollback.
-- Post-purchase service automation with policy-aware escalation.
-- Incident-ready AI operations with run timeline investigation and replay.
-- Pilot go-live governance with objective evidence artifacts and sign-off records.
-- Tenant-safe scale-up with hard quota and concurrency boundaries.
+## Data Model Snapshot
+
+`db/schema.sql` currently defines and initializes:
+- `runs`, `events`, `experiments`
+- `workflows`, `workflow_versions`, `workflow_promotions`
+- `audit_events`, `governance_decisions`
+- `context_sessions`, `context_events`, `context_memory`
+- `tenants`, `orders`, `products`, `loyalty_points`
+- `agents`, `skills`
+- `channel_bindings`, `channel_senders`, `channel_pairings`
+- `demo_routes`
+- `crm_customers`, `crm_cases`
+
+Row-level security is enabled for context and governance tables, with tenant isolation policies applied through `app.tenant_id`.
 
 ## Configuration
-Use `.env.example` as the source of truth.
 
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `DATABASE_URL` | Yes | - | Postgres connection string |
-| `DB_PASSWORD` | Yes | - | DB credential for local compose |
-| `SHOPPER_API_KEYS` | Yes | - | Shopper API auth keys |
-| `OPS_JWT_SECRET` | Yes | - | Ops JWT signing secret |
-| `ALLOWED_ORIGINS` | Yes | - | CORS allowlist |
-| `ALLOW_INSECURE_DEV_AUTH` | No | `0` | Dev-only auth fallback |
-| `TENANT_RATE_LIMIT_PER_MINUTE` | No | `120` | Per-tenant minute limit |
-| `TENANT_DAILY_QUOTA` | No | `5000` | Per-tenant daily quota |
-| `TENANT_MAX_IN_FLIGHT` | No | `8` | Per-tenant concurrency cap |
-| `GOOGLE_API_KEY` | No | empty | Optional model provider key |
-| `AGENTFABRIC_URL` | No | empty | Optional external agent fabric |
-| `AGENTFABRIC_API_KEY` | No | empty | Optional external auth key |
-| `SLACK_BOT_TOKEN` | No | empty | Chat API Slack integration |
-| `SLACK_SIGNING_SECRET` | No | empty | Slack request validation |
-| `SLACK_WORKSPACE_ID` | No | `default` | Workspace routing key |
+Use `.env.example` as the starter file, but note that the current codebase also supports additional optional connector and runtime-provider variables through `docker-compose.yml` and the integration modules.
 
-## Security / Governance (if relevant)
-ACOS is designed for controlled AI operations:
-- RBAC enforcement on operational endpoints.
-- Audit coverage for workflow and tenant mutations.
-- Tenant-level traffic controls to reduce blast radius.
-- Operational runbooks for go-live, promotions, rollback, and incidents.
-- Evidence-driven release gates with machine-readable artifacts.
+Required for local compose:
+- `DB_PASSWORD`
+- `SHOPPER_API_KEYS`
+- `OPS_JWT_SECRET`
+- `ALLOWED_ORIGINS`
 
-Operational guidance:
-1. Keep `ALLOW_INSECURE_DEV_AUTH=0` outside local development.
-2. Rotate `OPS_JWT_SECRET` and API keys regularly.
-3. Keep `ALLOWED_ORIGINS` restricted to known domains.
-4. Treat production gate artifacts as release records.
+Common optional variables:
+- `GOOGLE_API_KEY` or `GEMINI_API_KEY`
+- `LMSTUDIO_BASE_URL`
+- `LMSTUDIO_MODEL`
+- `SHOPIFY_STORE_DOMAIN`
+- `SHOPIFY_ADMIN_ACCESS_TOKEN`
+- `SHOPIFY_API_VERSION`
+- `SALESFORCE_INSTANCE_URL`
+- `SALESFORCE_ACCESS_TOKEN`
+- `SALESFORCE_API_VERSION`
+- `WHATSAPP_ACCESS_TOKEN`
+- `WHATSAPP_PHONE_NUMBER_ID`
+- `WHATSAPP_VERIFY_TOKEN`
+- `WHATSAPP_API_VERSION`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_DEFAULT_CHAT_ID`
+- `TELEGRAM_BOT_USERNAME`
+- `TELEGRAM_WEBHOOK_URL`
+- `SLACK_BOT_TOKEN`
+- `SLACK_SIGNING_SECRET`
+- `SLACK_WORKSPACE_ID`
+- `TENANT_RATE_LIMIT_PER_MINUTE`
+- `TENANT_DAILY_QUOTA`
+- `TENANT_MAX_IN_FLIGHT`
+- `OPS_ENVIRONMENT`
+- `ALLOW_MOCK_ROUTES`
+- `ALLOW_NON_DEV_MOCK_ROUTES`
 
-## Roadmap
-Near-term:
-- Canonical index for production evidence artifacts.
-- Sign-off workflow in the ops UI.
-- Expanded cross-tenant incident diagnostics.
-- Automated first-week KPI post-cutover reporting.
+## Current Operational Shape
 
-Long-term:
-- Deeper multi-tenant policy isolation.
-- Progressive rollout strategies by workflow family.
-- Broader connector ecosystem for enterprise systems of record.
-- Extensibility model for third-party workflow capabilities.
+ACOS is no longer just a prototype with implicit Python-only workflows. The current code already has:
+- persisted workflow identities and versions
+- active promotion state by environment
+- a visual graph model in the UI
+- a graph executor in the backend
+- demo retail routes that bridge channel intake to workflow execution
+- approval and incident surfaces in the ops API
+- sandbox-to-live connector behavior with explicit probe and preview modes
+
+The main gaps are still around full production hardening:
+- more complete connector coverage
+- stronger separation of mock/demo data from live operator paths
+- deeper policy enforcement inside every workflow step
+- broader automated test coverage across end-to-end channel flows
 
 ## Contributing
-Contributions are welcome from operators, backend engineers, frontend engineers, and platform teams.
 
-1. Fork and create a branch.
-2. Make focused changes with tests.
-3. Run checks:
-   - `python scripts/week12_production_gate_checker.py`
-   - `python -m pytest tests/test_week12_production_gate_checker.py -q`
-4. Open a PR with problem statement, implementation summary, and evidence.
+1. Create a focused branch.
+2. Make small, verifiable changes.
+3. Run the relevant checks for the area you touched.
+4. Update docs when service topology, API behavior, or operational workflows change.
 
-See also:
-- [CONTRIBUTING.md](./CONTRIBUTING.md)
-- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
-- [SECURITY.md](./SECURITY.md)
+Useful references:
+- [docs/README.md](./docs/README.md)
+- [docs/architecture/02-reference-architecture.md](./docs/architecture/02-reference-architecture.md)
+- [docs/RUNBOOK_GO_LIVE.md](./docs/RUNBOOK_GO_LIVE.md)
+- [docs/RUNBOOK_WORKFLOW_PROMOTION.md](./docs/RUNBOOK_WORKFLOW_PROMOTION.md)
 
 ## License
+
 Apache License 2.0. See [LICENSE](./LICENSE).

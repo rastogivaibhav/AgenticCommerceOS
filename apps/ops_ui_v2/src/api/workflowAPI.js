@@ -33,6 +33,8 @@ export async function getWorkflow(id) {
 
   return {
     ...detail.workflow,
+    mode: detail.mode || 'demo',
+    provenance_mode: detail.mode || 'demo',
     step_definitions: pickEditorGraph(detail),
     versions: detail.versions || [],
     promotions: detail.promotions || [],
@@ -50,6 +52,22 @@ export async function updateWorkflow(id, updates) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
+  });
+}
+
+export async function testWorkflowRun(id, payload) {
+  return apiJson(`/workflows/${id}/test-run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function executeWorkflow(id, payload) {
+  return apiJson(`/workflows/${id}/execute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
   });
 }
 

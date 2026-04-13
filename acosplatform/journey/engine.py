@@ -35,8 +35,14 @@ def run_journey(payload):
     environment_id = payload.get("environment_id", "dev")
     started_at = time.perf_counter()
     ctx = build_context(payload)
-    journey_type = route(ctx)
-    workflow = resolve_execution_workflow(ctx["tenant_id"], journey_type, environment=environment_id) or {}
+    journey_type = payload.get("journey_type") or route(ctx)
+    preferred_workflow_id = payload.get("workflow_id") or payload.get("preferred_workflow_id")
+    workflow = resolve_execution_workflow(
+        ctx["tenant_id"],
+        journey_type,
+        environment=environment_id,
+        preferred_workflow_id=preferred_workflow_id,
+    ) or {}
     governance_sdk = get_governance_sdk()
     subject = payload.get("auth_subject")
     if not isinstance(subject, dict):
@@ -121,9 +127,11 @@ def run_journey(payload):
         result["cost"] = run_cost
 
         result["workflow"] = {
+            "requested_workflow_id": preferred_workflow_id,
             "workflow_id": workflow.get("workflow_id"),
             "workflow_version": workflow.get("version"),
             "environment_id": environment_id,
+            "resolution": workflow.get("resolution", "family_active"),
         }
 
         quality_score = score(result, journey_type)
@@ -227,9 +235,11 @@ def run_journey(payload):
             "run_id": run_id,
             "journey": journey_type,
             "workflow": {
+                "requested_workflow_id": preferred_workflow_id,
                 "workflow_id": workflow.get("workflow_id"),
                 "workflow_version": workflow.get("version"),
                 "environment_id": environment_id,
+                "resolution": workflow.get("resolution", "family_active"),
             },
             "trace": {"trace_id": trace_id},
             "context": {"session_id": context_session["id"]},

@@ -1,5 +1,13 @@
 import React from 'react';
-import { PlayCircle, StopCircle, Cpu, Settings, Users, Link2, Zap, Clock, GitBranch, Terminal } from 'lucide-react';
+import {
+  Bot,
+  CheckCircle2,
+  GitBranch,
+  MessageSquare,
+  PhoneCall,
+  ShoppingBag,
+  UserRound,
+} from 'lucide-react';
 
 function DragItem({ nodeType, data, color, icon, label, sublabel }) {
   const onDragStart = (event) => {
@@ -16,22 +24,19 @@ function DragItem({ nodeType, data, color, icon, label, sublabel }) {
         background: '#1a1d23',
         border: '1px solid #374151',
         padding: '10px 12px',
-        borderRadius: '7px',
+        borderRadius: 7,
         cursor: 'grab',
         display: 'flex',
         alignItems: 'center',
-        gap: '10px',
-        transition: 'border-color 0.15s',
+        gap: 10,
       }}
-      onMouseOver={e => e.currentTarget.style.borderColor = color}
-      onMouseOut={e => e.currentTarget.style.borderColor = '#374151'}
     >
-      <div style={{ background: color, padding: '5px', borderRadius: '5px', display: 'flex', flexShrink: 0 }}>
+      <div style={{ background: color, padding: 5, borderRadius: 5, display: 'flex', flexShrink: 0 }}>
         {icon}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ color: '#e5e7eb', fontSize: '13px' }}>{label}</span>
-        {sublabel && <span style={{ color: '#6b7280', fontSize: '11px' }}>{sublabel}</span>}
+        <span style={{ color: '#e5e7eb', fontSize: 13 }}>{label}</span>
+        {sublabel && <span style={{ color: '#6b7280', fontSize: 11 }}>{sublabel}</span>}
       </div>
     </div>
   );
@@ -40,56 +45,148 @@ function DragItem({ nodeType, data, color, icon, label, sublabel }) {
 function Section({ title, children }) {
   return (
     <section>
-      <h3 style={{ color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px', marginTop: 0 }}>
+      <h3
+        style={{
+          color: '#9ca3af',
+          fontSize: 11,
+          textTransform: 'uppercase',
+          letterSpacing: 0.8,
+          marginBottom: 10,
+          marginTop: 0,
+        }}
+      >
         {title}
       </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-        {children}
-      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>{children}</div>
     </section>
   );
 }
 
 export default function NodeSidebar() {
   return (
-    <div style={{
-      width: '230px',
-      background: 'rgba(13, 15, 20, 0.97)',
-      borderRight: '1px solid rgba(255,255,255,0.06)',
-      padding: '16px 14px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '22px',
-      overflowY: 'auto',
-      flexShrink: 0,
-    }}>
-      <div style={{ fontSize: '11px', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-        Drag nodes onto canvas
+    <div
+      style={{
+        width: 250,
+        background: 'rgba(13, 15, 20, 0.97)',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
+        padding: '16px 14px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 22,
+        overflowY: 'auto',
+        flexShrink: 0,
+      }}
+    >
+      <div style={{ fontSize: 11, color: '#4b5563', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        Drag typed steps onto the flow
       </div>
 
-      <Section title="Flow Control">
-        <DragItem nodeType="startNode" data={{ label: 'Start', triggerType: 'manual' }} color="#22c55e" icon={<PlayCircle size={13} color="#fff" />} label="Start" sublabel="Entry point" />
-        <DragItem nodeType="endNode" data={{ label: 'End', outcomeType: 'success' }} color="#ef4444" icon={<StopCircle size={13} color="#fff" />} label="End" sublabel="Terminal node" />
-      </Section>
-
       <Section title="Triggers">
-        <DragItem nodeType="triggerNode" data={{ label: 'Webhook Trigger', triggerType: 'webhook' }} color="#8b5cf6" icon={<Zap size={13} color="#fff" />} label="Webhook" sublabel="HTTP event" />
-        <DragItem nodeType="triggerNode" data={{ label: 'CRON Schedule', type: 'cron' }} color="#8b5cf6" icon={<Clock size={13} color="#fff" />} label="CRON Schedule" sublabel="Time-based" />
+        <DragItem
+          nodeType="triggerNode"
+          data={{
+            label: 'WhatsApp Inbound',
+            channel: 'whatsapp',
+            triggerType: 'inbound_message',
+            bindingId: 'whatsapp-support',
+          }}
+          color="#8b5cf6"
+          icon={<MessageSquare size={13} color="#fff" />}
+          label="WhatsApp Trigger"
+          sublabel="Customer message entry"
+        />
       </Section>
 
-      <Section title="Agents">
-        <DragItem nodeType="orchestratorNode" data={{ label: 'Orchestrator', agentId: '' }} color="#a855f7" icon={<Cpu size={13} color="#fff" />} label="Orchestrator" sublabel="Routes sub-agents" />
-        <DragItem nodeType="agentNode" data={{ label: 'Agent', agentId: '' }} color="#3b82f6" icon={<Settings size={13} color="#fff" />} label="Agent" sublabel="Task executor" />
-        <DragItem nodeType="subAgentNode" data={{ label: 'Sub-Agent', agentId: '' }} color="#06b6d4" icon={<Users size={13} color="#fff" />} label="Sub-Agent" sublabel="Delegated task" />
+      <Section title="Connectors">
+        <DragItem
+          nodeType="connectorNode"
+          data={{
+            label: 'Shopify Order Lookup',
+            connectorType: 'shopify',
+            bindingId: 'shopify-primary',
+            action: 'get_order',
+            config: { order_id: '{{trigger.order_id}}' },
+          }}
+          color="#10b981"
+          icon={<ShoppingBag size={13} color="#fff" />}
+          label="Shopify"
+          sublabel="Order, customer, product"
+        />
+        <DragItem
+          nodeType="connectorNode"
+          data={{
+            label: 'Salesforce Context',
+            connectorType: 'salesforce',
+            bindingId: 'salesforce-support',
+            action: 'get_contact',
+            config: { contact_key: '{{trigger.customer_phone}}' },
+          }}
+          color="#0ea5e9"
+          icon={<PhoneCall size={13} color="#fff" />}
+          label="Salesforce"
+          sublabel="Contact and case context"
+        />
+        <DragItem
+          nodeType="connectorNode"
+          data={{
+            label: 'WhatsApp Reply',
+            connectorType: 'whatsapp',
+            bindingId: 'whatsapp-support',
+            action: 'send_message',
+            config: { template: 'order_status_update' },
+          }}
+          color="#16a34a"
+          icon={<MessageSquare size={13} color="#fff" />}
+          label="WhatsApp Reply"
+          sublabel="Customer response"
+        />
       </Section>
 
-      <Section title="Skills & APIs">
-        <DragItem nodeType="integrationNode" data={{ label: 'API Integration', skillId: '' }} color="#10b981" icon={<Link2 size={13} color="#fff" />} label="Skill Integration" sublabel="Deterministic call" />
+      <Section title="Decisions">
+        <DragItem
+          nodeType="decisionNode"
+          data={{
+            label: 'Decision',
+            logicType: 'decision',
+            routingRule: 'confidence >= 0.7',
+          }}
+          color="#f59e0b"
+          icon={<GitBranch size={13} color="#fff" />}
+          label="Decision"
+          sublabel="Branch by confidence or policy"
+        />
       </Section>
 
-      <Section title="Logic">
-        <DragItem nodeType="logicNode" data={{ label: 'Switch / Condition', logicType: 'switch' }} color="#f59e0b" icon={<GitBranch size={13} color="#fff" />} label="Switch / Condition" sublabel="Branch on value" />
-        <DragItem nodeType="logicNode" data={{ label: 'Code Snippet', logicType: 'code' }} color="#f59e0b" icon={<Terminal size={13} color="#fff" />} label="Code Snippet" sublabel="Custom logic" />
+      <Section title="Execution">
+        <DragItem
+          nodeType="agentNode"
+          data={{ label: 'Agent', agentId: 'ag_support_l1' }}
+          color="#3b82f6"
+          icon={<Bot size={13} color="#fff" />}
+          label="Agent"
+          sublabel="Decision and drafting"
+        />
+        <DragItem
+          nodeType="humanNode"
+          data={{
+            label: 'Human Escalation',
+            queue: 'tier-2-order-support',
+            bindingId: 'salesforce-support',
+            action: 'create_case',
+          }}
+          color="#ef4444"
+          icon={<UserRound size={13} color="#fff" />}
+          label="Escalation"
+          sublabel="Hand off to humans"
+        />
+        <DragItem
+          nodeType="endNode"
+          data={{ label: 'Completed', outcomeType: 'success' }}
+          color="#22c55e"
+          icon={<CheckCircle2 size={13} color="#fff" />}
+          label="End"
+          sublabel="Terminal state"
+        />
       </Section>
     </div>
   );
