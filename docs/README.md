@@ -20,6 +20,7 @@ This folder is the architecture, product, and operational documentation set for 
 - `product/05-document-set-review.md`
 - `product/weekly_readiness_journey.md`
 - `product/week6_12_architecture_execution_plan.md`
+- `technology/INVESTMENT-IMPLEMENTATION-PLAN.md`
 
 ### Evidence Packs
 - `week11_uat_evidence_pack.md`
