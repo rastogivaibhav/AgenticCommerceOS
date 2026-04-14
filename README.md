@@ -257,6 +257,13 @@ Common optional variables:
 - `ALLOW_MOCK_ROUTES`
 - `ALLOW_NON_DEV_MOCK_ROUTES`
 
+WhatsApp binding notes:
+- Environment variables enable the connector globally, but the control plane still expects a WhatsApp channel binding to be saved through the Channels page.
+- The binding metadata should include `verify_token`, `access_token`, `phone_number_id`, and optionally `start_chat_number` plus `default_recipient`.
+- Webhook verification uses the saved binding metadata, so multiple WhatsApp bindings can coexist as long as each binding carries its own verify token and phone number ID.
+- Inbound webhook routing now resolves tenant and environment from the matched binding instead of assuming `default` and `whatsapp-support`.
+- Outbound channel tests use the saved `default_recipient` when no explicit recipient is provided, which keeps local validation predictable before a customer sender is paired.
+
 ## Current Operational Shape
 
 ACOS is no longer just a prototype with implicit Python-only workflows. The current code already has:

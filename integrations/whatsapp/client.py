@@ -148,7 +148,7 @@ def execute_whatsapp_action(
             "result": _whatsapp_sandbox_result(action_key, payload, phone_number_id=config.phone_number_id),
         }
 
-    to = str(payload.get("to") or "").strip()
+    to = "".join(char for char in str(payload.get("to") or "").strip() if char.isdigit())
     if not to:
         return {
             "status": "ok",

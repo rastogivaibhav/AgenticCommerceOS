@@ -30,7 +30,12 @@ This runbook covers pilot go-live execution for the bounded Week 12 scope:
 2. Confirm production gate snapshot.
    Command: `docker run --rm -v "${PWD}:/workspace" -w /workspace acos-chat-api python scripts/week12_production_gate_checker.py`
    Success: `checks_passed=7/7`.
-3. Confirm open blocker list only contains formal sign-off.
+3. Confirm channel readiness for any live messaging path in scope.
+   Success:
+   - WhatsApp binding has a verified `phone_number_id` and matching verify token in the Channels page.
+   - A safe `default_recipient` exists for outbound channel tests.
+   - Telegram bindings have a `default_chat_id` when operator notifications are expected.
+4. Confirm open blocker list only contains formal sign-off.
 
 ### T-15m to T+30m (Controlled Activation)
 1. Incident Commander opens go-live bridge and confirms roles.
@@ -39,6 +44,7 @@ This runbook covers pilot go-live execution for the bounded Week 12 scope:
    - `GET /health`
    - `GET /metrics`
    - sample workflow and run investigation paths.
+   - if WhatsApp is in scope, execute one inbound webhook test and one outbound channel test from the Channels page before declaring activation complete.
 4. Communications Owner sends "activation complete" update.
 
 ### T+30m to T+120m (Stabilization Window)

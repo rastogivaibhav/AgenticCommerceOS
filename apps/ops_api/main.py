@@ -491,6 +491,113 @@ def _sanitize_phone_digits(value: str) -> str:
     return "".join(char for char in str(value or "") if char.isdigit())
 
 
+def _normalize_whatsapp_sender_external_id(value: str) -> str:
+    raw = str(value or "").strip()
+    if raw.startswith("whatsapp:"):
+        raw = raw.split(":", 1)[1]
+    digits = _sanitize_phone_digits(raw)
+    if digits:
+        return f"whatsapp:+{digits}"
+    return f"whatsapp:{raw}" if raw else "whatsapp:unknown"
+
+
+def _resolve_whatsapp_binding(value: dict[str, Any] | None) -> dict[str, Any] | None:
+    candidates = [binding for binding in get_channel_bindings() if binding.get("type") == "whatsapp"]
+    if not candidates:
+        return get_channel_binding("whatsapp-support")
+
+    metadata = (value or {}).get("metadata") or {}
+    incoming_phone_number_id = str(metadata.get("phone_number_id") or "").strip()
+    incoming_display_phone = _sanitize_phone_digits(metadata.get("display_phone_number") or "")
+
+    if incoming_phone_number_id:
+        for binding in candidates:
+            binding_metadata = binding.get("metadata") or {}
+            if str(binding_metadata.get("phone_number_id") or "").strip() == incoming_phone_number_id:
+                return binding
+
+    if incoming_display_phone:
+        for binding in candidates:
+            binding_metadata = binding.get("metadata") or {}
+            known_numbers = [
+                binding_metadata.get("display_phone_number"),
+                binding_metadata.get("start_chat_number"),
+                binding_metadata.get("default_recipient"),
+            ]
+            if incoming_display_phone in {_sanitize_phone_digits(item) for item in known_numbers if item}:
+                return binding
+
+    return next((binding for binding in candidates if binding.get("id") == "whatsapp-support"), candidates[0])
+
+
+def _whatsapp_contact_directory(value: dict[str, Any] | None) -> dict[str, str]:
+    directory: dict[str, str] = {}
+    contacts = (value or {}).get("contacts") or []
+    for contact in contacts:
+        if not isinstance(contact, dict):
+            continue
+        name = (
+            ((contact.get("profile") or {}).get("name"))
+            or contact.get("wa_id")
+            or contact.get("input")
+            or "WhatsApp sender"
+        )
+        for key in (contact.get("wa_id"), contact.get("input")):
+            digits = _sanitize_phone_digits(key or "")
+            if digits:
+                directory[digits] = str(name)
+    return directory
+
+
+def _extract_whatsapp_message_text(message: dict[str, Any] | None) -> str:
+    payload = message or {}
+    text_body = ((payload.get("text") or {}).get("body") or "").strip()
+    if text_body:
+        return text_body
+
+    button_text = ((payload.get("button") or {}).get("text") or "").strip()
+    if button_text:
+        return button_text
+
+    interactive = payload.get("interactive") or {}
+    for key in ("button_reply", "list_reply"):
+        reply = interactive.get(key) or {}
+        title = str(reply.get("title") or "").strip()
+        reply_id = str(reply.get("id") or "").strip()
+        description = str(reply.get("description") or "").strip()
+        parts = [part for part in (title, description, reply_id) if part]
+        if parts:
+            return " | ".join(parts)
+
+    for field in ("caption",):
+        value = str(payload.get(field) or "").strip()
+        if value:
+            return value
+
+    return ""
+
+
+def _record_whatsapp_webhook_event(
+    *,
+    action: str,
+    binding: dict[str, Any] | None,
+    resource_id: str,
+    payload: dict[str, Any],
+) -> None:
+    try:
+        save_audit_event(
+            "whatsapp-webhook",
+            action,
+            "channel_binding",
+            (binding or {}).get("id") or resource_id,
+            tenant_id=(binding or {}).get("tenant_id") or "default",
+            environment_id=(binding or {}).get("environment") or OPS_ENVIRONMENT,
+            payload=payload,
+        )
+    except Exception as exc:
+        logger.warning("Failed to save WhatsApp audit event: %s", exc)
+
+
 def _build_whatsapp_pairing_link(binding: dict[str, Any], pair_code: str) -> str:
     metadata = binding.get("metadata") or {}
     chat_number = (
@@ -1323,7 +1430,7 @@ def send_channel_test(binding_id: str, payload: ChannelTestRequest, _claims: dic
     elif binding.get("type") == "whatsapp":
         result = execute_whatsapp_action(
             "send_message",
-            {"to": payload.recipient, "message": payload.text},
+            {"to": payload.recipient or metadata.get("default_recipient") or metadata.get("start_chat_number"), "message": payload.text},
             allow_live_send=True,
             config_override=metadata,
         )
@@ -1458,32 +1565,97 @@ def whatsapp_webhook_verify(
 @app.post("/api/v1/connectors/whatsapp/webhook")
 @app.post("/connectors/whatsapp/webhook")
 async def whatsapp_webhook_ingest(request: Request):
-    payload = await request.json()
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid WhatsApp webhook payload"})
+
     entries = payload.get("entry") if isinstance(payload, dict) else []
     processed = []
+    ignored = 0
     for entry in entries if isinstance(entries, list) else []:
         changes = entry.get("changes") if isinstance(entry, dict) else []
         for change in changes if isinstance(changes, list) else []:
             value = change.get("value") if isinstance(change, dict) else {}
-            contacts = value.get("contacts") if isinstance(value, dict) else []
+            binding = _resolve_whatsapp_binding(value if isinstance(value, dict) else {})
+            channel_binding_id = (binding or {}).get("id") or "whatsapp-support"
+            tenant_id = (binding or {}).get("tenant_id") or "default"
+            environment = (binding or {}).get("environment") or OPS_ENVIRONMENT
+            contact_directory = _whatsapp_contact_directory(value if isinstance(value, dict) else {})
             messages = value.get("messages") if isinstance(value, dict) else []
-            display_name = (contacts[0] or {}).get("profile", {}).get("name", "WhatsApp sender") if contacts else "WhatsApp sender"
+            statuses = value.get("statuses") if isinstance(value, dict) else []
+
+            for status in statuses if isinstance(statuses, list) else []:
+                _record_whatsapp_webhook_event(
+                    action="channel.whatsapp.status",
+                    binding=binding,
+                    resource_id=str(status.get("id") or channel_binding_id),
+                    payload={
+                        "status": status.get("status"),
+                        "recipient_id": status.get("recipient_id"),
+                        "message_id": status.get("id"),
+                        "errors": status.get("errors") or [],
+                    },
+                )
+
             for message in messages if isinstance(messages, list) else []:
-                sender_external_id = f"whatsapp:{message.get('from')}"
-                body = (message.get("text") or {}).get("body") or ""
-                processed.append(
-                    ingest_channel_message(
-                        channel_binding_id="whatsapp-support",
-                        sender_external_id=sender_external_id,
-                        display_name=display_name,
-                        message=body,
-                        tenant_id="default",
-                        environment=OPS_ENVIRONMENT,
+                sender_key = str(message.get("from") or "").strip()
+                sender_external_id = _normalize_whatsapp_sender_external_id(sender_key)
+                display_name = contact_directory.get(_sanitize_phone_digits(sender_key), "WhatsApp sender")
+                body = _extract_whatsapp_message_text(message)
+                message_type = str(message.get("type") or "unknown").strip()
+
+                if not body:
+                    ignored += 1
+                    ignored_payload = {
+                        "message_id": message.get("id"),
+                        "message_type": message_type,
+                        "sender_external_id": sender_external_id,
+                        "reason": "unsupported_or_empty_message",
+                    }
+                    processed.append({"status": "ignored", **ignored_payload})
+                    _record_whatsapp_webhook_event(
+                        action="channel.whatsapp.inbound.ignored",
+                        binding=binding,
+                        resource_id=str(message.get("id") or sender_external_id),
+                        payload=ignored_payload,
                     )
+                    continue
+
+                _record_whatsapp_webhook_event(
+                    action="channel.whatsapp.inbound.received",
+                    binding=binding,
+                    resource_id=str(message.get("id") or sender_external_id),
+                    payload={
+                        "message_id": message.get("id"),
+                        "message_type": message_type,
+                        "sender_external_id": sender_external_id,
+                        "binding_id": channel_binding_id,
+                        "tenant_id": tenant_id,
+                        "preview": body[:280],
+                    },
+                )
+                result = ingest_channel_message(
+                    channel_binding_id=channel_binding_id,
+                    sender_external_id=sender_external_id,
+                    display_name=display_name,
+                    message=body,
+                    tenant_id=tenant_id,
+                    environment=environment,
+                )
+                processed.append(
+                    {
+                        "binding_id": channel_binding_id,
+                        "tenant_id": tenant_id,
+                        "message_id": message.get("id"),
+                        "message_type": message_type,
+                        **result,
+                    }
                 )
     return {
         "status": "accepted",
         "entries": len(entries) if isinstance(entries, list) else 0,
+        "ignored": ignored,
         "processed": processed,
     }
 

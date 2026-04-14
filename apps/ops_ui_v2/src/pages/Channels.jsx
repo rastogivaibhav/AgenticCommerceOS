@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle2, ExternalLink, MessageCircleMore, QrCode, Send, ShieldCheck, Smartphone } from 'lucide-react';
+import { CheckCircle2, ExternalLink, MessageCircleMore, QrCode, Send, ShieldCheck, Smartphone, RadioTower, Link2 } from 'lucide-react';
 import {
   approveChannelSender,
   linkTelegramChannel,
@@ -31,6 +31,7 @@ export default function Channels() {
     access_token: '',
     phone_number_id: '',
     start_chat_number: '',
+    default_recipient: '',
   });
   const [telegramForm, setTelegramForm] = useState({
     identity: 'ACOS Ops Bot',
@@ -72,6 +73,7 @@ export default function Channels() {
           access_token: whatsAppForm.access_token,
           phone_number_id: whatsAppForm.phone_number_id,
           start_chat_number: whatsAppForm.start_chat_number,
+          default_recipient: whatsAppForm.default_recipient,
         },
       });
       setLinkFeedback({ channel: 'whatsapp', result });
@@ -102,7 +104,11 @@ export default function Channels() {
   };
 
   const handleChannelTest = async (bindingId) => {
-    const recipient = bindingId === 'telegram-ops' ? telegramForm.default_chat_id : '';
+    const channel = (channelsPayload.channels || []).find((item) => item.id === bindingId);
+    const metadata = channel?.metadata || {};
+    const recipient = bindingId === 'telegram-ops'
+      ? (telegramForm.default_chat_id || metadata.default_chat_id || '')
+      : (whatsAppForm.default_recipient || metadata.default_recipient || metadata.start_chat_number || '');
     const delivery = await sendChannelTest(bindingId, {
       text: `ACOS test message sent at ${new Date().toISOString()}`,
       recipient,
@@ -114,6 +120,11 @@ export default function Channels() {
     await approveChannelSender(senderId, { customer_id: 'cust_1001' });
     await refresh();
   };
+
+  const totalChannels = (channelsPayload.channels || []).length;
+  const liveChannels = (channelsPayload.channels || []).filter((channel) => channel.mode === 'live').length;
+  const pendingApprovals = approvals.length;
+  const totalPairings = Object.values(pairingsByChannel).reduce((total, entries) => total + entries.length, 0);
 
   return (
     <div className="page-container list-view">
@@ -127,6 +138,29 @@ export default function Channels() {
           </p>
         </div>
       </header>
+
+      <section className="summary-grid">
+        <div className="summary-card">
+          <span className="summary-label">Linked channels</span>
+          <strong>{totalChannels}</strong>
+          <span className="summary-meta">Bindings saved in the control plane for operator use.</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Live probes</span>
+          <strong>{liveChannels}</strong>
+          <span className="summary-meta">Channels whose latest connector probe returned healthy live status.</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Pending approvals</span>
+          <strong>{pendingApprovals}</strong>
+          <span className="summary-meta">Unknown senders waiting for explicit operator approval.</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Pairing entrypoints</span>
+          <strong>{totalPairings}</strong>
+          <span className="summary-meta">Scan-to-start or deep-link entrypoints currently exposed.</span>
+        </div>
+      </section>
 
       <div className="content-split" style={{ gridTemplateColumns: '1.3fr 1fr' }}>
         <div className="left-panel">
@@ -153,6 +187,20 @@ export default function Channels() {
                         <div className="h-left"><MessageCircleMore size={14} /><span className="h-id">Default route</span></div>
                         <span className="secondary-cell">{channel.default_route}</span>
                       </div>
+                      <div className="history-item">
+                        <div className="h-left"><RadioTower size={14} /><span className="h-id">Health source</span></div>
+                        <span className="secondary-cell">
+                          {channel.health?.configured === false ? 'Unconfigured connector' : channel.health?.status || channel.mode}
+                        </span>
+                      </div>
+                      {channel.type === 'whatsapp' && (
+                        <div className="history-item">
+                          <div className="h-left"><Link2 size={14} /><span className="h-id">Sender target</span></div>
+                          <span className="secondary-cell mono">
+                            {channel.metadata?.default_recipient || channel.metadata?.start_chat_number || 'Not configured'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <button className="secondary-button compact mt-3" onClick={() => handleChannelTest(channel.id)}>
                       <Send size={14} />
@@ -188,7 +236,7 @@ export default function Channels() {
                                   <div className="secondary-cell">
                                     {pairing.start_ready
                                       ? 'Scan the QR or open the start link from a phone to pair this sender and trigger the route.'
-                                      : 'Start link is not ready yet. Add a bot username or chat number, or send the manual pair text from the linked channel.'}
+                                      : 'Start link is not ready yet. Add a bot username, start chat number, or default recipient, or send the manual pair text from the linked channel.'}
                                   </div>
                                   <div className="secondary-cell mono" style={{ wordBreak: 'break-all' }}>
                                     {pairing.start_link || pairing.manual_pair_text}
@@ -287,6 +335,7 @@ export default function Channels() {
                 <input className="search-input mt-3" required value={whatsAppForm.access_token} onChange={(e) => setWhatsAppForm((c) => ({ ...c, access_token: e.target.value }))} placeholder="Access token" />
                 <input className="search-input mt-3" required value={whatsAppForm.phone_number_id} onChange={(e) => setWhatsAppForm((c) => ({ ...c, phone_number_id: e.target.value }))} placeholder="Phone number ID" />
                 <input className="search-input mt-3" value={whatsAppForm.start_chat_number} onChange={(e) => setWhatsAppForm((c) => ({ ...c, start_chat_number: e.target.value }))} placeholder="Start chat number (+447...)" />
+                <input className="search-input mt-3" value={whatsAppForm.default_recipient} onChange={(e) => setWhatsAppForm((c) => ({ ...c, default_recipient: e.target.value }))} placeholder="Default test recipient (+447...)" />
                 <div className="secondary-cell" style={{ marginTop: 10 }}>
                   Webhook verify URL: <span className="mono">{typeof window !== 'undefined' ? `${window.location.origin}/api/v1/connectors/whatsapp/webhook` : '/api/v1/connectors/whatsapp/webhook'}</span>
                 </div>
@@ -295,6 +344,9 @@ export default function Channels() {
                 </div>
                 <div className="secondary-cell" style={{ marginTop: 6 }}>
                   Add a start chat number if you want scan-to-start QR links before live probe metadata is available.
+                </div>
+                <div className="secondary-cell" style={{ marginTop: 6 }}>
+                  Add a default test recipient to make outbound validation predictable before a real customer sender is paired.
                 </div>
                 <button className="primary-button mt-3" type="submit">Link WhatsApp</button>
               </form>
