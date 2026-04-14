@@ -130,11 +130,11 @@ export default function Channels() {
     <div className="page-container list-view">
       <header className="page-header sticky-header">
         <div>
-          <div className="eyebrow">Messaging Channel Control</div>
+          <div className="eyebrow">Channel Operations</div>
           <h1>WhatsApp and Telegram</h1>
           <p className="muted">
-            Link real channel credentials, verify health honestly, queue unknown senders for approval,
-            and test outbound delivery before routing customer traffic.
+            Connect customer-facing messaging channels to governed workflows, verify health honestly,
+            approve unknown senders, and test outbound delivery before routing real traffic.
           </p>
         </div>
       </header>

@@ -6,7 +6,7 @@ import { useTheme } from '../lib/theme';
 const PAGE_TITLES = {
   '/workflows': 'Workflow Operations',
   '/channels': 'Channel Onboarding',
-  '/demo-routes': 'Demo Route Dispatch',
+  '/demo-routes': 'Workflow Validation',
   '/agents': 'Agent Registry',
   '/skills': 'Tooling Inventory',
   '/analytics': 'Operational Analytics',
@@ -172,7 +172,7 @@ export default function Header({
         <div className="flex-1 min-w-0">
           <h1 className="text-[22px] font-normal text-on-surface">{title}</h1>
           <p className="text-xs text-on-surface-variant">
-            Governed commerce workflows with explicit tenant, runtime, and operator posture.
+            Governed retail and customer-service operations across workflows, channels, agents, and runtime controls.
           </p>
         </div>
 
@@ -239,7 +239,7 @@ export default function Header({
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>Runtime Controls</div>
                 <div style={{ fontSize: 12, color: 'var(--md-on-surface-variant)' }}>
-                  Choose normal or demo posture, plus the preferred LLM route for ops execution.
+                  Choose the operator posture and preferred LLM route for governed workflow execution.
                 </div>
               </div>
             </div>

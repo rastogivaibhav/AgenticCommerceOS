@@ -439,11 +439,11 @@ export default function Agents() {
 
       <header className="page-header sticky-header">
         <div>
-          <div className="eyebrow">Workflow Runtime Inventory</div>
+          <div className="eyebrow">Agent Runtime Inventory</div>
           <h1>Agent Registry</h1>
           <p className="muted">
-            Inspect the agents behind live workflows, review executable configuration, and verify
-            scorecards before promotion.
+            Inspect the agents behind governed service workflows, review executable configuration,
+            and verify readiness before operators promote new behavior.
           </p>
           <div style={{ display: 'flex', gap: 12, marginTop: 12, alignItems: 'center' }}>
             <ModeBadge mode={mode} />

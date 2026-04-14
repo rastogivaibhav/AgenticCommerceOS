@@ -10,12 +10,45 @@
 
 ACOS is a Python and React platform for running AI-assisted commerce journeys with explicit workflow versions, operator controls, tenant-aware protections, and connector-backed service flows.
 
+In plain English, ACOS is a **governed control plane for AI-assisted retail and customer-service operations**. It gives an operations team one place to design, test, approve, promote, and monitor customer-facing workflows that run across APIs, messaging channels, agents, and external systems.
+
 Today the repository ships a working split between:
 - `shopper-api` for customer-facing journey execution
 - `ops-api` for workflow governance, replay, approvals, channels, agents, skills, and analytics
 - `chat-api` for Slack and message-driven workflow execution
 - `ops_ui_v2` for the control-plane UI served by `ops-api`
 - PostgreSQL persistence for runs, workflow versions, audit, context, CRM, channels, agents, and skills
+
+## What This Software Actually Does
+
+ACOS is built to help a retail or service operations team answer questions like:
+- Which workflow is live for customer support, order status, returns, loyalty, or escalation?
+- Which agent, tools, and channels are attached to that workflow?
+- How do we test and approve a change before it reaches customers?
+- When something fails, can an operator see what happened and roll back safely?
+
+The software is not just a chatbot and not just a workflow builder. Its real job is to sit between:
+- customer-facing channels such as WhatsApp, Telegram, and APIs
+- AI runtimes and tool-connected agents
+- operator governance for approvals, promotions, audit, and rollback
+
+## Who It Is For
+
+The most credible early user is:
+- a retail or commerce operations team
+- a digital customer-support organization
+- an enterprise innovation or automation team piloting AI-led service flows
+
+ACOS is most useful when customer interactions are spread across channels and teams want more control than ad hoc prompt wiring or single-channel bots can provide.
+
+## What It Is Not
+
+ACOS is not:
+- a generic no-code workflow SaaS
+- a mass-market chatbot product
+- a replacement for Shopify, Salesforce, WhatsApp, Telegram, or the underlying LLM providers
+
+It is the governed operations layer that coordinates those systems.
 
 ## What Ships Today
 
@@ -24,7 +57,7 @@ Today the repository ships a working split between:
 - Shopper runtime execution on `POST /v1/journey` with API-key auth, tenant traffic guards, metrics, and workflow resolution
 - Ops-plane controls for create, approve, promote, rollback, archive, test-run, and execute workflow versions
 - Agent and skill inventory with test endpoints and runtime-provider visibility
-- Channel binding, sender approval, pairing, QR/start-link onboarding, and demo route dispatch for WhatsApp and Telegram
+- Channel binding, sender approval, pairing, QR/start-link onboarding, and workflow validation routes for WhatsApp and Telegram
 - Connector probes and action execution for Shopify, Salesforce, WhatsApp Cloud API, Telegram Bot API, plus runtime provider selection across Google GenAI, LM Studio, and local fallback
 - Persisted runs, events, audit events, context sessions/memory, governance decisions, CRM customers/cases, products, orders, tenants, agents, skills, and demo routes
 - A React ops UI with pages for Workflows, Agents, Skills, Analytics, Channels, Demo Routes, and Tenants
@@ -290,6 +323,13 @@ ACOS is no longer just a prototype with implicit Python-only workflows. The curr
 - demo retail routes that bridge channel intake to workflow execution
 - approval and incident surfaces in the ops API
 - sandbox-to-live connector behavior with explicit probe and preview modes
+
+The strongest way to think about the product today is:
+- `shopper-api` runs customer-facing journeys
+- `ops-api` and `ops_ui_v2` act as the governed control plane
+- `chat-api` and channel bindings extend those workflows into message-driven operations
+
+The main product value is governance and visibility around AI-assisted service flows, not generic automation for its own sake.
 
 The main gaps are still around full production hardening:
 - more complete connector coverage

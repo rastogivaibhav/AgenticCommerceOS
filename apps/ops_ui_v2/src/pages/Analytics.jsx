@@ -46,8 +46,8 @@ export default function Analytics() {
           <div className="eyebrow">Operational Readability</div>
           <h1>Analytics and Runtime Signal</h1>
           <p className="muted">
-            Review run volume, workflow quality, and cost trends without losing sight of whether the
-            numbers came from live platform state or a fallback sample.
+            Review workflow volume, service quality, and cost trends without losing sight of whether
+            the numbers came from live platform state or a fallback sample.
           </p>
           <div style={{ display: 'flex', gap: 12, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <span className={`status-badge ${sourceTone}`}>{sourceLabel}</span>
@@ -96,7 +96,7 @@ export default function Analytics() {
           <span className="summary-label">Coverage</span>
           <strong>{workflowMetrics.length}</strong>
           <span className="summary-meta">
-            Workflows with recorded metrics in the current dataset.
+            Workflows with recorded operating metrics in the current dataset.
           </span>
         </div>
       </section>

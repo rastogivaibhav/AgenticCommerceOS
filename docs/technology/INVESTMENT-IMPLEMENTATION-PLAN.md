@@ -1,8 +1,8 @@
 # ACOS Investment Implementation Plan
-## Investor diligence follow-through and production hardening sequence
+## Product alignment, investor diligence follow-through, and production hardening sequence
 
 **Date:** April 14, 2026
-**Audience:** Technology diligence reviewers, platform leadership, investment committee
+**Audience:** Technology diligence reviewers, platform leadership, product leadership, investment committee
 **Status:** Proposed implementation plan grounded in the current codebase
 
 ---
@@ -20,13 +20,83 @@ The question is whether the platform can be made production-credible without a r
 
 This plan assumes the right strategy is:
 1. preserve the current architecture,
-2. remove critical trust-boundary risks first,
-3. harden tenant isolation and operational truthfulness,
-4. then scale reliability, security, and deployment maturity.
+2. make the product legible to buyers and operators,
+3. remove critical trust-boundary risks first,
+4. harden tenant isolation and operational truthfulness,
+5. then scale reliability, security, and deployment maturity.
 
 ---
 
-## 2. Current Investment Position
+## 2. Product Definition
+
+### What ACOS is
+ACOS is a **governed operations system for AI-assisted retail and customer-service workflows**.
+
+At its best, the platform gives a retailer or commerce operator one place to:
+- define service and commerce workflows such as order status, returns, loyalty, and escalation
+- attach those workflows to agents, tools, and messaging channels
+- test, approve, promote, and roll back workflow behavior
+- monitor runs, audits, connector health, and operator-visible outcomes
+
+### The core product promise
+ACOS should feel like the operating layer between:
+- customer-facing channels such as WhatsApp, Telegram, APIs, and chat surfaces
+- AI runtimes and tool-connected agents
+- operator governance for approval, promotion, incident response, and rollback
+
+The software has the most value when it helps an operations team answer:
+- Which workflow is currently live for this customer interaction?
+- Which agent, tools, and channels are involved?
+- What changed, who approved it, and can we roll it back?
+- Are we looking at real operational state or a safe validation environment?
+
+### Who it is for
+The most credible early buyer is:
+- a retail or commerce operations team
+- a digital support organization
+- an enterprise innovation group piloting AI-led service flows
+
+It is most valuable when the buyer has:
+- multiple customer channels
+- fragmented support tooling
+- real operational risk from ad hoc AI automation
+
+### Why it has real value
+The real value is not "AI for its own sake."
+The value is:
+- reducing ad hoc support automation
+- making customer-service workflows visible and governable
+- allowing operators to change workflow behavior without rewriting the stack
+- creating a control layer between AI runtimes and customer-facing channels
+
+### What it is not
+ACOS is not:
+- a generic no-code workflow SaaS
+- a mass-market chatbot product
+- a complete enterprise-ready platform today
+- a replacement for the underlying commerce platforms, CRMs, or channel providers
+
+The investment case is strongest if ACOS is treated as a **category-focused control plane for AI-assisted commerce operations**.
+
+### Product packaging recommendation
+The cleanest way to describe ACOS externally is:
+
+> ACOS is a governed control plane for AI-assisted retail and customer-service operations.
+
+Supporting language should stay close to:
+- versioned workflows
+- channel orchestration
+- agent and tool governance
+- operator-visible execution and audit
+
+It should avoid leading with:
+- generic "AI platform" language
+- "chatbot" framing
+- demo-route terminology outside validation contexts
+
+---
+
+## 3. Current Investment Position
 
 ### Strengths worth backing
 - Clear product identity as an agentic commerce runtime plus governed operations plane.
@@ -45,7 +115,7 @@ This plan assumes the right strategy is:
 
 ---
 
-## 3. Implementation Principles
+## 4. Implementation Principles
 
 1. Do not rewrite the platform.
 2. Keep the three-service topology intact.
@@ -53,10 +123,38 @@ This plan assumes the right strategy is:
 4. Make security and tenant correctness non-optional at runtime.
 5. Separate demo continuity from production truth.
 6. Add deployment maturity only after trust boundaries are fixed.
+7. Reduce product ambiguity in docs, UI language, and operator workflows.
+8. Prefer execution slices that increase operator trust immediately, not only backend completeness.
 
 ---
 
-## 4. Workstreams
+## 5. Workstreams
+
+### Workstream 0: Product Clarity and Operator Positioning
+**Goal:** make the product legible to buyers, operators, and investors without changing the underlying architecture.
+
+Scope:
+- Align repo docs, UI language, and page descriptions around one product definition.
+- Describe ACOS consistently as a governed operations system for AI-assisted retail/customer-service workflows.
+- Reduce confusing mixes of "demo", "platform", "chatbot", and "generic workflow" language.
+- Make the value proposition explicit: workflow governance, channel orchestration, agent/tool control, and operator visibility.
+
+Code and doc areas:
+- `README.md`
+- `docs/README.md`
+- `docs/technology/INVESTMENT-IMPLEMENTATION-PLAN.md`
+- top-level control-plane page copy in `apps/ops_ui_v2/src/pages/*`
+- shell/header copy in `apps/ops_ui_v2/src/components/*`
+
+Exit criteria:
+- A new reader can answer what ACOS does in under one minute.
+- The UI reads like one product, not a stitched demo system.
+- Demo functionality remains available but is clearly framed as validation tooling rather than the whole product.
+
+Implementation slice to execute now:
+- Update top-level docs to explain the product in plain English.
+- Reframe core ops UI headers around governed retail/service operations.
+- Keep demo route tooling, but present it as workflow validation and operator rehearsal.
 
 ### Workstream A: Trust Boundaries and Authentication
 **Goal:** remove externally reachable unauthenticated execution paths.
@@ -187,7 +285,22 @@ Exit criteria:
 
 ---
 
-## 5. Recommended Delivery Sequence
+## 6. Recommended Delivery Sequence
+
+### Phase 0: Product Clarity Slice
+**Duration:** 2-4 days
+**Objective:** remove ambiguity about what the software is and why it matters.
+
+Includes:
+1. Workstream 0: product clarity and operator positioning
+
+Decision gate:
+- Do not expand the roadmap further until docs and UI language describe one coherent product.
+
+Delivered in this repository slice:
+1. implementation plan updated around the clarified product thesis
+2. README updated with plain-English product framing
+3. ops UI copy aligned around operator governance, workflow validation, and channel-connected service flows
 
 ### Phase 1: Investment Protection Sprint
 **Duration:** 2-3 weeks
@@ -226,13 +339,25 @@ Decision gate:
 
 ---
 
-## 6. Road To Production
+## 7. Road To Production
 
 ### Stage 0: Now
 Current state:
 - strong prototype / early platform
 - investable for team and direction
 - not yet safe to present as hardened multitenant enterprise infrastructure
+- still too ambiguous in positioning unless the product story is simplified
+
+### Stage 0.5: Clarify The Product
+Ship before investor, buyer, or operator-facing expansion:
+1. simplify top-level messaging
+2. explain who the product is for
+3. explain why governance is the point of the product
+4. frame demo routes as validation tooling, not the primary product identity
+5. align runtime, workflow, channel, and agent pages around one operational story
+
+Production gate:
+- the README, plan, and UI shell all describe the same product
 
 ### Stage 1: Secure The Edges
 Ship before any broad external exposure:
@@ -283,7 +408,7 @@ Production gate:
 
 ---
 
-## 7. Suggested Milestone Acceptance Metrics
+## 8. Suggested Milestone Acceptance Metrics
 
 ### Security and Platform
 - `0` anonymous workflow execution endpoints
@@ -299,10 +424,11 @@ Production gate:
 - workflow authoring remains usable after safe rule engine introduction
 - channels page can distinguish configured preview vs healthy live path
 - operators can tell if they are acting on demo, degraded, or live data
+- a new technical buyer can understand the product category and use case from docs and UI copy alone
 
 ---
 
-## 8. Investment Recommendation Framing
+## 9. Investment Recommendation Framing
 
 ### If investing now
 Invest on the basis of:
@@ -324,18 +450,21 @@ Invest on the basis of:
 
 ---
 
-## 9. Immediate Next Implementation Slices
+## 10. Immediate Next Implementation Slices
 
-1. `PR-1` Secure `chat-api`
+1. `PR-0` Clarify product positioning
+   - align top-level docs and control-plane page copy around the real product definition
+   - completed in the current implementation slice
+2. `PR-1` Secure `chat-api`
    - add auth dependencies, Slack signature verification, startup validation
-2. `PR-2` Enforce tenant context
+3. `PR-2` Enforce tenant context
    - switch high-risk repository/context paths to `tenant_transaction`
    - tighten RLS deny-by-default behavior
-3. `PR-3` Replace workflow `eval()`
+4. `PR-3` Replace workflow `eval()`
    - add safe rules engine plus validation
-4. `PR-4` Truthful persistence mode
+5. `PR-4` Truthful persistence mode
    - disable silent in-memory write fallback in normal mode
-5. `PR-5` Connector failure semantics
+6. `PR-5` Connector failure semantics
    - upgrade WhatsApp and Telegram delivery outcomes to explicit live failure states
 
 This sequence preserves current momentum while addressing the specific issues that matter most to technical investment diligence.

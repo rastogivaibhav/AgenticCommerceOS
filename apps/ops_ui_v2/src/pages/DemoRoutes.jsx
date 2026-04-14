@@ -51,11 +51,11 @@ export default function DemoRoutes() {
     <div className="page-container list-view">
       <header className="page-header sticky-header">
         <div>
-          <div className="eyebrow">Retail Demo Dispatch</div>
-          <h1>Channel-Triggered Demo Routes</h1>
+          <div className="eyebrow">Workflow Validation</div>
+          <h1>Channel-Triggered Route Validation</h1>
           <p className="muted">
-            Trigger one of the supported retail routes from WhatsApp or Telegram, inspect tool traces,
-            and verify that the reply and ops notification were both produced.
+            Rehearse supported retail and service routes from WhatsApp or Telegram, inspect tool
+            traces, and verify the customer reply plus operator notification before live exposure.
           </p>
         </div>
       </header>
@@ -64,7 +64,7 @@ export default function DemoRoutes() {
         <div className="summary-card">
           <span className="summary-label">Available routes</span>
           <strong>{payload.routes?.length || 0}</strong>
-          <span className="summary-meta">Canonical retail scenarios currently exposed for safe dispatch testing.</span>
+          <span className="summary-meta">Canonical operating scenarios exposed for safe validation runs.</span>
         </div>
         <div className="summary-card">
           <span className="summary-label">Linked channel bindings</span>
@@ -127,7 +127,7 @@ export default function DemoRoutes() {
           <div className="editor-widget glass-card">
             <div className="widget-header">
               <div>
-                <div className="eyebrow">Dispatch</div>
+                <div className="eyebrow">Validation Run</div>
                 <h2 className="text-on-surface">{selectedRoute?.name || 'Select a route'}</h2>
               </div>
             </div>
@@ -174,7 +174,7 @@ export default function DemoRoutes() {
                 )}
                 <button className="primary-button mt-3" onClick={handleDispatch}>
                   <PlayCircle size={16} />
-                  Run Route
+                  Run Validation
                 </button>
               </div>
 

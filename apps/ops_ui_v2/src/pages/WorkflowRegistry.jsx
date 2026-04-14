@@ -163,11 +163,11 @@ export default function WorkflowRegistry() {
 
       <header className="page-header sticky-header">
         <div>
-          <div className="eyebrow">Governed Runtime Control</div>
+          <div className="eyebrow">Governed Workflow Control</div>
           <h1>Workflow Operations</h1>
           <p className="muted">
-            Start from one clear story: inspect the order-support demo flow, validate it, and then
-            branch into the rest of the workflow inventory.
+            Manage the customer-service and commerce workflows that power live channel interactions,
+            operator approvals, and promotion into real environments.
           </p>
           <div style={{ display: 'flex', gap: 12, marginTop: 12, alignItems: 'center' }}>
             <ModeBadge mode={payload.mode} />
@@ -221,11 +221,11 @@ export default function WorkflowRegistry() {
           style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20 }}
         >
           <div>
-            <div className="eyebrow">Recommended Demo Flow</div>
+            <div className="eyebrow">Recommended Validation Flow</div>
             <h2 style={{ marginTop: 6, marginBottom: 10 }}>{recommendedDemo.name}</h2>
             <p className="muted" style={{ marginBottom: 16 }}>
-              WhatsApp inbound request, Shopify order lookup, Salesforce customer context, agent
-              decision, and governed escalation in one path.
+              A safe end-to-end operator rehearsal covering channel intake, commerce context, agent
+              reasoning, and governed escalation in a single path.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
               <span className="skill-tag">
@@ -242,7 +242,7 @@ export default function WorkflowRegistry() {
               className="primary-button"
               onClick={() => navigate(`/workflows/${recommendedDemo.id}/editor`)}
             >
-              Open Demo Flow
+              Open Validation Flow
             </button>
           </div>
           <div
@@ -266,7 +266,7 @@ export default function WorkflowRegistry() {
               <span className="stat-val">{recommendedDemo.last_promoted_at || 'Not promoted yet'}</span>
             </div>
             <div className="stat-row">
-              <span className="stat-label">Demo Status</span>
+              <span className="stat-label">Validation Status</span>
               <span className="stat-val">Guided entrypoint</span>
             </div>
           </div>
@@ -315,7 +315,7 @@ export default function WorkflowRegistry() {
                           <div className="secondary-cell mono">{workflow.id}</div>
                           {workflow.is_demo && (
                             <div className="secondary-cell" style={{ color: 'var(--md-on-warning-container)' }}>
-                              Recommended demo entrypoint
+                              Recommended validation entrypoint
                             </div>
                           )}
                         </td>
