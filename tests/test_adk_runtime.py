@@ -63,3 +63,13 @@ def test_run_adk_reports_unavailable_requested_provider(monkeypatch):
     assert result["runtime"]["provider"] == "google_genai"
     assert result["skills_used"] == []
     assert "errors" in result
+
+
+def test_runtime_capabilities_include_host_and_docker_profiles():
+    capabilities = adk_provider.get_runtime_capabilities()
+
+    assert "local_openai_host" in capabilities["supported_providers"]
+    assert "local_openai_docker" in capabilities["supported_providers"]
+    assert "auto" in capabilities["runtime_preference_options"]
+    assert "local_openai_host" in capabilities["local_openai_profiles"]
+    assert "local_openai_docker" in capabilities["local_openai_profiles"]

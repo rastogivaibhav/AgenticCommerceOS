@@ -2,17 +2,26 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import { getOpsContext } from '../api/opsAPI';
+import { getOpsContext, updateRuntimePreferences } from '../api/opsAPI';
+import { canOperate } from '../lib/rbac';
 import './Layout.css';
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [context, setContext] = useState(null);
   const [contextError, setContextError] = useState(null);
+  const [isUpdatingPreferences, setIsUpdatingPreferences] = useState(false);
+
+  const refreshContext = async () => {
+    const payload = await getOpsContext();
+    setContext(payload);
+    setContextError(null);
+    return payload;
+  };
 
   useEffect(() => {
     let isMounted = true;
-    getOpsContext()
+    refreshContext()
       .then((payload) => {
         if (!isMounted) return;
         setContext(payload);
@@ -26,6 +35,20 @@ export default function Layout() {
       isMounted = false;
     };
   }, []);
+
+  const handlePreferencesUpdate = async (nextPreferences) => {
+    if (!canOperate()) return;
+    setIsUpdatingPreferences(true);
+    try {
+      const payload = await updateRuntimePreferences(nextPreferences);
+      setContext(payload.context || null);
+      setContextError(null);
+    } catch (error) {
+      setContextError({ message: error.message, status: error.status });
+    } finally {
+      setIsUpdatingPreferences(false);
+    }
+  };
 
   const authRequired = !context && contextError?.status === 401;
 
@@ -63,6 +86,9 @@ export default function Layout() {
         <Header
           context={context}
           contextError={contextError}
+          canOperate={canOperate()}
+          isUpdatingPreferences={isUpdatingPreferences}
+          onPreferencesUpdate={handlePreferencesUpdate}
           onMenuToggle={() => setMenuOpen(!menuOpen)}
         />
         <main className="flex-1 overflow-auto bg-surface">

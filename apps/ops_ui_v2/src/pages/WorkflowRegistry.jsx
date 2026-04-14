@@ -20,7 +20,7 @@ function ModeBadge({ mode }) {
   const live = mode === 'live';
   return (
     <span className={`status-badge ${live ? 'healthy' : 'degraded'}`} style={{ textTransform: 'none' }}>
-      {live ? 'Live data' : 'Demo data'}
+      {live ? 'Live data' : 'Fallback data'}
     </span>
   );
 }

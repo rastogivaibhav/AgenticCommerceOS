@@ -18,9 +18,13 @@ from integrations.adk.runtime import ADKRuntime, RuntimeTool, ToolContract, Tool
 logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "gemini-2.0-flash"
-LMSTUDIO_BASE_URL = (os.environ.get("LMSTUDIO_BASE_URL") or "").rstrip("/")
-LMSTUDIO_MODEL = (os.environ.get("LMSTUDIO_MODEL") or "").strip()
-SUPPORTED_RUNTIME_PROVIDERS = ("google_genai", "lmstudio_local", "local_fallback")
+SUPPORTED_RUNTIME_PROVIDERS = (
+    "google_genai",
+    "local_openai_host",
+    "local_openai_docker",
+    "local_fallback",
+)
+RUNTIME_PREFERENCE_OPTIONS = ("auto", *SUPPORTED_RUNTIME_PROVIDERS)
 ROADMAP_RUNTIME_PROVIDERS = (
     "crewai",
     "salesforce_agentforce",
@@ -32,14 +36,86 @@ _adk_available = False
 _model = None
 
 
-def _lmstudio_base_candidates() -> list[str]:
-    if LMSTUDIO_BASE_URL:
-        return [LMSTUDIO_BASE_URL]
-    return ["http://localhost:1234/v1", "http://host.docker.internal:1234/v1"]
+def _normalize_provider_name(value: str | None, *, allow_auto: bool = False) -> str:
+    normalized = (value or "").strip().lower()
+    aliases = {
+        "google adk": "google_genai",
+        "google_genai": "google_genai",
+        "lmstudio": "local_openai_host",
+        "lmstudio_local": "local_openai_host",
+        "lmstudio_host": "local_openai_host",
+        "local_openai_host": "local_openai_host",
+        "local llm": "local_openai_host",
+        "local_llm": "local_openai_host",
+        "docker llm": "local_openai_docker",
+        "docker_llm": "local_openai_docker",
+        "lmstudio_docker": "local_openai_docker",
+        "local_openai_docker": "local_openai_docker",
+        "local fallback": "local_fallback",
+        "local_fallback": "local_fallback",
+    }
+    if allow_auto and normalized in {"", "auto"}:
+        return "auto"
+    return aliases.get(normalized, normalized)
+
+def _openai_profile_config(provider: str) -> dict[str, Any]:
+    normalized = _normalize_provider_name(provider)
+    if normalized == "local_openai_docker":
+        configured_base_url = (
+            os.environ.get("DOCKER_OPENAI_BASE_URL")
+            or os.environ.get("LMSTUDIO_DOCKER_BASE_URL")
+            or ""
+        ).rstrip("/")
+        configured_model = (
+            os.environ.get("DOCKER_OPENAI_MODEL")
+            or os.environ.get("LMSTUDIO_DOCKER_MODEL")
+            or os.environ.get("LOCAL_OPENAI_MODEL")
+            or os.environ.get("LMSTUDIO_MODEL")
+            or ""
+        ).strip()
+        return {
+            "provider": "local_openai_docker",
+            "label": "Docker local LLM",
+            "configured_base_url": configured_base_url,
+            "configured_model": configured_model,
+            "base_candidates": [configured_base_url] if configured_base_url else [
+                "http://host.docker.internal:1234/v1",
+                "http://llm:1234/v1",
+            ],
+        }
+
+    configured_base_url = (
+        os.environ.get("LOCAL_OPENAI_BASE_URL")
+        or os.environ.get("LMSTUDIO_BASE_URL")
+        or ""
+    ).rstrip("/")
+    configured_model = (
+        os.environ.get("LOCAL_OPENAI_MODEL")
+        or os.environ.get("LMSTUDIO_MODEL")
+        or ""
+    ).strip()
+    return {
+        "provider": "local_openai_host",
+        "label": "Host local LLM",
+        "configured_base_url": configured_base_url,
+        "configured_model": configured_model,
+        "base_candidates": [configured_base_url] if configured_base_url else [
+            "http://localhost:1234/v1",
+            "http://127.0.0.1:1234/v1",
+        ],
+    }
 
 
-def _probe_lmstudio(timeout_seconds: float = 1.5) -> tuple[bool, str | None]:
-    for base_url in _lmstudio_base_candidates():
+def _runtime_preference_default() -> str:
+    return _normalize_provider_name(os.environ.get("ACOS_RUNTIME_PREFERENCE"), allow_auto=True)
+
+
+def _probe_openai_compatible(
+    provider: str,
+    timeout_seconds: float = 1.5,
+) -> tuple[bool, str | None, str | None]:
+    profile = _openai_profile_config(provider)
+    for base_url in profile["base_candidates"]:
         try:
             response = requests.get(
                 f"{base_url}/models",
@@ -50,24 +126,30 @@ def _probe_lmstudio(timeout_seconds: float = 1.5) -> tuple[bool, str | None]:
             data = payload.get("data") if isinstance(payload, dict) else []
             if isinstance(data, list) and data:
                 candidate = data[0] or {}
-                return True, candidate.get("id") or LMSTUDIO_MODEL or None
-            return True, LMSTUDIO_MODEL or None
+                return True, candidate.get("id") or profile["configured_model"] or None, base_url
+            return True, profile["configured_model"] or None, base_url
         except Exception:
             continue
-    return False, None
+    return False, None, None
 
 
-def _lmstudio_generate(prompt: str, *, timeout_seconds: float = 10.0) -> str:
-    available, detected_model = _probe_lmstudio(timeout_seconds=2.0)
+def _openai_compatible_generate(
+    prompt: str,
+    provider: str,
+    *,
+    timeout_seconds: float = 10.0,
+) -> str:
+    profile = _openai_profile_config(provider)
+    available, detected_model, _ = _probe_openai_compatible(provider, timeout_seconds=2.0)
     if not available:
-        raise RuntimeError("LM Studio local server is unavailable")
+        raise RuntimeError(f"{profile['label']} server is unavailable")
 
-    model_name = LMSTUDIO_MODEL or detected_model
+    model_name = profile["configured_model"] or detected_model
     if not model_name:
-        raise RuntimeError("LM Studio local server has no loaded model")
+        raise RuntimeError(f"{profile['label']} server has no loaded model")
 
     last_error = None
-    for base_url in _lmstudio_base_candidates():
+    for base_url in profile["base_candidates"]:
         try:
             response = requests.post(
                 f"{base_url}/chat/completions",
@@ -86,11 +168,11 @@ def _lmstudio_generate(prompt: str, *, timeout_seconds: float = 10.0) -> str:
             message = (choices[0] or {}).get("message") or {}
             content = message.get("content")
             if not isinstance(content, str) or not content.strip():
-                raise RuntimeError("LM Studio returned an empty response")
+                raise RuntimeError(f"{profile['label']} returned an empty response")
             return content
         except Exception as exc:
             last_error = exc
-    raise RuntimeError(str(last_error) if last_error else "LM Studio local server is unavailable")
+    raise RuntimeError(str(last_error) if last_error else f"{profile['label']} server is unavailable")
 
 
 def _init_adk() -> None:
@@ -121,9 +203,6 @@ def _resolve_provider(
     *,
     strict_provider: bool = False,
 ) -> tuple[str, list[str]]:
-    if requested_provider == "local_fallback":
-        return "local_fallback", []
-
     if requested_provider == "google_genai":
         if _adk_available and _model:
             return "google_genai", []
@@ -137,16 +216,36 @@ def _resolve_provider(
             )
         return "local_fallback", []
 
-    if requested_provider == "lmstudio_local":
-        available, _ = _probe_lmstudio()
+    normalized_request = _normalize_provider_name(
+        requested_provider or _runtime_preference_default(),
+        allow_auto=True,
+    )
+
+    if normalized_request == "local_fallback":
+        return "local_fallback", []
+
+    if normalized_request in {"", "auto"}:
+        if _adk_available and _model:
+            return "google_genai", []
+        host_available, _, _ = _probe_openai_compatible("local_openai_host")
+        if host_available:
+            return "local_openai_host", []
+        docker_available, _, _ = _probe_openai_compatible("local_openai_docker")
+        if docker_available:
+            return "local_openai_docker", []
+        return "local_fallback", []
+
+    if normalized_request in {"local_openai_host", "local_openai_docker"}:
+        available, _, _ = _probe_openai_compatible(normalized_request)
         if available:
-            return "lmstudio_local", []
+            return normalized_request, []
         if strict_provider:
+            label = _openai_profile_config(normalized_request)["label"]
             return (
-                "lmstudio_local",
+                normalized_request,
                 [
-                    "Configured runtime provider 'lmstudio_local' is unavailable. "
-                    "Start LM Studio local server and load a model before retrying."
+                    f"Configured runtime provider '{normalized_request}' is unavailable. "
+                    f"Start the {label.lower()} endpoint and load a model before retrying."
                 ],
             )
         return "local_fallback", []
@@ -158,8 +257,8 @@ def _should_use_genai(ctx: dict[str, Any]) -> bool:
     return ctx.get("__runtime_provider") == "google_genai" and _adk_available and _model is not None
 
 
-def _should_use_lmstudio(ctx: dict[str, Any]) -> bool:
-    return ctx.get("__runtime_provider") == "lmstudio_local"
+def _should_use_openai_local(ctx: dict[str, Any]) -> bool:
+    return ctx.get("__runtime_provider") in {"local_openai_host", "local_openai_docker"}
 
 
 def _skill_recommendation(ctx: dict[str, Any], products: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -187,7 +286,7 @@ def _skill_recommendation(ctx: dict[str, Any], products: list[dict[str, Any]] | 
         except Exception as exc:
             logger.warning(f"ADK recommendation skill failed: {exc}")
 
-    if _should_use_lmstudio(ctx):
+    if _should_use_openai_local(ctx):
         try:
             prompt = (
                 f"You are a shopping assistant. The customer says: '{message}'. "
@@ -197,11 +296,11 @@ def _skill_recommendation(ctx: dict[str, Any], products: list[dict[str, Any]] | 
                 "Mention specific product names and why they are a good fit."
             )
             return {
-                "recommendation_text": _lmstudio_generate(prompt),
-                "source": "lmstudio_local",
+                "recommendation_text": _openai_compatible_generate(prompt, ctx.get("__runtime_provider")),
+                "source": ctx.get("__runtime_provider") or "local_openai_host",
             }
         except Exception as exc:
-            logger.warning(f"LM Studio recommendation skill failed: {exc}")
+            logger.warning(f"Local OpenAI recommendation skill failed: {exc}")
 
     if products:
         top = products[0]
@@ -243,7 +342,7 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
         except Exception as exc:
             logger.warning(f"ADK explanation skill failed: {exc}")
 
-    if _should_use_lmstudio(ctx):
+    if _should_use_openai_local(ctx):
         try:
             prompt = (
                 f"You are a shopping assistant. The customer asked: '{message}'. "
@@ -251,11 +350,11 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
                 "Provide a concise explanation in 2-3 sentences."
             )
             return {
-                "explanation_text": _lmstudio_generate(prompt),
-                "source": "lmstudio_local",
+                "explanation_text": _openai_compatible_generate(prompt, ctx.get("__runtime_provider")),
+                "source": ctx.get("__runtime_provider") or "local_openai_host",
             }
         except Exception as exc:
-            logger.warning(f"LM Studio explanation skill failed: {exc}")
+            logger.warning(f"Local OpenAI explanation skill failed: {exc}")
 
     return {
         "explanation_text": (
@@ -267,9 +366,12 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
 
 def _build_runtime(journey_type: str, provider: str) -> ADKRuntime:
     model_name = DEFAULT_MODEL
-    if provider == "lmstudio_local":
-        _, detected_model = _probe_lmstudio()
-        model_name = LMSTUDIO_MODEL or detected_model or "lmstudio-local"
+    if provider in {"local_openai_host", "local_openai_docker"}:
+        available, detected_model, _ = _probe_openai_compatible(provider)
+        profile = _openai_profile_config(provider)
+        model_name = profile["configured_model"] or detected_model or (
+            "local-llm" if available else profile["label"].lower().replace(" ", "-")
+        )
     runtime = ADKRuntime(
         journey_type=journey_type,
         provider=provider,
@@ -361,14 +463,42 @@ def run_adk(
 
 
 def get_runtime_capabilities() -> dict[str, Any]:
-    lmstudio_enabled, lmstudio_model = _probe_lmstudio()
+    preferred_provider = _runtime_preference_default()
+    host_enabled, host_model, host_base_url = _probe_openai_compatible("local_openai_host")
+    docker_enabled, docker_model, docker_base_url = _probe_openai_compatible("local_openai_docker")
+    resolved_preferred, _ = _resolve_provider(preferred_provider, strict_provider=False)
+    host_profile = _openai_profile_config("local_openai_host")
+    docker_profile = _openai_profile_config("local_openai_docker")
     return {
         "supported_providers": list(SUPPORTED_RUNTIME_PROVIDERS),
+        "runtime_preference_options": list(RUNTIME_PREFERENCE_OPTIONS),
         "roadmap_providers": list(ROADMAP_RUNTIME_PROVIDERS),
         "default_model": DEFAULT_MODEL,
-        "active_provider": "google_genai" if _adk_available else ("lmstudio_local" if lmstudio_enabled else "local_fallback"),
+        "active_provider": (
+            "google_genai"
+            if _adk_available
+            else ("local_openai_host" if host_enabled else ("local_openai_docker" if docker_enabled else "local_fallback"))
+        ),
+        "preferred_provider": preferred_provider,
+        "preferred_provider_resolved": resolved_preferred,
         "genai_enabled": _adk_available,
-        "lmstudio_enabled": lmstudio_enabled,
-        "lmstudio_base_url": LMSTUDIO_BASE_URL or _lmstudio_base_candidates()[0],
-        "lmstudio_model": LMSTUDIO_MODEL or lmstudio_model,
+        "local_openai_profiles": {
+            "local_openai_host": {
+                "label": host_profile["label"],
+                "available": host_enabled,
+                "base_url": host_base_url or host_profile["base_candidates"][0],
+                "configured_base_url": host_profile["configured_base_url"] or None,
+                "model": host_profile["configured_model"] or host_model,
+            },
+            "local_openai_docker": {
+                "label": docker_profile["label"],
+                "available": docker_enabled,
+                "base_url": docker_base_url or docker_profile["base_candidates"][0],
+                "configured_base_url": docker_profile["configured_base_url"] or None,
+                "model": docker_profile["configured_model"] or docker_model,
+            },
+        },
+        "lmstudio_enabled": host_enabled or docker_enabled,
+        "lmstudio_base_url": host_base_url or docker_base_url or host_profile["base_candidates"][0],
+        "lmstudio_model": host_profile["configured_model"] or host_model or docker_profile["configured_model"] or docker_model,
     }

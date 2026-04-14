@@ -75,6 +75,7 @@ from acosplatform.retail_ops.service import dispatch_demo_route, ingest_channel_
 from acosplatform.replay.replay_engine import replay
 from integrations.adk.provider import (
     DEFAULT_MODEL,
+    RUNTIME_PREFERENCE_OPTIONS,
     SUPPORTED_RUNTIME_PROVIDERS,
     get_runtime_capabilities,
     run_adk,
@@ -106,6 +107,7 @@ OPS_ENVIRONMENT = os.environ.get("OPS_ENVIRONMENT", "dev")
 EMBEDDED_UI_DIR = Path("apps/ops_api/ui")
 LOCAL_UI_DIR = Path("apps/ops_ui_v2/dist")
 UI_DIR = EMBEDDED_UI_DIR if (EMBEDDED_UI_DIR / "index.html").exists() else LOCAL_UI_DIR
+SUPPORTED_PLATFORM_MODES = ("normal", "demo")
 
 
 def _flag_enabled(name: str, default: str = "0") -> bool:
@@ -163,6 +165,8 @@ async def generic_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 def startup():
     logger.info("Ops API starting up...")
+    _set_platform_mode(os.environ.get("ACOS_PLATFORM_MODE", "normal"))
+    _set_runtime_preference(os.environ.get("ACOS_RUNTIME_PREFERENCE", "auto"))
     if ALLOW_MOCK_ROUTES and not IS_DEV_ENV and not ALLOW_NON_DEV_MOCK_ROUTES:
         raise RuntimeError(
             "ALLOW_MOCK_ROUTES=1 is blocked in non-dev unless ALLOW_NON_DEV_MOCK_ROUTES=1 is also set."
@@ -229,6 +233,11 @@ class WorkflowExecuteRequest(BaseModel):
     order_id: str | None = None
 
 
+class RuntimePreferencesRequest(BaseModel):
+    platform_mode: str | None = None
+    runtime_preference: str | None = None
+
+
 class ChannelLinkRequest(BaseModel):
     id: str | None = None
     type: str
@@ -280,14 +289,55 @@ def _utc_iso() -> str:
 
 
 def _runtime_capabilities() -> dict[str, Any]:
+    if getattr(app.state, "runtime_preference", None):
+        os.environ["ACOS_RUNTIME_PREFERENCE"] = app.state.runtime_preference
     return get_runtime_capabilities()
 
 
 def _platform_mode() -> str:
+    raw_value = getattr(app.state, "platform_mode", None) or os.environ.get("ACOS_PLATFORM_MODE") or "normal"
+    normalized = str(raw_value).strip().lower()
+    return normalized if normalized in SUPPORTED_PLATFORM_MODES else "normal"
+
+
+def _data_plane_mode() -> str:
     try:
         return "live" if check_connection() else "demo"
     except Exception:
         return "demo"
+
+
+def _runtime_preference() -> str:
+    raw_value = getattr(app.state, "runtime_preference", None) or os.environ.get("ACOS_RUNTIME_PREFERENCE") or "auto"
+    normalized = str(raw_value).strip().lower()
+    if normalized in {"", "auto"}:
+        return "auto"
+    normalized = _PROVIDER_ALIAS.get(normalized, normalized)
+    return normalized if normalized in SUPPORTED_RUNTIME_PROVIDERS else "auto"
+
+
+def _set_platform_mode(value: str) -> str:
+    normalized = str(value or "").strip().lower()
+    if normalized not in SUPPORTED_PLATFORM_MODES:
+        raise ValueError(f"Unsupported platform mode '{value}'. Expected one of: {', '.join(SUPPORTED_PLATFORM_MODES)}")
+    app.state.platform_mode = normalized
+    os.environ["ACOS_PLATFORM_MODE"] = normalized
+    return normalized
+
+
+def _set_runtime_preference(value: str) -> str:
+    normalized = _runtime_preference() if value is None else str(value or "").strip().lower()
+    if normalized in {"", "auto"}:
+        normalized = "auto"
+    else:
+        normalized = _PROVIDER_ALIAS.get(normalized, normalized)
+    if normalized != "auto" and normalized not in SUPPORTED_RUNTIME_PROVIDERS:
+        raise ValueError(
+            f"Unsupported runtime preference '{value}'. Expected one of: {', '.join(RUNTIME_PREFERENCE_OPTIONS)}"
+        )
+    app.state.runtime_preference = normalized
+    os.environ["ACOS_RUNTIME_PREFERENCE"] = normalized
+    return normalized
 
 
 def _roles_from_claims(claims: dict[str, Any]) -> list[str]:
@@ -423,12 +473,16 @@ def _whatsapp_binding_overrides() -> list[dict[str, Any]]:
 def _runtime_health() -> dict[str, Any]:
     capabilities = _runtime_capabilities()
     return {
+        "platform_mode": _platform_mode(),
+        "data_mode": _data_plane_mode(),
+        "runtime_preference": _runtime_preference(),
         "providers": capabilities,
         "lmstudio": {
             "enabled": capabilities.get("lmstudio_enabled", False),
             "base_url": capabilities.get("lmstudio_base_url"),
             "model": capabilities.get("lmstudio_model"),
         },
+        "local_openai_profiles": capabilities.get("local_openai_profiles", {}),
     }
 
 
@@ -443,7 +497,7 @@ def _seed_demo_routes() -> None:
             "supported_channels": ["whatsapp", "telegram"],
             "sample_trigger": "Where is my order ORD-1001?",
             "systems": ["crm", "shopify", "salesforce", "whatsapp", "telegram"],
-            "preferred_runtime": "lmstudio_local",
+            "preferred_runtime": "local_openai_host",
             "mode": "sandbox",
         },
         {
@@ -479,7 +533,7 @@ def _seed_demo_routes() -> None:
             "supported_channels": ["whatsapp", "telegram"],
             "sample_trigger": "This is my third failed delivery, escalate now.",
             "systems": ["crm", "salesforce", "whatsapp", "telegram"],
-            "preferred_runtime": "lmstudio_local",
+            "preferred_runtime": "local_openai_host",
             "mode": "sandbox",
         },
     ]
@@ -1072,8 +1126,16 @@ def _mock_routes_allowed() -> bool:
 _PROVIDER_ALIAS = {
     "google adk": "google_genai",
     "google_genai": "google_genai",
-    "lmstudio": "lmstudio_local",
-    "lmstudio_local": "lmstudio_local",
+    "lmstudio": "local_openai_host",
+    "lmstudio_local": "local_openai_host",
+    "lmstudio_host": "local_openai_host",
+    "local_openai_host": "local_openai_host",
+    "local llm": "local_openai_host",
+    "local_llm": "local_openai_host",
+    "docker llm": "local_openai_docker",
+    "docker_llm": "local_openai_docker",
+    "lmstudio_docker": "local_openai_docker",
+    "local_openai_docker": "local_openai_docker",
     "local fallback": "local_fallback",
     "local_fallback": "local_fallback",
 }
@@ -1081,7 +1143,8 @@ _PROVIDER_ALIAS = {
 
 def _to_provider_key(raw_provider: Any) -> str:
     if not isinstance(raw_provider, str):
-        return _runtime_capabilities().get("active_provider", "local_fallback")
+        capabilities = _runtime_capabilities()
+        return capabilities.get("preferred_provider_resolved") or capabilities.get("active_provider", "local_fallback")
     normalized = raw_provider.strip().lower()
     return _PROVIDER_ALIAS.get(normalized, normalized)
 
@@ -1238,10 +1301,10 @@ def billing(tenant_id: str = None, _claims: dict = Depends(READ_ACCESS)):
     return {"summary": get_cost_summary(), "by_tenant": get_usage()}
 
 
-@app.get("/api/v1/ops/context")
-def ops_context(claims: dict = Depends(READ_ACCESS)):
+def _ops_context_payload(claims: dict[str, Any]) -> dict[str, Any]:
     roles = _roles_from_claims(claims)
     primary_role = roles[0] if roles else "viewer"
+    capabilities = _runtime_capabilities()
     return {
         "user_id": claims.get("sub") or claims.get("email") or "ops-user",
         "display_name": claims.get("name") or claims.get("email") or claims.get("sub") or "ACOS Operator",
@@ -1251,6 +1314,35 @@ def ops_context(claims: dict = Depends(READ_ACCESS)):
         "available_tenants": ["default"],
         "environment": OPS_ENVIRONMENT,
         "mode": _platform_mode(),
+        "mode_options": list(SUPPORTED_PLATFORM_MODES),
+        "data_mode": _data_plane_mode(),
+        "runtime_preference": _runtime_preference(),
+        "runtime_preference_options": list(RUNTIME_PREFERENCE_OPTIONS),
+        "runtime_provider": capabilities.get("preferred_provider_resolved") or capabilities.get("active_provider"),
+    }
+
+
+@app.get("/api/v1/ops/context")
+def ops_context(claims: dict = Depends(READ_ACCESS)):
+    return _ops_context_payload(claims)
+
+
+@app.patch("/api/v1/runtime/preferences")
+def update_runtime_preferences(
+    payload: RuntimePreferencesRequest,
+    claims: dict = Depends(OPERATE_ACCESS),
+):
+    try:
+        if payload.platform_mode is not None:
+            _set_platform_mode(payload.platform_mode)
+        if payload.runtime_preference is not None:
+            _set_runtime_preference(payload.runtime_preference)
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    return {
+        "status": "success",
+        "context": _ops_context_payload(claims),
+        "runtime": _runtime_health(),
     }
 
 
@@ -1682,9 +1774,10 @@ async def telegram_webhook_ingest(request: Request):
 @app.get("/api/v1/agents")
 @app.get("/agents")
 def list_agents(_claims: dict = Depends(READ_ACCESS)):
-    mode = _platform_mode()
+    mode = _data_plane_mode()
     return {
         "mode": mode,
+        "operating_mode": _platform_mode(),
         "agents": _attach_provenance(get_agents(), mode),
         "runtime_capabilities": _runtime_capabilities(),
     }
@@ -1701,9 +1794,10 @@ def agent_detail(agent_id: str, _claims: dict = Depends(READ_ACCESS)):
     agent = get_agent_by_id(agent_id)
     if not agent:
         return JSONResponse(status_code=404, content={"error": "Agent not found"})
-    mode = _platform_mode()
+    mode = _data_plane_mode()
     return {
         "mode": mode,
+        "operating_mode": _platform_mode(),
         "agent": {**agent, "provenance_mode": mode},
         "scorecard": _build_agent_scorecard(agent),
     }
@@ -2095,9 +2189,10 @@ def list_workflows(
     environment: str = OPS_ENVIRONMENT,
     _claims: dict = Depends(READ_ACCESS),
 ):
-    mode = _platform_mode()
+    mode = _data_plane_mode()
     return {
         "mode": mode,
+        "operating_mode": _platform_mode(),
         "environment": environment,
         "recommended_demo_workflow_id": DEMO_WORKFLOW_ID,
         "workflows": list_workflows_with_state(tenant_id=tenant_id, environment=environment),
@@ -2116,7 +2211,8 @@ def workflow_detail(
         return JSONResponse(status_code=404, content={"error": "Workflow not found"})
     return {
         **detail,
-        "mode": _platform_mode(),
+        "mode": _data_plane_mode(),
+        "operating_mode": _platform_mode(),
     }
 
 

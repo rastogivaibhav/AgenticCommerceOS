@@ -5,6 +5,13 @@ import { getRuntimeProviders } from '../api/opsAPI';
 import { listChannels } from '../api/channelsAPI';
 import './Lists.css';
 
+const RUNTIME_LABELS = {
+  google_genai: 'Google GenAI',
+  local_openai_host: 'Local LLM (host)',
+  local_openai_docker: 'Local LLM (docker)',
+  local_fallback: 'Local fallback',
+};
+
 export default function DemoRoutes() {
   const [payload, setPayload] = useState({ routes: [], mode: 'sandbox' });
   const [channelsPayload, setChannelsPayload] = useState({ channels: [] });
@@ -128,7 +135,20 @@ export default function DemoRoutes() {
               <div className="widget-section" style={{ marginTop: 0 }}>
                 <h3 className="text-on-surface">Runtime Truth</h3>
                 <div className="secondary-cell">
-                  LM Studio: {runtime?.lmstudio?.enabled ? `available (${runtime.lmstudio.model || 'loaded model'})` : 'unavailable'}
+                  Platform mode: {runtime?.platform_mode || 'normal'} | Data mode: {runtime?.data_mode === 'live' ? 'live' : 'fallback'}
+                </div>
+                <div className="secondary-cell" style={{ marginTop: 8 }}>
+                  Preferred LLM: {RUNTIME_LABELS[runtime?.providers?.preferred_provider_resolved] || runtime?.providers?.preferred_provider_resolved || 'auto'}
+                </div>
+                <div className="secondary-cell" style={{ marginTop: 8 }}>
+                  Host local: {runtime?.local_openai_profiles?.local_openai_host?.available
+                    ? `available (${runtime.local_openai_profiles.local_openai_host.model || 'loaded model'})`
+                    : 'unavailable'}
+                </div>
+                <div className="secondary-cell" style={{ marginTop: 8 }}>
+                  Docker local: {runtime?.local_openai_profiles?.local_openai_docker?.available
+                    ? `available (${runtime.local_openai_profiles.local_openai_docker.model || 'loaded model'})`
+                    : 'unavailable'}
                 </div>
                 <div className="secondary-cell" style={{ marginTop: 8 }}>
                   Route mode: {selectedRoute?.mode || 'sandbox'} | Supported channels: {(selectedRoute?.supported_channels || []).join(', ') || 'n/a'}
@@ -206,7 +226,9 @@ export default function DemoRoutes() {
                     <h3 className="text-on-surface">Workflow + Agent</h3>
                     <div className="secondary-cell">Run: {dispatchResult.run_id || 'n/a'}</div>
                     <div className="secondary-cell">Workflow: {dispatchResult.workflow?.workflow_id || 'n/a'}</div>
-                    <div className="secondary-cell">Runtime: {dispatchResult.agent?.runtime?.provider || dispatchResult.route?.preferred_runtime}</div>
+                    <div className="secondary-cell">
+                      Runtime: {RUNTIME_LABELS[dispatchResult.agent?.runtime?.provider] || RUNTIME_LABELS[dispatchResult.route?.preferred_runtime] || dispatchResult.agent?.runtime?.provider || dispatchResult.route?.preferred_runtime}
+                    </div>
                     <div className="secondary-cell" style={{ marginTop: 8 }}>
                       {(dispatchResult.agent?.explanation?.explanation_text || dispatchResult.agent?.recommendation?.recommendation_text || '').trim()}
                     </div>

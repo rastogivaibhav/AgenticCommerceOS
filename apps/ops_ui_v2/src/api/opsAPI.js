@@ -11,3 +11,11 @@ export async function getConnectorBindings() {
 export async function getRuntimeProviders() {
   return apiJson('/api/v1/runtime/providers');
 }
+
+export async function updateRuntimePreferences(payload) {
+  return apiJson('/api/v1/runtime/preferences', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}

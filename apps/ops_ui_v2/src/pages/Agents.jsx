@@ -24,6 +24,12 @@ const STATUS_TONE = {
 };
 
 const TABS = ['Overview', 'Code', 'Scorecard', 'Usage'];
+const RUNTIME_LABELS = {
+  google_genai: 'Google GenAI',
+  local_openai_host: 'Local LLM (host)',
+  local_openai_docker: 'Local LLM (docker)',
+  local_fallback: 'Local fallback',
+};
 
 function ModeBadge({ mode }) {
   const isLive = mode === 'live';
@@ -32,7 +38,7 @@ function ModeBadge({ mode }) {
       className={`status-badge ${isLive ? 'healthy' : 'degraded'}`}
       style={{ textTransform: 'none' }}
     >
-      {isLive ? 'Live data' : 'Demo data'}
+      {isLive ? 'Live data' : 'Fallback data'}
     </span>
   );
 }
@@ -84,6 +90,7 @@ export default function Agents() {
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState(null);
   const [connectorBindings, setConnectorBindings] = useState([]);
+  const [runtimeCapabilities, setRuntimeCapabilities] = useState({ supported_providers: [] });
   const [createForm, setCreateForm] = useState({
     name: '',
     purpose: '',
@@ -107,6 +114,11 @@ export default function Agents() {
         if (!isMounted) return;
         setAgents(payload.agents || []);
         setMode(payload.mode || 'demo');
+        setRuntimeCapabilities(payload.runtime_capabilities || { supported_providers: [] });
+        setCreateForm((current) => ({
+          ...current,
+          runtime_provider: payload.runtime_capabilities?.preferred_provider_resolved || current.runtime_provider,
+        }));
         setSelectedAgentId((current) => current || payload.agents?.[0]?.id || null);
         setApiError(null);
       })
@@ -177,6 +189,16 @@ export default function Agents() {
     [agents, searchTerm],
   );
 
+  const runtimeProviderOptions = useMemo(() => {
+    const supported = runtimeCapabilities.supported_providers?.length
+      ? runtimeCapabilities.supported_providers
+      : Object.keys(RUNTIME_LABELS);
+    return supported.map((provider) => ({
+      value: provider,
+      label: RUNTIME_LABELS[provider] || provider,
+    }));
+  }, [runtimeCapabilities]);
+
   const handleRunTest = async () => {
     if (!selectedAgent || !allowMutations) return;
     setIsTesting(true);
@@ -240,6 +262,7 @@ export default function Agents() {
       const payload = await listAgents();
       setAgents(payload.agents || []);
       setMode(payload.mode || 'demo');
+      setRuntimeCapabilities(payload.runtime_capabilities || { supported_providers: [] });
       setSelectedAgentId(agentId);
       setActiveTab('Overview');
       setShowCreateModal(false);
@@ -247,7 +270,7 @@ export default function Agents() {
         name: '',
         purpose: '',
         subsystem: 'Customer Service',
-        runtime_provider: 'local_fallback',
+        runtime_provider: payload.runtime_capabilities?.preferred_provider_resolved || 'local_fallback',
         model_name: 'gemini-2.0-flash',
         agent_version: 'v1',
         system_prompt: '',
@@ -327,9 +350,11 @@ export default function Agents() {
                       setCreateForm((current) => ({ ...current, runtime_provider: event.target.value }))
                     }
                   >
-                    <option value="local_fallback">local_fallback</option>
-                    <option value="lmstudio_local">lmstudio_local</option>
-                    <option value="google_genai">google_genai</option>
+                    {runtimeProviderOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <label>
@@ -485,7 +510,7 @@ export default function Agents() {
                         </td>
                         <td>
                           <div className="primary-cell" style={{ fontSize: 14 }}>
-                            {agent.runtime_provider}
+                            {RUNTIME_LABELS[agent.runtime_provider] || agent.runtime_provider}
                           </div>
                           <div className="secondary-cell">{agent.model_name}</div>
                         </td>
@@ -551,7 +576,11 @@ export default function Agents() {
                     {activeTab === 'Overview' && (
                       <>
                         <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                          <StatCard icon={Wrench} label="Runtime" value={`${selectedAgent.runtime_provider} / ${selectedAgent.model_name}`} />
+                          <StatCard
+                            icon={Wrench}
+                            label="Runtime"
+                            value={`${RUNTIME_LABELS[selectedAgent.runtime_provider] || selectedAgent.runtime_provider} / ${selectedAgent.model_name}`}
+                          />
                           <StatCard icon={Clock3} label="Last Test" value={selectedAgent.last_test_at || 'No evidence'} />
                           <StatCard icon={GitBranch} label="Version" value={selectedAgent.agent_version || 'v1'} />
                           <StatCard icon={ShieldCheck} label="Provenance" value={selectedAgent.provenance_mode || mode} />

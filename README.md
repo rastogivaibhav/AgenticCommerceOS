@@ -111,6 +111,11 @@ curl http://localhost:8001/health
 Open the control plane:
 - [http://localhost:8081/ui/](http://localhost:8081/ui/)
 
+Default runtime posture:
+- `ACOS_PLATFORM_MODE=normal` keeps the product in its normal operator posture even if some dependencies fall back locally.
+- `ACOS_PLATFORM_MODE=demo` forces the UI to present a demo-safe posture for local walkthroughs and connector-light setups.
+- `ACOS_RUNTIME_PREFERENCE=auto` lets the runtime choose between Google GenAI, host-local OpenAI-compatible LLMs, Docker-routed local LLMs, and final local fallback.
+
 Bootstrap a local ops token when dev auth is enabled:
 
 ```bash
@@ -231,8 +236,13 @@ Required for local compose:
 
 Common optional variables:
 - `GOOGLE_API_KEY` or `GEMINI_API_KEY`
-- `LMSTUDIO_BASE_URL`
-- `LMSTUDIO_MODEL`
+- `ACOS_PLATFORM_MODE` with `normal` or `demo`
+- `ACOS_RUNTIME_PREFERENCE` with `auto`, `google_genai`, `local_openai_host`, `local_openai_docker`, or `local_fallback`
+- `LOCAL_OPENAI_BASE_URL`
+- `LOCAL_OPENAI_MODEL`
+- `DOCKER_OPENAI_BASE_URL`
+- `DOCKER_OPENAI_MODEL`
+- `LMSTUDIO_BASE_URL` and `LMSTUDIO_MODEL` as legacy aliases for the host-local OpenAI-compatible path
 - `SHOPIFY_STORE_DOMAIN`
 - `SHOPIFY_ADMIN_ACCESS_TOKEN`
 - `SHOPIFY_API_VERSION`
@@ -264,6 +274,11 @@ WhatsApp binding notes:
 - Inbound webhook routing now resolves tenant and environment from the matched binding instead of assuming `default` and `whatsapp-support`.
 - Outbound channel tests use the saved `default_recipient` when no explicit recipient is provided, which keeps local validation predictable before a customer sender is paired.
 - You can check whether a real Meta validation is runnable locally with `python scripts/check_whatsapp_live_readiness.py`.
+
+Runtime routing notes:
+- The header in `ops_ui_v2` now exposes runtime controls so operators can switch between `normal` and `demo` posture and choose a preferred LLM path without editing code.
+- `local_openai_host` is intended for host-local runtimes such as LM Studio or another OpenAI-compatible server bound on the machine.
+- `local_openai_docker` is intended for Docker-routed runtimes such as a compose service exposed at `http://llm:1234/v1` or a host service reachable from containers through `host.docker.internal`.
 
 ## Current Operational Shape
 
