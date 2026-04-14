@@ -15,9 +15,21 @@ import { canOperate, isAnalyst } from '../lib/rbac';
 
 function StatusPill({ label, tone = 'default' }) {
   const tones = {
-    default: { background: 'rgba(255,255,255,0.06)', color: '#d1d5db', border: '1px solid rgba(255,255,255,0.08)' },
-    success: { background: 'rgba(34,197,94,0.12)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.2)' },
-    warning: { background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)' },
+    default: {
+      background: 'var(--md-surface-variant)',
+      color: 'var(--md-on-surface-variant)',
+      border: '1px solid var(--md-outline-variant)',
+    },
+    success: {
+      background: '#dcfce7',
+      color: '#166534',
+      border: '1px solid #bbf7d0',
+    },
+    warning: {
+      background: 'var(--md-warning-container)',
+      color: 'var(--md-on-warning-container)',
+      border: '1px solid rgba(188, 110, 0, 0.18)',
+    },
   };
 
   return (
@@ -67,13 +79,10 @@ export default function WorkflowEditor() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const activeVersion = useMemo(
-    () => {
-      const versions = workflow?.versions || [];
-      return workflow?.active_version || versions[versions.length - 1]?.version || 'draft';
-    },
-    [workflow],
-  );
+  const activeVersion = useMemo(() => {
+    const versions = workflow?.versions || [];
+    return workflow?.active_version || versions[versions.length - 1]?.version || 'draft';
+  }, [workflow]);
 
   const handleSave = useCallback(async () => {
     if (!allowSave || !draftGraph) return;
@@ -127,18 +136,27 @@ export default function WorkflowEditor() {
     } finally {
       setExecuting(false);
     }
-  }, [executionForm]);
+  }, [executionForm, id, workflow?.environment]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#0d0f14', color: '#fff' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100vh',
+        background: 'linear-gradient(180deg, rgba(250, 252, 255, 0.95), rgba(244, 247, 251, 0.98))',
+        color: 'var(--md-on-surface)',
+      }}
+    >
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 16,
           padding: '12px 20px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
-          background: 'rgba(15,17,21,0.95)',
+          borderBottom: '1px solid var(--md-outline-variant)',
+          background: 'rgba(255,255,255,0.86)',
+          backdropFilter: 'blur(16px)',
           flexShrink: 0,
         }}
       >
@@ -148,34 +166,45 @@ export default function WorkflowEditor() {
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            background: 'transparent',
-            border: 'none',
-            color: '#9ca3af',
+            background: 'var(--md-surface-container)',
+            border: '1px solid var(--md-outline-variant)',
+            color: 'var(--md-on-surface-variant)',
             cursor: 'pointer',
             fontSize: 13,
-            padding: '6px 10px',
-            borderRadius: 6,
+            padding: '8px 12px',
+            borderRadius: 999,
           }}
         >
           <ArrowLeft size={15} /> Back
         </button>
 
-        <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{ width: 1, height: 24, background: 'var(--md-outline-variant)' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-          <div style={{ background: 'rgba(139,92,246,0.15)', padding: 6, borderRadius: 6 }}>
-            <GitBranch size={16} color="#8b5cf6" />
+          <div style={{ background: 'var(--md-primary-container)', padding: 8, borderRadius: 10 }}>
+            <GitBranch size={16} color="var(--md-on-primary-container)" />
           </div>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#f9fafb' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--md-on-surface)' }}>
               {workflow?.name || 'Workflow Designer'}
             </div>
-            <div style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{id}</div>
+            <div
+              style={{
+                fontSize: 11,
+                color: 'var(--md-on-surface-variant)',
+                fontFamily: 'IBM Plex Mono, monospace',
+              }}
+            >
+              {id}
+            </div>
           </div>
           <div style={{ marginLeft: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <StatusPill label={workflow?.status || 'draft'} tone={workflow?.status === 'active' ? 'success' : 'warning'} />
             <StatusPill label={`Version ${activeVersion}`} />
-            <StatusPill label={workflow?.provenance_mode || workflow?.mode || 'demo'} tone={(workflow?.mode || workflow?.provenance_mode) === 'live' ? 'success' : 'warning'} />
+            <StatusPill
+              label={workflow?.provenance_mode || workflow?.mode || 'demo'}
+              tone={(workflow?.mode || workflow?.provenance_mode) === 'live' ? 'success' : 'warning'}
+            />
             {analystMode && <StatusPill label="Read-only" tone="warning" />}
           </div>
         </div>
@@ -185,10 +214,10 @@ export default function WorkflowEditor() {
             <span
               style={{
                 fontSize: 12,
-                color: saveMsg === 'Saved' ? '#4ade80' : '#f87171',
+                color: saveMsg === 'Saved' ? '#166534' : 'var(--md-on-error-container)',
                 padding: '4px 10px',
-                borderRadius: 4,
-                background: saveMsg === 'Saved' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                borderRadius: 999,
+                background: saveMsg === 'Saved' ? '#dcfce7' : 'var(--md-error-container)',
               }}
             >
               {saveMsg}
@@ -197,19 +226,8 @@ export default function WorkflowEditor() {
           <button
             onClick={handleTestRun}
             disabled={testing || !allowSave}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              background: testing || !allowSave ? '#374151' : '#111827',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: '#fff',
-              padding: '8px 16px',
-              borderRadius: 8,
-              fontWeight: 600,
-              cursor: testing || !allowSave ? 'not-allowed' : 'pointer',
-              fontSize: 13,
-            }}
+            className="secondary-button"
+            style={{ cursor: testing || !allowSave ? 'not-allowed' : 'pointer' }}
           >
             {testing ? <Loader2 size={14} className="animate-spin" /> : <FlaskConical size={14} />}
             Test Flow
@@ -217,19 +235,8 @@ export default function WorkflowEditor() {
           <button
             onClick={handleSave}
             disabled={saving || !allowSave || !draftGraph}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              background: saving || !allowSave ? '#374151' : '#3b82f6',
-              border: 'none',
-              color: '#fff',
-              padding: '8px 18px',
-              borderRadius: 8,
-              fontWeight: 600,
-              cursor: saving || !allowSave ? 'not-allowed' : 'pointer',
-              fontSize: 13,
-            }}
+            className="primary-button"
+            style={{ cursor: saving || !allowSave ? 'not-allowed' : 'pointer' }}
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
             Save Workflow
@@ -246,12 +253,12 @@ export default function WorkflowEditor() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: '100%',
-                color: '#6b7280',
+                color: 'var(--md-on-surface-variant)',
                 gap: 10,
               }}
             >
               <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-              <span style={{ fontSize: 13 }}>Loading workflow…</span>
+              <span style={{ fontSize: 13 }}>Loading workflow...</span>
             </div>
           ) : (
             <WorkflowCanvas
@@ -264,8 +271,8 @@ export default function WorkflowEditor() {
 
         <aside
           style={{
-            borderLeft: '1px solid rgba(255,255,255,0.06)',
-            background: '#0f1115',
+            borderLeft: '1px solid var(--md-outline-variant)',
+            background: 'rgba(255,255,255,0.78)',
             padding: 20,
             overflowY: 'auto',
           }}
@@ -275,18 +282,18 @@ export default function WorkflowEditor() {
 
           <div
             style={{
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 16,
+              border: '1px solid var(--md-outline-variant)',
+              borderRadius: 18,
               padding: 16,
-              background: 'rgba(255,255,255,0.03)',
+              background: 'color-mix(in srgb, var(--md-surface-container) 90%, white)',
               marginBottom: 16,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <ShieldCheck size={16} color="#4ade80" />
+              <ShieldCheck size={16} color="#166534" />
               <strong style={{ fontSize: 13 }}>Workflow Summary</strong>
             </div>
-            <div style={{ color: '#9ca3af', fontSize: 13, lineHeight: 1.6 }}>
+            <div style={{ color: 'var(--md-on-surface-variant)', fontSize: 13, lineHeight: 1.6 }}>
               <div>Family: {workflow?.workflow_family || 'Unknown'}</div>
               <div>Active version: {activeVersion}</div>
               <div>Runs loaded: {workflow?.runs?.length || 0}</div>
@@ -296,15 +303,15 @@ export default function WorkflowEditor() {
 
           <div
             style={{
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 16,
+              border: '1px solid var(--md-outline-variant)',
+              borderRadius: 18,
               padding: 16,
-              background: 'rgba(255,255,255,0.03)',
+              background: 'color-mix(in srgb, var(--md-surface-container) 90%, white)',
               marginBottom: 16,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <PlayCircle size={16} color="#34d399" />
+              <PlayCircle size={16} color="var(--md-primary)" />
               <strong style={{ fontSize: 13 }}>Core Data Plane Run</strong>
             </div>
             <div style={{ display: 'grid', gap: 10 }}>
@@ -354,9 +361,9 @@ export default function WorkflowEditor() {
               </button>
             </div>
             {executionResult && (
-              <div style={{ marginTop: 14, color: '#d1d5db', fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ marginTop: 14, color: 'var(--md-on-surface)', fontSize: 13, lineHeight: 1.6 }}>
                 {executionResult.error ? (
-                  <div style={{ color: '#f87171' }}>{executionResult.error}</div>
+                  <div style={{ color: 'var(--md-on-error-container)' }}>{executionResult.error}</div>
                 ) : (
                   <>
                     <div>Run ID: {executionResult.run_id}</div>
@@ -379,16 +386,17 @@ export default function WorkflowEditor() {
                             style={{
                               padding: 10,
                               borderRadius: 12,
-                              background: '#111827',
-                              border: '1px solid rgba(255,255,255,0.06)',
+                              background: 'var(--md-surface-variant)',
+                              border: '1px solid var(--md-outline-variant)',
                             }}
                           >
                             <div style={{ fontWeight: 600 }}>
-                              {item.label} <span style={{ color: '#6b7280' }}>({item.node_type})</span>
+                              {item.label}{' '}
+                              <span style={{ color: 'var(--md-on-surface-variant)' }}>({item.node_type})</span>
                             </div>
-                            <div style={{ color: '#9ca3af' }}>Status: {item.status}</div>
-                            {item.mode && <div style={{ color: '#9ca3af' }}>Mode: {item.mode}</div>}
-                            {item.note && <div style={{ color: '#fbbf24' }}>Note: {item.note}</div>}
+                            <div style={{ color: 'var(--md-on-surface-variant)' }}>Status: {item.status}</div>
+                            {item.mode && <div style={{ color: 'var(--md-on-surface-variant)' }}>Mode: {item.mode}</div>}
+                            {item.note && <div style={{ color: 'var(--md-on-warning-container)' }}>Note: {item.note}</div>}
                           </div>
                         ))}
                       </div>
@@ -401,18 +409,18 @@ export default function WorkflowEditor() {
 
           <div
             style={{
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 16,
+              border: '1px solid var(--md-outline-variant)',
+              borderRadius: 18,
               padding: 16,
-              background: 'rgba(255,255,255,0.03)',
+              background: 'color-mix(in srgb, var(--md-surface-container) 90%, white)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <FlaskConical size={16} color="#60a5fa" />
+              <FlaskConical size={16} color="var(--md-primary)" />
               <strong style={{ fontSize: 13 }}>Latest Test Run</strong>
             </div>
             {testResult ? (
-              <div style={{ color: '#d1d5db', fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ color: 'var(--md-on-surface)', fontSize: 13, lineHeight: 1.6 }}>
                 <div>Status: {testResult.status}</div>
                 <div>Mode: {testResult.mode || 'sandbox'}</div>
                 <div>Run ID: {testResult.run_id || 'n/a'}</div>
@@ -427,26 +435,26 @@ export default function WorkflowEditor() {
                         style={{
                           padding: 10,
                           borderRadius: 12,
-                          background: '#111827',
-                          border: '1px solid rgba(255,255,255,0.06)',
+                          background: 'var(--md-surface-variant)',
+                          border: '1px solid var(--md-outline-variant)',
                         }}
                       >
                         <div style={{ fontWeight: 600 }}>
                           {item.connector_type} / {item.action}
                         </div>
-                        <div style={{ color: '#9ca3af' }}>Mode: {item.mode}</div>
-                        <div style={{ color: '#9ca3af' }}>Status: {item.status}</div>
-                        {item.note && <div style={{ color: '#fbbf24' }}>Note: {item.note}</div>}
+                        <div style={{ color: 'var(--md-on-surface-variant)' }}>Mode: {item.mode}</div>
+                        <div style={{ color: 'var(--md-on-surface-variant)' }}>Status: {item.status}</div>
+                        {item.note && <div style={{ color: 'var(--md-on-warning-container)' }}>Note: {item.note}</div>}
                       </div>
                     ))}
                   </div>
                 )}
                 {testResult.error && (
-                  <div style={{ color: '#f87171', marginTop: 12 }}>{testResult.error}</div>
+                  <div style={{ color: 'var(--md-on-error-container)', marginTop: 12 }}>{testResult.error}</div>
                 )}
               </div>
             ) : (
-              <div style={{ color: '#9ca3af', fontSize: 13 }}>
+              <div style={{ color: 'var(--md-on-surface-variant)', fontSize: 13 }}>
                 Run a test flow to verify Shopify lookup, Salesforce context, and WhatsApp response.
               </div>
             )}

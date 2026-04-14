@@ -35,6 +35,9 @@ export const useAnalyticsStore = create((set) => ({
   timeSeries: [],
   workflowMetrics: [],
   isLoading: false,
+  dataSource: 'live',
+  loadError: null,
+  lastUpdated: null,
 
   setMetrics: (metrics) => set({ metrics }),
   setTimeSeries: (timeSeries) => set({ timeSeries }),
@@ -42,17 +45,31 @@ export const useAnalyticsStore = create((set) => ({
   setIsLoading: (isLoading) => set({ isLoading }),
 
   fetchAnalytics: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, loadError: null });
     try {
       const [metrics, timeSeries, workflowMetrics] = await Promise.all([
         getMetrics(),
         getTimeSeries(),
         getWorkflowMetrics(),
       ]);
-      set({ metrics, timeSeries, workflowMetrics, isLoading: false });
+      set({
+        metrics,
+        timeSeries,
+        workflowMetrics,
+        dataSource: 'live',
+        loadError: null,
+        lastUpdated: new Date().toISOString(),
+        isLoading: false,
+      });
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
-      set({ ...STATIC_FALLBACK, isLoading: false });
+      set({
+        ...STATIC_FALLBACK,
+        dataSource: 'fallback',
+        loadError: error.message || 'Analytics request failed.',
+        lastUpdated: new Date().toISOString(),
+        isLoading: false,
+      });
     }
   },
 }));

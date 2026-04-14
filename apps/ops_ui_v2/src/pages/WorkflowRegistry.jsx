@@ -67,6 +67,20 @@ export default function WorkflowRegistry() {
     [searchTerm, workflows],
   );
 
+  const summary = useMemo(() => {
+    const active = workflows.filter((workflow) => workflow.status === 'active').length;
+    const demo = workflows.filter((workflow) => workflow.is_demo).length;
+    const draftOnly = workflows.filter((workflow) => !workflow.active_version).length;
+    const promoted = workflows.filter((workflow) => workflow.last_promoted_at).length;
+    return {
+      total: workflows.length,
+      active,
+      demo,
+      draftOnly,
+      promoted,
+    };
+  }, [workflows]);
+
   const handleCreate = async (event) => {
     event.preventDefault();
     if (!allowMutations) return;
@@ -178,9 +192,32 @@ export default function WorkflowRegistry() {
         </div>
       </header>
 
+      <section className="summary-grid">
+        <div className="summary-card">
+          <span className="summary-label">Workflow inventory</span>
+          <strong>{summary.total}</strong>
+          <span className="summary-meta">Governed workflow records available in this environment.</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Active versions</span>
+          <strong>{summary.active}</strong>
+          <span className="summary-meta">Workflows currently serving an active promoted version.</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Draft only</span>
+          <strong>{summary.draftOnly}</strong>
+          <span className="summary-meta">Records that still need approval and promotion before live use.</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Demo entrypoints</span>
+          <strong>{summary.demo}</strong>
+          <span className="summary-meta">Demo flows kept visible for operator training and safe validation.</span>
+        </div>
+      </section>
+
       {recommendedDemo && (
         <section
-          className="glass-card"
+          className="surface-card hero-panel"
           style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20 }}
         >
           <div>
@@ -239,7 +276,7 @@ export default function WorkflowRegistry() {
       <div className="content-split">
         <div className="left-panel" style={{ maxWidth: '100%' }}>
           <section className="transparent-panel">
-            <div className="bg-surface-container rounded-2xl overflow-hidden">
+            <div className="surface-card" style={{ overflow: 'hidden' }}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -289,6 +326,9 @@ export default function WorkflowRegistry() {
                           <span className={`status-badge ${workflow.status === 'active' ? 'healthy' : 'degraded'}`}>
                             {workflow.status}
                           </span>
+                          <div className="secondary-cell" style={{ marginTop: 6 }}>
+                            {workflow.active_version ? 'Promoted version available' : 'Draft still needs promotion'}
+                          </div>
                         </td>
                         <td className="metric-cell">{workflow.active_version || 'Draft only'}</td>
                         <td className="metric-cell">{workflow.last_promoted_at || 'Not promoted'}</td>

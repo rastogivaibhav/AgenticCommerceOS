@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { MessageSquareText, PlayCircle, Route as RouteIcon, Send, ShieldCheck } from 'lucide-react';
 import { listDemoRoutes, simulateDemoRoute } from '../api/demoRoutesAPI';
 import { getRuntimeProviders } from '../api/opsAPI';
+import { listChannels } from '../api/channelsAPI';
 import './Lists.css';
 
 export default function DemoRoutes() {
   const [payload, setPayload] = useState({ routes: [], mode: 'sandbox' });
+  const [channelsPayload, setChannelsPayload] = useState({ channels: [] });
   const [runtime, setRuntime] = useState(null);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [dispatchForm, setDispatchForm] = useState({
@@ -19,11 +21,12 @@ export default function DemoRoutes() {
   const [dispatchResult, setDispatchResult] = useState(null);
 
   useEffect(() => {
-    Promise.all([listDemoRoutes(), getRuntimeProviders()])
-      .then(([routesPayload, runtimePayload]) => {
+    Promise.all([listDemoRoutes(), getRuntimeProviders(), listChannels()])
+      .then(([routesPayload, runtimePayload, linkedChannels]) => {
         setPayload(routesPayload);
         setSelectedRoute(routesPayload.routes?.[0] || null);
         setRuntime(runtimePayload);
+        setChannelsPayload(linkedChannels);
       })
       .catch(console.error);
   }, []);
@@ -33,6 +36,9 @@ export default function DemoRoutes() {
     const result = await simulateDemoRoute(selectedRoute.id, dispatchForm);
     setDispatchResult(result);
   };
+
+  const liveChannelCount = (channelsPayload.channels || []).filter((channel) => channel.mode === 'live').length;
+  const selectedBinding = (channelsPayload.channels || []).find((channel) => channel.id === dispatchForm.channel_binding_id);
 
   return (
     <div className="page-container list-view">
@@ -46,6 +52,29 @@ export default function DemoRoutes() {
           </p>
         </div>
       </header>
+
+      <section className="summary-grid">
+        <div className="summary-card">
+          <span className="summary-label">Available routes</span>
+          <strong>{payload.routes?.length || 0}</strong>
+          <span className="summary-meta">Canonical retail scenarios currently exposed for safe dispatch testing.</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Linked channel bindings</span>
+          <strong>{channelsPayload.channels?.length || 0}</strong>
+          <span className="summary-meta">Bindings that can be used to simulate inbound route dispatch.</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Live messaging paths</span>
+          <strong>{liveChannelCount}</strong>
+          <span className="summary-meta">Linked channels whose most recent probe is healthy and live-capable.</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Preferred runtime</span>
+          <strong>{selectedRoute?.preferred_runtime || 'Select a route'}</strong>
+          <span className="summary-meta">The runtime hint currently attached to the selected route.</span>
+        </div>
+      </section>
 
       <div className="content-split" style={{ gridTemplateColumns: '1fr 1fr' }}>
         <div className="left-panel">
@@ -72,10 +101,13 @@ export default function DemoRoutes() {
                         <div className="h-id">{route.name}</div>
                         <div className="secondary-cell">{route.description}</div>
                         <div className="secondary-cell mono">{route.sample_trigger}</div>
+                        <div className="secondary-cell" style={{ marginTop: 6 }}>
+                          Systems: {(route.systems || []).join(', ')}
+                        </div>
                       </div>
                     </div>
                     <span className={`status-badge ${route.mode === 'live' ? 'healthy' : 'degraded'}`}>
-                      {route.preferred_runtime}
+                      {route.mode === 'live' ? 'Live-capable' : 'Sandbox-first'}
                     </span>
                   </div>
                 ))}
@@ -98,17 +130,28 @@ export default function DemoRoutes() {
                 <div className="secondary-cell">
                   LM Studio: {runtime?.lmstudio?.enabled ? `available (${runtime.lmstudio.model || 'loaded model'})` : 'unavailable'}
                 </div>
+                <div className="secondary-cell" style={{ marginTop: 8 }}>
+                  Route mode: {selectedRoute?.mode || 'sandbox'} | Supported channels: {(selectedRoute?.supported_channels || []).join(', ') || 'n/a'}
+                </div>
               </div>
 
               <div className="widget-section">
                 <h3 className="text-on-surface">Simulate inbound message</h3>
                 <select className="search-input" value={dispatchForm.channel_binding_id} onChange={(e) => setDispatchForm((c) => ({ ...c, channel_binding_id: e.target.value }))}>
-                  <option value="whatsapp-support">whatsapp-support</option>
-                  <option value="telegram-ops">telegram-ops</option>
+                  {(channelsPayload.channels || []).map((channel) => (
+                    <option key={channel.id} value={channel.id}>
+                      {channel.id}
+                    </option>
+                  ))}
                 </select>
                 <input className="search-input mt-3" value={dispatchForm.sender_external_id} onChange={(e) => setDispatchForm((c) => ({ ...c, sender_external_id: e.target.value }))} placeholder="Sender external id" />
                 <input className="search-input mt-3" value={dispatchForm.display_name} onChange={(e) => setDispatchForm((c) => ({ ...c, display_name: e.target.value }))} placeholder="Display name" />
                 <textarea className="search-input mt-3" rows="4" value={dispatchForm.message} onChange={(e) => setDispatchForm((c) => ({ ...c, message: e.target.value }))} />
+                {selectedBinding && (
+                  <div className="secondary-cell" style={{ marginTop: 10 }}>
+                    Dispatching via <strong>{selectedBinding.identity || selectedBinding.id}</strong> in {selectedBinding.mode} mode.
+                  </div>
+                )}
                 <button className="primary-button mt-3" onClick={handleDispatch}>
                   <PlayCircle size={16} />
                   Run Route
