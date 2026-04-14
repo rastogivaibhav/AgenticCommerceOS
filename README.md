@@ -242,6 +242,11 @@ The chat gateway exposes Slack and message-driven workflow endpoints, including:
 - `/api/workflows/execute-message`
 - `/api/jobs/{job_id}/status`
 
+Security posture for chat-api:
+- Slack-originated message intake on `/api/chat/message` validates `X-Slack-Signature` and `X-Slack-Request-Timestamp` whenever `SLACK_SIGNING_SECRET` is configured.
+- Direct workflow execution routes under `/api/workflows/*` require `Authorization: Bearer <token>`.
+- In non-dev environments, startup validation now requires chat bearer auth secret configuration (`CHAT_JWT_SECRET` or `OPS_JWT_SECRET`) plus `SLACK_SIGNING_SECRET`.
+
 ## Data Model Snapshot
 
 `db/schema.sql` currently defines and initializes:
@@ -293,6 +298,7 @@ Common optional variables:
 - `SLACK_BOT_TOKEN`
 - `SLACK_SIGNING_SECRET`
 - `SLACK_WORKSPACE_ID`
+- `CHAT_JWT_SECRET` (optional if `OPS_JWT_SECRET` is already provided)
 - `TENANT_RATE_LIMIT_PER_MINUTE`
 - `TENANT_DAILY_QUOTA`
 - `TENANT_MAX_IN_FLIGHT`

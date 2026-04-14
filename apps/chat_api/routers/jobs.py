@@ -1,8 +1,9 @@
 """Jobs router for async job status and result polling."""
 
 import logging
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from apps.chat_api.models.job import ChatJob, JobStatusResponse
+from apps.chat_api.security import require_chat_token
 from acosplatform.job_queue.service import JobQueueService
 from acosplatform.job_queue.models import JobStatus
 from datetime import datetime
@@ -23,7 +24,7 @@ def get_job_queue_service() -> JobQueueService:
     return _job_queue_service
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_chat_token)])
 def create_job(payload: dict):
     """Create a new async job.
 

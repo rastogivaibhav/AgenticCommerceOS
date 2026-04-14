@@ -457,6 +457,10 @@ Invest on the basis of:
    - completed in the current implementation slice
 2. `PR-1` Secure `chat-api`
    - add auth dependencies, Slack signature verification, startup validation
+   - completed in the current implementation slice:
+     - bearer auth dependency on direct `/api/workflows/*` execution routes
+     - Slack request signature enforcement on `/api/chat/message` when signing secret is configured
+     - non-dev startup validation requiring chat JWT secret (`CHAT_JWT_SECRET` or `OPS_JWT_SECRET`) and `SLACK_SIGNING_SECRET`
 3. `PR-2` Enforce tenant context
    - switch high-risk repository/context paths to `tenant_transaction`
    - tighten RLS deny-by-default behavior

@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from apps.chat_api.config import config
 from apps.chat_api.routers import message, jobs, workflows
+from acosplatform.config.startup_validation import validate_auth_configuration
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -45,6 +46,10 @@ def startup():
     logger.info("Chat Gateway API starting up...")
     logger.info(f"Environment: {config.environment}")
     logger.info(f"Version: {config.version}")
+    validate_auth_configuration(
+        service="chat-api",
+        environment=config.environment,
+    )
 
     if config.slack.is_configured():
         logger.info("Slack integration configured")
@@ -64,10 +69,14 @@ app.include_router(workflows.router)
 def health():
     """Health check endpoint."""
     slack_configured = config.slack.is_configured()
+    chat_auth_configured = bool(
+        os.environ.get("CHAT_JWT_SECRET", "").strip() or os.environ.get("OPS_JWT_SECRET", "").strip()
+    )
     return {
         "status": "ok",
         "service": "chat-api",
         "environment": config.environment,
         "version": config.version,
         "slack_configured": slack_configured,
+        "chat_auth_configured": chat_auth_configured,
     }

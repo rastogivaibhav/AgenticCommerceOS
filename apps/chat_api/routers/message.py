@@ -2,7 +2,7 @@
 
 import logging
 import uuid
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from apps.chat_api.models.chat import (
     ChatThreadRequest,
     ChatThreadResponse,
@@ -11,6 +11,7 @@ from apps.chat_api.models.chat import (
     AsyncMessageResponse,
 )
 from apps.chat_api.adapters.slack import SlackAdapter
+from apps.chat_api.security import require_chat_token, verify_slack_signature
 from apps.chat_api.handlers.router import HandlerRouter
 from acosplatform.session.store import SessionStore
 from acosplatform.job_queue.service import JobQueueService
@@ -84,7 +85,7 @@ def get_slack_adapter():
 
 
 @router.post("/api/chat/message")
-def process_message(payload: ChatMessageRequest):
+async def process_message(payload: ChatMessageRequest, request: Request):
     """Process a chat message through the full execution pipeline.
 
     Flow:
@@ -142,7 +143,10 @@ def process_message(payload: ChatMessageRequest):
                 detail=f"Unsupported message source: {payload.source}. Currently only 'slack' is supported.",
             )
 
-        # Step 2: Normalize message using SlackAdapter
+        # Step 2: Validate Slack request signature before processing the event.
+        verify_slack_signature(request=request, raw_body=await request.body())
+
+        # Step 3: Normalize message using SlackAdapter
         try:
             adapter = get_slack_adapter()
             normalized_message = adapter.normalize_event(payload.event)
@@ -156,7 +160,7 @@ def process_message(payload: ChatMessageRequest):
                 detail=f"Invalid Slack event: {str(e)}",
             )
 
-        # Step 3: Get or create session
+        # Step 4: Get or create session
         session_store = get_session_store()
         session_id = f"{payload.user_id}:{payload.channel_id}"
 
@@ -183,7 +187,7 @@ def process_message(payload: ChatMessageRequest):
                 extra={"request_id": request_id, "session_id": session_id},
             )
 
-        # Step 4: Route to appropriate handler
+        # Step 5: Route to appropriate handler
         router_instance = get_handler_router()
         handler_result = router_instance.route(
             normalized_message=normalized_message,
@@ -191,7 +195,7 @@ def process_message(payload: ChatMessageRequest):
             request_id=request_id,
         )
 
-        # Step 5: Return response based on handler result
+        # Step 6: Return response based on handler result
         if handler_result.get("status") == "success":
             logger.info(
                 f"Sync execution completed",
@@ -279,7 +283,7 @@ def process_message(payload: ChatMessageRequest):
         )
 
 
-@router.post("/api/messages/send", response_model=ChatThreadResponse)
+@router.post("/api/messages/send", response_model=ChatThreadResponse, dependencies=[Depends(require_chat_token)])
 def send_message(
     payload: ChatThreadRequest,
 ) -> ChatThreadResponse:
@@ -295,7 +299,7 @@ def send_message(
     )
 
 
-@router.get("/api/messages/{message_id}")
+@router.get("/api/messages/{message_id}", dependencies=[Depends(require_chat_token)])
 def get_message(message_id: str):
     """Retrieve a specific message.
 

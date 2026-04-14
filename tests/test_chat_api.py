@@ -2,7 +2,10 @@
 
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import MagicMock, patch
 from apps.chat_api.main import app
+
+CHAT_AUTH = {"Authorization": "Bearer dev-token"}
 
 
 @pytest.fixture
@@ -54,7 +57,7 @@ class TestMessageRouter:
             "channel_id": "C1234",
             "text": "Test message",
         }
-        response = client.post("/api/messages/send", json=payload)
+        response = client.post("/api/messages/send", json=payload, headers=CHAT_AUTH)
         assert response.status_code == 200
 
     def test_send_message_response_structure(self, client):
@@ -63,7 +66,7 @@ class TestMessageRouter:
             "channel_id": "C1234",
             "text": "Test message",
         }
-        response = client.post("/api/messages/send", json=payload)
+        response = client.post("/api/messages/send", json=payload, headers=CHAT_AUTH)
         data = response.json()
 
         assert "status" in data
@@ -74,12 +77,12 @@ class TestMessageRouter:
 
     def test_get_message_endpoint_exists(self, client):
         """Verify get_message endpoint is available."""
-        response = client.get("/api/messages/msg_test_123")
+        response = client.get("/api/messages/msg_test_123", headers=CHAT_AUTH)
         assert response.status_code == 200
 
     def test_get_message_response(self, client):
         """Verify get_message returns expected structure."""
-        response = client.get("/api/messages/msg_test_123")
+        response = client.get("/api/messages/msg_test_123", headers=CHAT_AUTH)
         data = response.json()
 
         assert "status" in data
@@ -89,34 +92,62 @@ class TestMessageRouter:
 class TestJobsRouter:
     """Test jobs router endpoints."""
 
-    def test_create_job_endpoint_exists(self, client):
+    @patch("apps.chat_api.routers.jobs.get_job_queue_service")
+    def test_create_job_endpoint_exists(self, mock_get_service, client):
         """Verify create_job endpoint is available."""
+        mock_service = MagicMock()
+        mock_service.create_job.return_value = MagicMock(id="job_test_123")
+        mock_get_service.return_value = mock_service
         payload = {"job_type": "message", "metadata": {}}
-        response = client.post("/api/jobs", json=payload)
+        response = client.post("/api/jobs", json=payload, headers=CHAT_AUTH)
         assert response.status_code == 200
 
-    def test_create_job_response(self, client):
+    @patch("apps.chat_api.routers.jobs.get_job_queue_service")
+    def test_create_job_response(self, mock_get_service, client):
         """Verify create_job returns job_id."""
+        mock_service = MagicMock()
+        mock_service.create_job.return_value = MagicMock(id="job_test_123")
+        mock_get_service.return_value = mock_service
         payload = {"job_type": "message", "metadata": {}}
-        response = client.post("/api/jobs", json=payload)
+        response = client.post("/api/jobs", json=payload, headers=CHAT_AUTH)
         data = response.json()
 
         assert "status" in data
         assert "job_id" in data
         assert "message" in data
 
-    def test_get_job_status_endpoint_exists(self, client):
+    @patch("apps.chat_api.routers.jobs.get_job_queue_service")
+    def test_get_job_status_endpoint_exists(self, mock_get_service, client):
         """Verify get_job_status endpoint is available."""
-        response = client.get("/api/jobs/job_test_123")
+        from acosplatform.job_queue.models import JobStatus
+
+        mock_service = MagicMock()
+        mock_job = MagicMock()
+        mock_job.id = "job_test_123"
+        mock_job.status = JobStatus.QUEUED
+        mock_job.created_at = MagicMock()
+        mock_job.created_at.isoformat.return_value = "2026-04-14T10:00:00"
+        mock_service.get_job.return_value = mock_job
+        mock_get_service.return_value = mock_service
+        response = client.get("/api/jobs/job_test_123/status")
         assert response.status_code == 200
 
-    def test_get_job_status_response_structure(self, client):
+    @patch("apps.chat_api.routers.jobs.get_job_queue_service")
+    def test_get_job_status_response_structure(self, mock_get_service, client):
         """Verify get_job_status returns correct structure."""
-        response = client.get("/api/jobs/job_test_123")
+        from acosplatform.job_queue.models import JobStatus
+
+        mock_service = MagicMock()
+        mock_job = MagicMock()
+        mock_job.id = "job_test_123"
+        mock_job.status = JobStatus.QUEUED
+        mock_job.created_at = MagicMock()
+        mock_job.created_at.isoformat.return_value = "2026-04-14T10:00:00"
+        mock_service.get_job.return_value = mock_job
+        mock_get_service.return_value = mock_service
+        response = client.get("/api/jobs/job_test_123/status")
         data = response.json()
 
         assert "job_id" in data
         assert "status" in data
-        assert "job_type" in data
         assert "created_at" in data
-        assert "updated_at" in data

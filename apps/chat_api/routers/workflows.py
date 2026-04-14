@@ -13,19 +13,24 @@ This router provides:
 """
 
 import logging
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import uuid
 
 from apps.chat_api.models.chat import ChatMessage
 from apps.chat_api.handlers.router import HandlerRouter
+from apps.chat_api.security import require_chat_token
 from acosplatform.session.store import SessionStore
 from acosplatform.job_queue.service import JobQueueService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/workflows", tags=["workflows"])
+router = APIRouter(
+    prefix="/api/workflows",
+    tags=["workflows"],
+    dependencies=[Depends(require_chat_token)],
+)
 
 # Initialize session store and job queue for handlers
 _session_store = SessionStore()

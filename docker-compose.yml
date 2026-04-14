@@ -65,9 +65,12 @@ services:
       dockerfile: Dockerfile.chat_api
     ports: ["8001:8001"]
     environment:
+      - CHAT_JWT_SECRET=${CHAT_JWT_SECRET:-}
+      - OPS_JWT_SECRET=${OPS_JWT_SECRET:-}
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
       - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET:-}
       - SLACK_WORKSPACE_ID=${SLACK_WORKSPACE_ID:-default}
+      - ALLOW_INSECURE_DEV_AUTH=${ALLOW_INSECURE_DEV_AUTH:-0}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - PYTHONPATH=/app
       - APP_VERSION=${APP_VERSION:-1.0.0}

@@ -6,6 +6,8 @@ from unittest.mock import Mock, patch
 
 from apps.chat_api.main import app
 
+AUTH_HEADERS = {"Authorization": "Bearer dev-token"}
+
 
 @pytest.fixture
 def client():
@@ -26,7 +28,7 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        response = client.post("/api/workflows/wf_test/execute-sync", json=request_body)
+        response = client.post("/api/workflows/wf_test/execute-sync", json=request_body, headers=AUTH_HEADERS)
 
         # Should not 404
         assert response.status_code != 404
@@ -41,7 +43,7 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        response = client.post("/api/workflows/wf_test/execute-async", json=request_body)
+        response = client.post("/api/workflows/wf_test/execute-async", json=request_body, headers=AUTH_HEADERS)
 
         # Should not 404
         assert response.status_code != 404
@@ -56,7 +58,7 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        response = client.post("/api/workflows/wf_test/execute", json=request_body)
+        response = client.post("/api/workflows/wf_test/execute", json=request_body, headers=AUTH_HEADERS)
 
         # Should not 404
         assert response.status_code != 404
@@ -71,7 +73,7 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        response = client.post("/api/workflows/wf_test/execute-sync", json=request_body)
+        response = client.post("/api/workflows/wf_test/execute-sync", json=request_body, headers=AUTH_HEADERS)
 
         assert response.status_code == 200
         result = response.json()
@@ -89,7 +91,7 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        response = client.post("/api/workflows/wf_test/execute-async", json=request_body)
+        response = client.post("/api/workflows/wf_test/execute-async", json=request_body, headers=AUTH_HEADERS)
 
         # Response should be successful
         # Could be 200 or 202 depending on implementation
@@ -109,7 +111,7 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        response = client.post("/api/workflows/wf_fast/execute", json=request_body)
+        response = client.post("/api/workflows/wf_fast/execute", json=request_body, headers=AUTH_HEADERS)
 
         assert response.status_code == 200
         result = response.json()
@@ -127,7 +129,7 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        response = client.post("/api/workflows/wf_slow/execute", json=request_body)
+        response = client.post("/api/workflows/wf_slow/execute", json=request_body, headers=AUTH_HEADERS)
 
         # Should be successful
         assert response.status_code in (200, 202)
@@ -145,7 +147,7 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        response = client.post("/api/workflows/wf_test/execute-sync", json=request_body)
+        response = client.post("/api/workflows/wf_test/execute-sync", json=request_body, headers=AUTH_HEADERS)
 
         # Should still work with default
         assert response.status_code == 200
@@ -160,7 +162,7 @@ class TestWorkflowExecutionEndpoints:
             "input_data": {"query": "test"},
         }
 
-        response = client.post("/api/workflows/wf_test_123/execute-sync", json=request_body)
+        response = client.post("/api/workflows/wf_test_123/execute-sync", json=request_body, headers=AUTH_HEADERS)
 
         assert response.status_code == 200
         result = response.json()
