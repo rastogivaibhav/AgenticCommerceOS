@@ -263,6 +263,7 @@ WhatsApp binding notes:
 - Webhook verification uses the saved binding metadata, so multiple WhatsApp bindings can coexist as long as each binding carries its own verify token and phone number ID.
 - Inbound webhook routing now resolves tenant and environment from the matched binding instead of assuming `default` and `whatsapp-support`.
 - Outbound channel tests use the saved `default_recipient` when no explicit recipient is provided, which keeps local validation predictable before a customer sender is paired.
+- You can check whether a real Meta validation is runnable locally with `python scripts/check_whatsapp_live_readiness.py`.
 
 ## Current Operational Shape
 

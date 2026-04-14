@@ -30,14 +30,14 @@ import NodeConfigPanel from './NodeConfigPanel';
 import NodeSidebar from './NodeSidebar';
 
 function paletteForNode(type, data = {}) {
-  if (type === 'triggerNode') return { color: '#8b5cf6', icon: <MessageSquare size={13} color="#fff" /> };
-  if (type === 'agentNode') return { color: '#3b82f6', icon: <Bot size={13} color="#fff" /> };
-  if (type === 'decisionNode') return { color: '#f59e0b', icon: <GitBranch size={13} color="#fff" /> };
-  if (type === 'humanNode') return { color: '#ef4444', icon: <UserRound size={13} color="#fff" /> };
-  if (type === 'endNode') return { color: '#22c55e', icon: <CheckCircle2 size={13} color="#fff" /> };
-  if (data.connectorType === 'salesforce') return { color: '#0ea5e9', icon: <PhoneCall size={13} color="#fff" /> };
-  if (data.connectorType === 'whatsapp') return { color: '#16a34a', icon: <MessageSquare size={13} color="#fff" /> };
-  return { color: '#10b981', icon: <ShoppingBag size={13} color="#fff" /> };
+  if (type === 'triggerNode') return { color: '#7c3aed', icon: <MessageSquare size={13} color="#fff" /> };
+  if (type === 'agentNode') return { color: '#175cd3', icon: <Bot size={13} color="#fff" /> };
+  if (type === 'decisionNode') return { color: '#d97706', icon: <GitBranch size={13} color="#fff" /> };
+  if (type === 'humanNode') return { color: '#c2410c', icon: <UserRound size={13} color="#fff" /> };
+  if (type === 'endNode') return { color: '#15803d', icon: <CheckCircle2 size={13} color="#fff" /> };
+  if (data.connectorType === 'salesforce') return { color: '#0284c7', icon: <PhoneCall size={13} color="#fff" /> };
+  if (data.connectorType === 'whatsapp') return { color: '#15803d', icon: <MessageSquare size={13} color="#fff" /> };
+  return { color: '#0f766e', icon: <ShoppingBag size={13} color="#fff" /> };
 }
 
 function NodeWrap({ type, data }) {
@@ -45,7 +45,7 @@ function NodeWrap({ type, data }) {
   const sublabelMap = {
     triggerNode: data.channel || data.triggerType,
     connectorNode: data.action || data.bindingId,
-    agentNode: data.agentId ? `→ ${data.agentId}` : 'Unbound agent',
+    agentNode: data.agentId ? `-> ${data.agentId}` : 'Unbound agent',
     decisionNode: data.routingRule || 'No rule',
     humanNode: data.queue || data.action,
     endNode: data.outcomeType || 'success',
@@ -54,23 +54,31 @@ function NodeWrap({ type, data }) {
   return (
     <div
       style={{
-        background: '#1a1d23',
+        background: 'rgba(255,255,255,0.96)',
         border: `1.5px solid ${color}`,
-        borderRadius: 10,
+        borderRadius: 14,
         padding: '12px 16px',
-        minWidth: 180,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        minWidth: 190,
+        boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-        <div style={{ background: color, padding: 5, borderRadius: 6, display: 'flex', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            background: color,
+            padding: 6,
+            borderRadius: 8,
+            display: 'flex',
+            flexShrink: 0,
+          }}
+        >
           {icon}
         </div>
         <div>
-          <strong style={{ color: '#f9fafb', fontSize: 13, display: 'block', lineHeight: 1.3 }}>
+          <strong style={{ color: '#0f172a', fontSize: 13, display: 'block', lineHeight: 1.3 }}>
             {data.label || 'Untitled Step'}
           </strong>
-          <span style={{ color: '#6b7280', fontSize: 11 }}>{sublabelMap[type] || 'Unconfigured'}</span>
+          <span style={{ color: '#64748b', fontSize: 11 }}>{sublabelMap[type] || 'Unconfigured'}</span>
         </div>
       </div>
     </div>
@@ -80,45 +88,48 @@ function NodeWrap({ type, data }) {
 const TriggerNode = ({ data }) => (
   <>
     <NodeWrap type="triggerNode" data={data} />
-    <Handle type="source" position={Position.Bottom} style={{ background: '#8b5cf6' }} />
+    <Handle type="source" position={Position.Bottom} style={{ background: '#7c3aed' }} />
   </>
 );
 
-const ConnectorNode = ({ data }) => (
-  <>
-    <Handle type="target" position={Position.Top} style={{ background: paletteForNode('connectorNode', data).color }} />
-    <NodeWrap type="connectorNode" data={data} />
-    <Handle type="source" position={Position.Bottom} style={{ background: paletteForNode('connectorNode', data).color }} />
-  </>
-);
+const ConnectorNode = ({ data }) => {
+  const color = paletteForNode('connectorNode', data).color;
+  return (
+    <>
+      <Handle type="target" position={Position.Top} style={{ background: color }} />
+      <NodeWrap type="connectorNode" data={data} />
+      <Handle type="source" position={Position.Bottom} style={{ background: color }} />
+    </>
+  );
+};
 
 const AgentNode = ({ data }) => (
   <>
-    <Handle type="target" position={Position.Top} style={{ background: '#3b82f6' }} />
+    <Handle type="target" position={Position.Top} style={{ background: '#175cd3' }} />
     <NodeWrap type="agentNode" data={data} />
-    <Handle type="source" position={Position.Bottom} style={{ background: '#3b82f6' }} />
+    <Handle type="source" position={Position.Bottom} style={{ background: '#175cd3' }} />
   </>
 );
 
 const DecisionNode = ({ data }) => (
   <>
-    <Handle type="target" position={Position.Top} style={{ background: '#f59e0b' }} />
+    <Handle type="target" position={Position.Top} style={{ background: '#d97706' }} />
     <NodeWrap type="decisionNode" data={data} />
-    <Handle type="source" position={Position.Bottom} style={{ background: '#f59e0b' }} />
+    <Handle type="source" position={Position.Bottom} style={{ background: '#d97706' }} />
   </>
 );
 
 const HumanNode = ({ data }) => (
   <>
-    <Handle type="target" position={Position.Top} style={{ background: '#ef4444' }} />
+    <Handle type="target" position={Position.Top} style={{ background: '#c2410c' }} />
     <NodeWrap type="humanNode" data={data} />
-    <Handle type="source" position={Position.Bottom} style={{ background: '#ef4444' }} />
+    <Handle type="source" position={Position.Bottom} style={{ background: '#c2410c' }} />
   </>
 );
 
 const EndNode = ({ data }) => (
   <>
-    <Handle type="target" position={Position.Top} style={{ background: '#22c55e' }} />
+    <Handle type="target" position={Position.Top} style={{ background: '#15803d' }} />
     <NodeWrap type="endNode" data={data} />
   </>
 );
@@ -155,7 +166,7 @@ const ConditionEdge = ({
 
   return (
     <>
-      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={style} />
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={{ ...style, stroke: '#64748b', strokeWidth: 1.6 }} />
       {data?.label && (
         <EdgeLabelRenderer>
           <div
@@ -163,15 +174,16 @@ const ConditionEdge = ({
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               pointerEvents: 'all',
-              background: '#1f2937',
-              border: '1px solid #374151',
-              borderRadius: 4,
-              padding: '2px 8px',
+              background: 'rgba(255,255,255,0.96)',
+              border: '1px solid #cbd5e1',
+              borderRadius: 999,
+              padding: '3px 9px',
               fontSize: 11,
-              color: '#d1d5db',
-              fontFamily: 'monospace',
+              color: '#334155',
+              fontFamily: 'IBM Plex Mono, monospace',
               whiteSpace: 'nowrap',
               zIndex: 5,
+              boxShadow: '0 8px 18px rgba(15, 23, 42, 0.08)',
             }}
             className="nodrag nopan"
           >
@@ -361,7 +373,7 @@ function FlowEngine({ initialGraph, onGraphChange }) {
     <div style={{ width: '100%', height: '100%', display: 'flex', overflow: 'hidden' }}>
       <NodeSidebar />
 
-      <div style={{ flexGrow: 1, position: 'relative' }} ref={reactFlowWrapper}>
+      <div style={{ flexGrow: 1, position: 'relative', background: 'linear-gradient(180deg, #f8fbff, #f2f6fb)' }} ref={reactFlowWrapper}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -390,11 +402,11 @@ function FlowEngine({ initialGraph, onGraphChange }) {
           fitView
           attributionPosition="bottom-right"
         >
-          <Background color="#222" gap={18} />
+          <Background color="#d7e0ea" gap={18} />
           <Controls />
           <MiniMap
             nodeColor={(node) => paletteForNode(node.type, node.data).color}
-            style={{ background: '#111318' }}
+            style={{ background: 'rgba(255,255,255,0.94)', border: '1px solid #d7e0ea' }}
           />
         </ReactFlow>
 

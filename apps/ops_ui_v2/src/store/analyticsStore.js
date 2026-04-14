@@ -47,17 +47,29 @@ export const useAnalyticsStore = create((set) => ({
   fetchAnalytics: async () => {
     set({ isLoading: true, loadError: null });
     try {
-      const [metrics, timeSeries, workflowMetrics] = await Promise.all([
+      const [metricsPayload, timeSeriesPayload, workflowMetricsPayload] = await Promise.all([
         getMetrics(),
         getTimeSeries(),
         getWorkflowMetrics(),
       ]);
+      const provenances = [
+        metricsPayload.provenance,
+        timeSeriesPayload.provenance,
+        workflowMetricsPayload.provenance,
+      ];
+      const detail = [
+        metricsPayload.detail,
+        timeSeriesPayload.detail,
+        workflowMetricsPayload.detail,
+      ]
+        .filter(Boolean)
+        .join(', ');
       set({
-        metrics,
-        timeSeries,
-        workflowMetrics,
-        dataSource: 'live',
-        loadError: null,
+        metrics: metricsPayload.data,
+        timeSeries: timeSeriesPayload.data,
+        workflowMetrics: workflowMetricsPayload.data,
+        dataSource: provenances.some((item) => item !== 'live') ? 'fallback' : 'live',
+        loadError: detail || null,
         lastUpdated: new Date().toISOString(),
         isLoading: false,
       });

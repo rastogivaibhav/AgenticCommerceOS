@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from typing import Optional
 from acosplatform.auth.api_key import require_ops_roles
 from acosplatform.db.repository import get_runs, get_dashboard
@@ -39,10 +39,20 @@ _STATIC_WORKFLOW_METRICS = [
 ]
 
 
+def _analytics_response(payload, provenance: str, detail: str = ""):
+    return JSONResponse(
+        content=payload,
+        headers={
+            "X-ACOS-Analytics-Provenance": provenance,
+            "X-ACOS-Analytics-Detail": detail or provenance,
+        },
+    )
+
+
 @router.get("/metrics")
 async def get_metrics(range: str = Query("7d"), _claims: dict = Depends(READ_ACCESS)):
     if not is_pool_available():
-        return _STATIC_METRICS
+        return _analytics_response(_STATIC_METRICS, "fallback", "db_pool_unavailable")
 
     dashboard = get_dashboard()
     total_runs = dashboard.get("total_runs", 0)
@@ -60,60 +70,74 @@ async def get_metrics(range: str = Query("7d"), _claims: dict = Depends(READ_ACC
                 success_rate = round((success / total * 100), 1) if total > 0 else 100.0
     except Exception as e:
         logger.warning(f"get_metrics success_rate DB error: {e}")
+        return _analytics_response(_STATIC_METRICS, "fallback", "metrics_query_failed")
 
-    return {
-        "totalRuns": total_runs,
-        "avgScore": avg_score,
-        "totalCost": total_cost,
-        "successRate": success_rate,
-    }
+    return _analytics_response(
+        {
+            "totalRuns": total_runs,
+            "avgScore": avg_score,
+            "totalCost": total_cost,
+            "successRate": success_rate,
+        },
+        "live",
+        "db_query",
+    )
 
 
 @router.get("/timeseries")
 async def get_timeseries(range: str = Query("7d"), _claims: dict = Depends(READ_ACCESS)):
-    if is_pool_available():
-        try:
-            with transaction() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """
-                        SELECT DATE(created_at) as date,
-                               COUNT(*) as runs,
-                               COALESCE(SUM(cost), 0) as cost
-                        FROM runs
-                        WHERE created_at >= NOW() - INTERVAL '7 days'
-                        GROUP BY DATE(created_at)
-                        ORDER BY date
-                        """
-                    )
-                    rows = cur.fetchall()
-                    return [
+    if not is_pool_available():
+        return _analytics_response(_STATIC_TIMESERIES, "fallback", "db_pool_unavailable")
+
+    try:
+        with transaction() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT DATE(created_at) as date,
+                           COUNT(*) as runs,
+                           COALESCE(SUM(cost), 0) as cost
+                    FROM runs
+                    WHERE created_at >= NOW() - INTERVAL '7 days'
+                    GROUP BY DATE(created_at)
+                    ORDER BY date
+                    """
+                )
+                rows = cur.fetchall()
+                return _analytics_response(
+                    [
                         {"date": str(r["date"]), "runs": r["runs"], "cost": float(r["cost"])}
                         for r in rows
-                    ]
-        except Exception as e:
-            logger.warning(f"get_timeseries DB error: {e}")
-    return _STATIC_TIMESERIES
+                    ],
+                    "live",
+                    "db_query",
+                )
+    except Exception as e:
+        logger.warning(f"get_timeseries DB error: {e}")
+        return _analytics_response(_STATIC_TIMESERIES, "fallback", "timeseries_query_failed")
 
 
 @router.get("/workflows")
 async def get_workflow_metrics(_claims: dict = Depends(READ_ACCESS)):
-    if is_pool_available():
-        try:
-            with transaction() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """
-                        SELECT journey as name,
-                               COUNT(*) as runs,
-                               COALESCE(AVG(score), 0) as score,
-                               COALESCE(SUM(cost), 0) as cost
-                        FROM runs
-                        GROUP BY journey
-                        """
-                    )
-                    rows = cur.fetchall()
-                    return [
+    if not is_pool_available():
+        return _analytics_response(_STATIC_WORKFLOW_METRICS, "fallback", "db_pool_unavailable")
+
+    try:
+        with transaction() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT journey as name,
+                           COUNT(*) as runs,
+                           COALESCE(AVG(score), 0) as score,
+                           COALESCE(SUM(cost), 0) as cost
+                    FROM runs
+                    GROUP BY journey
+                    """
+                )
+                rows = cur.fetchall()
+                return _analytics_response(
+                    [
                         {
                             "name": r["name"],
                             "runs": r["runs"],
@@ -121,10 +145,13 @@ async def get_workflow_metrics(_claims: dict = Depends(READ_ACCESS)):
                             "cost": round(float(r["cost"]), 2),
                         }
                         for r in rows
-                    ]
-        except Exception as e:
-            logger.warning(f"get_workflow_metrics DB error: {e}")
-    return _STATIC_WORKFLOW_METRICS
+                    ],
+                    "live",
+                    "db_query",
+                )
+    except Exception as e:
+        logger.warning(f"get_workflow_metrics DB error: {e}")
+        return _analytics_response(_STATIC_WORKFLOW_METRICS, "fallback", "workflow_query_failed")
 
 
 @router.get("/slo")

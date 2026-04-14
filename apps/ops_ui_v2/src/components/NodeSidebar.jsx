@@ -21,22 +21,23 @@ function DragItem({ nodeType, data, color, icon, label, sublabel }) {
       draggable
       onDragStart={onDragStart}
       style={{
-        background: '#1a1d23',
-        border: '1px solid #374151',
-        padding: '10px 12px',
-        borderRadius: 7,
+        background: 'rgba(255,255,255,0.94)',
+        border: '1px solid #d7e0ea',
+        padding: '12px 12px',
+        borderRadius: 12,
         cursor: 'grab',
         display: 'flex',
         alignItems: 'center',
         gap: 10,
+        boxShadow: '0 8px 18px rgba(15, 23, 42, 0.06)',
       }}
     >
-      <div style={{ background: color, padding: 5, borderRadius: 5, display: 'flex', flexShrink: 0 }}>
+      <div style={{ background: color, padding: 6, borderRadius: 8, display: 'flex', flexShrink: 0 }}>
         {icon}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span style={{ color: '#e5e7eb', fontSize: 13 }}>{label}</span>
-        {sublabel && <span style={{ color: '#6b7280', fontSize: 11 }}>{sublabel}</span>}
+        <span style={{ color: '#0f172a', fontSize: 13, fontWeight: 600 }}>{label}</span>
+        {sublabel && <span style={{ color: '#64748b', fontSize: 11 }}>{sublabel}</span>}
       </div>
     </div>
   );
@@ -47,7 +48,7 @@ function Section({ title, children }) {
     <section>
       <h3
         style={{
-          color: '#9ca3af',
+          color: '#64748b',
           fontSize: 11,
           textTransform: 'uppercase',
           letterSpacing: 0.8,
@@ -57,7 +58,7 @@ function Section({ title, children }) {
       >
         {title}
       </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>{children}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
     </section>
   );
 }
@@ -66,10 +67,10 @@ export default function NodeSidebar() {
   return (
     <div
       style={{
-        width: 250,
-        background: 'rgba(13, 15, 20, 0.97)',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
-        padding: '16px 14px',
+        width: 268,
+        background: 'rgba(248, 250, 252, 0.96)',
+        borderRight: '1px solid #d7e0ea',
+        padding: '18px 16px',
         display: 'flex',
         flexDirection: 'column',
         gap: 22,
@@ -77,7 +78,7 @@ export default function NodeSidebar() {
         flexShrink: 0,
       }}
     >
-      <div style={{ fontSize: 11, color: '#4b5563', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+      <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8 }}>
         Drag typed steps onto the flow
       </div>
 
@@ -90,7 +91,7 @@ export default function NodeSidebar() {
             triggerType: 'inbound_message',
             bindingId: 'whatsapp-support',
           }}
-          color="#8b5cf6"
+          color="#7c3aed"
           icon={<MessageSquare size={13} color="#fff" />}
           label="WhatsApp Trigger"
           sublabel="Customer message entry"
@@ -107,7 +108,7 @@ export default function NodeSidebar() {
             action: 'get_order',
             config: { order_id: '{{trigger.order_id}}' },
           }}
-          color="#10b981"
+          color="#0f766e"
           icon={<ShoppingBag size={13} color="#fff" />}
           label="Shopify"
           sublabel="Order, customer, product"
@@ -121,7 +122,7 @@ export default function NodeSidebar() {
             action: 'get_contact',
             config: { contact_key: '{{trigger.customer_phone}}' },
           }}
-          color="#0ea5e9"
+          color="#0284c7"
           icon={<PhoneCall size={13} color="#fff" />}
           label="Salesforce"
           sublabel="Contact and case context"
@@ -135,7 +136,7 @@ export default function NodeSidebar() {
             action: 'send_message',
             config: { template: 'order_status_update' },
           }}
-          color="#16a34a"
+          color="#15803d"
           icon={<MessageSquare size={13} color="#fff" />}
           label="WhatsApp Reply"
           sublabel="Customer response"
@@ -150,7 +151,7 @@ export default function NodeSidebar() {
             logicType: 'decision',
             routingRule: 'confidence >= 0.7',
           }}
-          color="#f59e0b"
+          color="#d97706"
           icon={<GitBranch size={13} color="#fff" />}
           label="Decision"
           sublabel="Branch by confidence or policy"
@@ -161,7 +162,7 @@ export default function NodeSidebar() {
         <DragItem
           nodeType="agentNode"
           data={{ label: 'Agent', agentId: 'ag_support_l1' }}
-          color="#3b82f6"
+          color="#175cd3"
           icon={<Bot size={13} color="#fff" />}
           label="Agent"
           sublabel="Decision and drafting"
@@ -174,7 +175,7 @@ export default function NodeSidebar() {
             bindingId: 'salesforce-support',
             action: 'create_case',
           }}
-          color="#ef4444"
+          color="#c2410c"
           icon={<UserRound size={13} color="#fff" />}
           label="Escalation"
           sublabel="Hand off to humans"
@@ -182,7 +183,7 @@ export default function NodeSidebar() {
         <DragItem
           nodeType="endNode"
           data={{ label: 'Completed', outcomeType: 'success' }}
-          color="#22c55e"
+          color="#15803d"
           icon={<CheckCircle2 size={13} color="#fff" />}
           label="End"
           sublabel="Terminal state"
