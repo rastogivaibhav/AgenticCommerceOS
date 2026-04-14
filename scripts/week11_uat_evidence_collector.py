@@ -28,7 +28,7 @@ def run_uat_tests():
     results = {}
     for suite_name, suite_class in test_suites:
         print(f"\n📋 {suite_name}")
-        test_target = f"tests/integration/test_uat_week11_journeys.py::{suite_class}"
+        test_target = f"harness/python/tests/integration/test_uat_week11_journeys.py::{suite_class}"
         cmd = [
             "pytest",
             test_target,

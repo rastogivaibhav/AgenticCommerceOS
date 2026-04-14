@@ -1,12 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: './tests-e2e-integration',
+  testDir: './specs/integration',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
-  reporter: [['html', { outputFolder: 'playwright-report-integration' }], ['list']],
+  reporter: [['html', { outputFolder: './reports/integration' }], ['list']],
   timeout: 30000,
   expect: { timeout: 10000 },
   use: {

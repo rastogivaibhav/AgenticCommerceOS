@@ -1,4 +1,4 @@
-# tests/integration/test_uat_week11_journeys.py
+# harness/python/tests/integration/test_uat_week11_journeys.py
 import pytest
 from tests.fixtures.uat_pilot_data import (
     PILOT_TENANT_A,

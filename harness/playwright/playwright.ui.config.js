@@ -1,12 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
 
 export default defineConfig({
-  testDir: './tests-e2e',
+  testDir: './specs/ui',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [['html', { outputFolder: './reports/ui' }], ['list']],
   timeout: 60000,
   expect: {
     timeout: 10000,
@@ -25,6 +26,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
+    cwd: path.resolve(__dirname, '../../apps/ops_ui_v2'),
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

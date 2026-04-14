@@ -314,21 +314,21 @@ curl -X POST http://localhost:8000/api/chat/message \
 
 Run demo workflow tests:
 ```bash
-pytest tests/test_demo_workflows.py -v
+pytest harness/python/tests/test_demo_workflows.py -v
 ```
 
 ### Error Handling Tests
 
 Run error handling tests:
 ```bash
-pytest tests/test_error_handling.py -v
+pytest harness/python/tests/test_error_handling.py -v
 ```
 
 ### Integration Tests
 
 Run all chat gateway tests:
 ```bash
-pytest tests/integration/test_chat_gateway_slack.py -v
+pytest harness/python/tests/integration/test_chat_gateway_slack.py -v
 ```
 
 ## Demo Script
@@ -383,7 +383,7 @@ To add a new workflow:
 2. **Implement execute()** method
 3. **Add to workflow factory** in `get_demo_workflow()`
 4. **Update detection** in `BaseHandler._detect_workflow_id()`
-5. **Add tests** in `tests/test_demo_workflows.py`
+5. **Add tests** in `harness/python/tests/test_demo_workflows.py`
 
 Example:
 ```python
@@ -429,7 +429,7 @@ class CustomWorkflow:
 
 - **DEPLOYMENT.md** - How to deploy the Chat API
 - **API.md** - Full API reference
-- **tests/** - Comprehensive test suite
+- **harness/python/tests/** - Comprehensive Python test suite
 - **scripts/** - Demo and load testing scripts
 
 ## Summary

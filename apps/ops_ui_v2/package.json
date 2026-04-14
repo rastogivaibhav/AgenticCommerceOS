@@ -8,7 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "test": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test -c ../../harness/playwright/playwright.ui.config.js",
+    "test:e2e:ui": "playwright test -c ../../harness/playwright/playwright.ui.config.js",
+    "test:e2e:integration": "playwright test -c ../../harness/playwright/playwright.integration.config.js",
+    "test:e2e:modules": "playwright test -c ../../harness/playwright/playwright.modules.config.js",
     "preview": "vite preview"
   },
   "dependencies": {

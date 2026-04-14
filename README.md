@@ -343,6 +343,25 @@ The main gaps are still around full production hardening:
 - deeper policy enforcement inside every workflow step
 - broader automated test coverage across end-to-end channel flows
 
+## Test Harness
+
+The repository now uses a unified harness layout:
+- Python tests: `harness/python/tests/`
+- Playwright tests: `harness/playwright/specs/`
+
+Run core suites:
+
+```bash
+python -m pytest harness/python/tests -v
+```
+
+```bash
+cd apps/ops_ui_v2
+npm run test:e2e:ui
+npm run test:e2e:integration
+npm run test:e2e:modules
+```
+
 ## Contributing
 
 1. Create a focused branch.

@@ -1,13 +1,13 @@
 import { test, expect } from './fixtures/index.js';
 import { writeFileSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { resolve } from 'path';
 
 /**
  * Suite 2: Tenant Quota + Noisy-Neighbor (Week 10 Evidence)
  *
  * PURPOSE: Prove the rate-limit middleware is wired end-to-end and isolates tenants.
  * Actual threshold enforcement (the "429 at N+1 requests" behaviour) is already
- * unit-tested in tests/test_tenant_traffic_controls.py with a low synthetic limit.
+ * unit-tested in harness/python/tests/test_tenant_traffic_controls.py with a low synthetic limit.
  * This suite captures integration-level evidence for the Week 10 gate.
  *
  * What is proved here:
@@ -25,7 +25,7 @@ import { join } from 'path';
 
 const SHOPPER_BASE = process.env.SHOPPER_BASE_URL || 'http://localhost:8080';
 const OPS_BASE = 'http://localhost:8081';
-const EVIDENCE_DIR = join(process.cwd(), '..', '..', 'deploy', 'k8s', 'observability', 'evidence');
+const EVIDENCE_DIR = resolve(process.cwd(), 'deploy', 'k8s', 'observability', 'evidence');
 
 async function isShopperAccessible(request) {
   try {
@@ -137,7 +137,7 @@ test('write Week 10 quota evidence artifact', async ({ request, shopperHeaders }
     middleware_wired: true,
     shopper_api_accessible: shopperUp,
     metrics_endpoint: shopperUp ? `${SHOPPER_BASE}/metrics` : `${OPS_BASE}/metrics (fallback)`,
-    unit_test_ref: 'tests/test_tenant_traffic_controls.py',
+    unit_test_ref: 'harness/python/tests/test_tenant_traffic_controls.py',
     notes: shopperUp
       ? 'Both tenant journey requests allowed through; noisy-neighbor isolation confirmed.'
       : 'Shopper API not accessible on expected endpoint. Metrics wiring confirmed via fallback endpoint, but tenant journey/noisy-neighbor runtime validation was skipped.',
@@ -145,7 +145,7 @@ test('write Week 10 quota evidence artifact', async ({ request, shopperHeaders }
 
   mkdirSync(EVIDENCE_DIR, { recursive: true });
   const filename = `week10-quota-${timestamp.replace(/[:.]/g, '-')}.json`;
-  const filepath = join(EVIDENCE_DIR, filename);
+  const filepath = resolve(EVIDENCE_DIR, filename);
   writeFileSync(filepath, JSON.stringify(evidence, null, 2));
 
   console.log(`\nWeek 10 evidence written to: deploy/k8s/observability/evidence/${filename}`);

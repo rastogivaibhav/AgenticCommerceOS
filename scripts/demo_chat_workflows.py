@@ -268,7 +268,7 @@ def demo_all() -> None:
     print("\nFor more information, see:")
     print("  • DEPLOYMENT.md - How to run the Chat API")
     print("  • docs/CHAT_API.md - API documentation")
-    print("  • tests/test_demo_workflows.py - Workflow tests")
+    print("  • harness/python/tests/test_demo_workflows.py - Workflow tests")
 
 
 if __name__ == "__main__":
