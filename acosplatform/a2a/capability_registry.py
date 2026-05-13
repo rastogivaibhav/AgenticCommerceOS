@@ -1,0 +1,1 @@
+from acosplatform.capabilities.registry import CAPABILITY_REGISTRY

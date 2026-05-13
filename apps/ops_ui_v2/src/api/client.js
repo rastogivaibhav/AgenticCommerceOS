@@ -14,9 +14,17 @@ export function getOpsToken() {
   return localStorage.getItem('ops_token') || '';
 }
 
+export function getNorthstarApiKey() {
+  return localStorage.getItem('northstar_api_key') || '';
+}
+
 export function getAuthHeaders() {
   const token = getOpsToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const northstarKey = getNorthstarApiKey();
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(northstarKey ? { 'X-API-Key': northstarKey } : {}),
+  };
 }
 
 export function buildApiUrl(path) {

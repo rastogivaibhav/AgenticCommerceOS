@@ -9,7 +9,9 @@ import ReactFlow, {
   MarkerType
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Activity, GitCommit } from 'lucide-react';
+import { Activity, GitCommit, PlayCircle } from 'lucide-react';
+import Button from '../components/Button';
+import { getNorthstarRuns, runNorthstarMessage } from '../api/northstarAPI';
 import './Simulation.css';
 
 const initialNodes = [
@@ -30,13 +32,42 @@ const initialEdges = [
 export default function Simulation() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [runs, setRuns] = useState([]);
+  const [status, setStatus] = useState('Loading live run data…');
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+
+  const loadRuns = useCallback(async () => {
+    try {
+      const payload = await getNorthstarRuns();
+      setRuns(payload.runs || []);
+      setStatus(`${payload.runs?.length || 0} captured north-star runs loaded`);
+    } catch (error) {
+      setStatus(error.message || 'Unable to load north-star runs');
+    }
+  }, []);
+
+  const runGoldenJourney = useCallback(async () => {
+    setStatus('Running golden journey…');
+    try {
+      await runNorthstarMessage({
+        tenant_id: 'default',
+        channel: 'web',
+        channel_user_id: 'simulation-user',
+        customer_id: 'simulation-customer',
+        text: 'I need an outfit for a winter wedding under £200, available for pickup near Reading',
+      });
+      await loadRuns();
+    } catch (error) {
+      setStatus(error.message || 'Golden journey failed');
+    }
+  }, [loadRuns]);
 
   // Handle live traffic mode animation constantly
   useEffect(() => {
     setEdges((eds) => eds.map(e => ({ ...e, animated: true, style: { stroke: '#10b981', strokeWidth: 2 } })));
-  }, [setEdges]);
+    loadRuns();
+  }, [setEdges, loadRuns]);
 
   return (
     <div className="page-container simulation-view">
@@ -52,12 +83,15 @@ export default function Simulation() {
               <Activity size={16}/> Live Traffic
             </button>
           </div>
+          <Button variant="outline" onClick={runGoldenJourney}>
+            <PlayCircle size={16}/> Run golden journey
+          </Button>
         </div>
       </header>
 
       <div className="flow-container">
         <div className="live-overlay-banner">
-          <span className="live-dot"></span> Live execution traffic flowing...
+          <span className="live-dot"></span> {status} · latest runs: {runs.length}
         </div>
         
         <ReactFlow

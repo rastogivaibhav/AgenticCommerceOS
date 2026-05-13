@@ -1,0 +1,61 @@
+version: '3.9'
+
+services:
+  # --- PERSISTENCE ---
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: acos
+      POSTGRES_USER: acos
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acos -d acos"]
+      interval: 5s
+      retries: 5
+
+  cache:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+
+  # --- CONTROL PLANE ---
+  ops-api:
+    build: .
+    command: uvicorn apps.ops_api.main:app --host 0.0.0.0 --port 8000
+    ports: ["8000:8000"]
+    depends_on:
+      db: { condition: service_healthy }
+      cache: { condition: service_healthy }
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://acos:${DB_PASSWORD}@db:5432/acos
+      - REDIS_URL=redis://cache:6379/0
+
+  ops-ui:
+    build: 
+      context: ./apps/ops_ui_v2
+      dockerfile: Dockerfile
+    ports: ["3001:80"]
+    depends_on:
+      - ops-api
+
+  # --- DATA PLANE ---
+  shopper-api:
+    build: .
+    command: uvicorn apps.shopper_api.main:app --host 0.0.0.0 --port 9005
+    ports: ["9005:9005"]
+    depends_on:
+      db: { condition: service_healthy }
+    env_file: .env
+
+  retail-mock:
+    build: .
+    command: uvicorn apps.retail_mock_api.main:app --host 0.0.0.0 --port 9006
+    ports: ["9006:9006"]
+    env_file: .env
+
+volumes:
+  pgdata:

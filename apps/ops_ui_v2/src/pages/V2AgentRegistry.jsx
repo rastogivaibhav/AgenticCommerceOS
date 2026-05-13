@@ -1,0 +1,5 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { getV2Agents } from '../api/northstarAPI';
+import './StudioProof.css';
+export default function V2AgentRegistry(){const [data,setData]=useState(null);const [error,setError]=useState(null);useEffect(()=>{getV2Agents().then(setData).catch(e=>setError(e.message));},[]);return <div className="studio-proof-page"><h1 className="studio-proof-title">Agent Registry</h1><p className="studio-proof-muted">Register, version, own, govern and measure specialist agents.</p>{error&&<p>{error}</p>}<div className="studio-grid">{(data?.agents||[]).map(a=><section className="studio-card" key={a.agent_id}><h2><Link to={`/agent-detail/${a.agent_id}`}>{a.name}</Link></h2><p>{a.description}</p><div className="pill-row"><span className="status-pill">{a.status}</span><span className="status-pill">{a.risk_level}</span><span className="status-pill">score {a.evaluation_score}</span><span className="status-pill">{a.vendor_stack}</span></div><h3>Capabilities</h3><p>{(a.capabilities||[]).join(', ')}</p><h3>Channels</h3><p>{(a.supported_channels||[]).join(', ')}</p></section>)}</div></div>}

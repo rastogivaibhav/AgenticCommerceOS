@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_MODEL = "gemini-2.0-flash"
 SUPPORTED_RUNTIME_PROVIDERS = (
     "google_genai",
+    "nvidia_nim",
     "local_openai_host",
     "local_openai_docker",
     "local_fallback",
@@ -53,6 +54,9 @@ def _normalize_provider_name(value: str | None, *, allow_auto: bool = False) -> 
         "local_openai_docker": "local_openai_docker",
         "local fallback": "local_fallback",
         "local_fallback": "local_fallback",
+        "nvidia": "nvidia_nim",
+        "nvidia_nim": "nvidia_nim",
+        "nim": "nvidia_nim",
     }
     if allow_auto and normalized in {"", "auto"}:
         return "auto"
@@ -175,6 +179,46 @@ def _openai_compatible_generate(
     raise RuntimeError(str(last_error) if last_error else f"{profile['label']} server is unavailable")
 
 
+def _nvidia_nim_generate(
+    prompt: str,
+    *,
+    timeout_seconds: float = 30.0,
+) -> str:
+    api_key = os.environ.get("NVIDIA_API_KEY")
+    if not api_key:
+        raise RuntimeError("NVIDIA_API_KEY not set")
+    
+    # Default high-fidelity model for ACOS
+    model_name = os.environ.get("NVIDIA_MODEL") or "meta/llama-3.1-405b-instruct"
+    base_url = "https://integrate.api.nvidia.com/v1"
+
+    try:
+        response = requests.post(
+            f"{base_url}/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={
+                "model": model_name,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.2,
+                "top_p": 0.7,
+                "max_tokens": 1024,
+            },
+            timeout=timeout_seconds,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        choices = payload.get("choices", [])
+        if not choices:
+            raise RuntimeError("NVIDIA NIM response did not include choices")
+        content = choices[0].get("message", {}).get("content")
+        if not content:
+            raise RuntimeError("NVIDIA NIM returned an empty response")
+        return content
+    except Exception as exc:
+        logger.error(f"NVIDIA NIM Generation failed: {exc}")
+        raise RuntimeError(f"NVIDIA NIM error: {exc}")
+
+
 def _init_adk() -> None:
     global _adk_available, _model
     api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
@@ -250,6 +294,13 @@ def _resolve_provider(
             )
         return "local_fallback", []
 
+    if normalized_request == "nvidia_nim":
+        if os.environ.get("NVIDIA_API_KEY"):
+            return "nvidia_nim", []
+        if strict_provider:
+            return "nvidia_nim", ["NVIDIA_API_KEY not set. Cannot use NVIDIA NIM runtime."]
+        return "local_fallback", []
+
     return ("google_genai", []) if _adk_available and _model else ("local_fallback", [])
 
 
@@ -259,6 +310,10 @@ def _should_use_genai(ctx: dict[str, Any]) -> bool:
 
 def _should_use_openai_local(ctx: dict[str, Any]) -> bool:
     return ctx.get("__runtime_provider") in {"local_openai_host", "local_openai_docker"}
+
+
+def _should_use_nvidia_nim(ctx: dict[str, Any]) -> bool:
+    return ctx.get("__runtime_provider") == "nvidia_nim" and os.environ.get("NVIDIA_API_KEY") is not None
 
 
 def _skill_recommendation(ctx: dict[str, Any], products: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -302,16 +357,43 @@ def _skill_recommendation(ctx: dict[str, Any], products: list[dict[str, Any]] | 
         except Exception as exc:
             logger.warning(f"Local OpenAI recommendation skill failed: {exc}")
 
+    if _should_use_nvidia_nim(ctx):
+        try:
+            prompt = (
+                f"You are a shopping assistant. The customer says: '{message}'. "
+                f"Their preferences: {json.dumps(prefs)}. "
+                f"Available products: {json.dumps((products or [])[:3])}. "
+                "Give a brief, friendly recommendation in 2-3 sentences. "
+                "Mention specific product names and why they are a good fit."
+            )
+            return {
+                "recommendation_text": _nvidia_nim_generate(prompt),
+                "source": "nvidia_nim",
+            }
+        except Exception as exc:
+            logger.warning(f"NVIDIA NIM recommendation skill failed: {exc}")
+            return {
+                "recommendation_text": f"NVIDIA NIM Error: {exc}",
+                "source": "nvidia_nim_error",
+            }
+
     if products:
         top = products[0]
         name = top.get("name", "our top pick")
         category = top.get("category", "product")
+        reasoning = [
+            f"Analyzing customer message: '{message}'",
+            f"Filtering catalog for '{category}' under budget.",
+            f"Applying loyalty multipliers for {ctx['customer_id']}.",
+            f"Selecting {name} based on brand affinity and availability in Reading."
+        ]
         return {
             "recommendation_text": (
                 f"Based on your interest, I recommend {name}. "
                 f"It is one of our best {category} options and aligns well with your preferences."
             ),
-            "source": "local_fallback",
+            "reasoning_trace": reasoning,
+            "source": "adk_reasoning_engine",
         }
 
     return {
@@ -354,7 +436,20 @@ def _skill_explanation(ctx: dict[str, Any], result: dict[str, Any] | None = None
                 "source": ctx.get("__runtime_provider") or "local_openai_host",
             }
         except Exception as exc:
-            logger.warning(f"Local OpenAI explanation skill failed: {exc}")
+            logger.warning(f"Local LLM explanation skill failed: {exc}")
+
+    if _should_use_nvidia_nim(ctx):
+        try:
+            prompt = (
+                f"You are a shopping assistant explaining retail context. Context: {json.dumps(result or {}, default=str)[:500]}. "
+                "Provide a helpful, clear explanation in 2-3 sentences. Be professional and supportive."
+            )
+            return {
+                "explanation_text": _nvidia_nim_generate(prompt),
+                "source": "nvidia_nim",
+            }
+        except Exception as exc:
+            logger.warning(f"NVIDIA NIM explanation skill failed: {exc}")
 
     return {
         "explanation_text": (

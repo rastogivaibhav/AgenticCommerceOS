@@ -1,0 +1,71 @@
+name: ACOS v2 Production Runtime CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-build-migrate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: acos
+          POSTGRES_PASSWORD: acos
+          POSTGRES_DB: acos
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U acos -d acos"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+    env:
+      OPS_ENVIRONMENT: dev
+      ALLOW_INSECURE_DEV_AUTH: '1'
+      DATABASE_URL: postgresql://acos:acos@localhost:5432/acos
+      ACOS_NORTHSTAR_STORE: postgres
+      ACOS_V2_STORE: sqlite
+      ACOS_REDIS_ENABLED: '1'
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Generate Alembic SQL
+        run: alembic upgrade head --sql > /tmp/acos_migration.sql
+      - name: Apply Alembic migrations to Postgres
+        run: alembic upgrade head
+      - name: Run ACOS v2 and north-star tests
+        run: pytest -q harness/python/tests/northstar
+      - name: Run UAT and production gate tests
+        run: pytest -q harness/python/tests/integration/test_uat_week11_journeys.py harness/python/tests/test_week12_production_gate_checker.py
+      - name: Run demo smokes
+        run: |
+          python scripts/acos_v2_demo_smoke.py
+          python scripts/northstar_smoke.py
+          python scripts/production_runtime_check.py
+      - name: Build frontend
+        working-directory: apps/ops_ui_v2
+        run: |
+          npm ci
+          npm run build
+      - name: Docker Compose production config check
+        run: docker compose -f docker-compose.prod.yml config
+      - name: Docker Compose production runtime smoke
+        run: |
+          docker compose -f docker-compose.prod.yml up -d --build
+          sleep 20
+          docker compose -f docker-compose.prod.yml ps
+          docker compose -f docker-compose.prod.yml down -v

@@ -1,33 +1,59 @@
-.DEFAULT_GOAL := all
+.DEFAULT_GOAL := help
 
-all: up
+.PHONY: help setup test test-northstar ui-build compose-up compose-prod-up compose-down smoke smoke-northstar runtime-check evidence-pack db-migrate db-migrate-sql
 
-up:
-	@test -f .env || (echo "ERROR: Copy .env.example to .env and fill in values"; exit 1)
-	docker compose up --build -d
+help:
+	@echo "ACOS commands: setup | test | test-northstar | ui-build | compose-up | compose-prod-up | compose-down | smoke | smoke-northstar | runtime-check | evidence-pack | db-migrate | db-migrate-sql"
 
-down:
-	docker compose down
-
-logs:
-	docker compose logs -f
+setup:
+	python -m pip install -r requirements-dev.txt
+	cd apps/ops_ui_v2 && npm install
 
 test:
-	python -m pytest harness/python/tests/ -v
+	python -m pytest harness/python/tests/ -q
 
-test-harness-python:
-	python -m pytest harness/python/tests/ -v
+test-northstar:
+	python -m pytest harness/python/tests/northstar -q
 
-test-harness-playwright-ui:
-	cd apps/ops_ui_v2 && npm run test:e2e:ui
+ui-build:
+	cd apps/ops_ui_v2 && npm run build
 
-test-harness-playwright-integration:
-	cd apps/ops_ui_v2 && npm run test:e2e:integration
+compose-up:
+	@test -f .env || cp .env.example .env
+	docker compose up --build -d
 
-test-harness-playwright-modules:
-	cd apps/ops_ui_v2 && npm run test:e2e:modules
+compose-prod-up:
+	@test -f .env.production || cp .env.production.example .env.production
+	docker compose --env-file .env.production -f docker-compose.prod.yml up --build -d
 
-migrate:
-	docker compose exec db psql -U acos -d acos -f /docker-entrypoint-initdb.d/01-schema.sql
+compose-down:
+	docker compose down || true
+	docker compose -f docker-compose.prod.yml down || true
 
-.PHONY: all up down logs test migrate test-harness-python test-harness-playwright-ui test-harness-playwright-integration test-harness-playwright-modules
+smoke:
+	python scripts/northstar_smoke.py
+
+smoke-northstar:
+	python scripts/northstar_smoke.py
+
+runtime-check:
+	python scripts/production_runtime_check.py
+
+evidence-pack:
+	python scripts/generate_ga_readiness_report.py
+
+
+db-migrate:
+	alembic upgrade head
+
+db-migrate-sql:
+	alembic upgrade head --sql
+
+ui-load-check:
+	PYTHONPATH=. python scripts/ui_load_check.py
+
+acos-v2-demo:
+	PYTHONPATH=. python scripts/acos_v2_demo_smoke.py
+
+test-acos-v2:
+	PYTHONPATH=. pytest -q harness/python/tests/northstar/test_acos_v2_estate.py

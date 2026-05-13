@@ -1,14 +1,33 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Users, Wrench, GitMerge, BarChart2, Building2, MessageSquareText, Route, X } from 'lucide-react';
+import { Users, Wrench, GitMerge, BarChart2, Building2, MessageSquareText, Route, X, MonitorCheck, BookOpenCheck, FlaskConical, Activity, Cable, Beaker, Workflow, Network, LibraryBig, Shield, ListChecks, Database, Palette, Coins, Rocket } from 'lucide-react';
 
 const navItems = [
+  { path: '/estate', label: 'Estate', icon: Network },
+  { path: '/agent-registry', label: 'Registry', icon: LibraryBig },
+  { path: '/capabilities', label: 'Caps', icon: ListChecks, Database, Palette, Coins, Rocket },
+  { path: '/a2a-trace', label: 'A2A', icon: GitMerge },
+  { path: '/channel-modes', label: 'Modes', icon: MessageSquareText },
+  { path: '/evaluations', label: 'Eval', icon: Beaker },
+  { path: '/governance', label: 'Govern', icon: Shield },
+  { path: '/tool-registry', label: 'Tools', icon: Wrench },
+  { path: '/memory', label: 'Memory', icon: Database },
+  { path: '/tone', label: 'Tone', icon: Palette },
+  { path: '/finops', label: 'FinOps', icon: Coins },
+  { path: '/route-to-production', label: 'RTP', icon: Rocket },
   { path: '/workflows', label: 'Workflows', icon: GitMerge },
+  { path: '/studio-proof', label: 'Studio', icon: MonitorCheck },
+  { path: '/runs', label: 'Runs', icon: Activity },
+  { path: '/demo-guide', label: 'Demo', icon: BookOpenCheck },
+  { path: '/test-center', label: 'Tests', icon: FlaskConical },
+  { path: '/api-plane', label: 'APIs', icon: Cable },
   { path: '/channels', label: 'Channels', icon: MessageSquareText },
   { path: '/demo-routes', label: 'Routes', icon: Route },
   { path: '/agents', label: 'Agents', icon: Users },
   { path: '/skills', label: 'Skills', icon: Wrench },
   { path: '/analytics', label: 'Analytics', icon: BarChart2 },
+  { path: '/experiments', label: 'Experiments', icon: Beaker },
+  { path: '/simulation', label: 'Sim', icon: Workflow },
   { path: '/tenants', label: 'Tenants', icon: Building2 },
 ];
 
