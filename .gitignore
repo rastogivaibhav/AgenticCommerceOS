@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.log
+.env
+var/
+graphify-out/
+test_output*
+.superpowers/
+.claude/
+coverage.*
+node_modules/
+dist/
+build/
+.vite/
+*.env*

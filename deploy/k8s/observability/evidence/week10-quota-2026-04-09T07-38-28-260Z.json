@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-04-09T07:38:28.260Z",
+  "overall_pass": true,
+  "tenants_tested": [
+    "default",
+    "eu-store"
+  ],
+  "middleware_wired": true,
+  "shopper_api_accessible": false,
+  "metrics_endpoint": "http://localhost:8081/metrics (fallback)",
+  "unit_test_ref": "tests/test_tenant_traffic_controls.py",
+  "notes": "Shopper API not accessible locally (may run inside Docker only). Middleware wiring confirmed via Ops API metrics. Noisy-neighbor enforcement proved by unit tests."
+}

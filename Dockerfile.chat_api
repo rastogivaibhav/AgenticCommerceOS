@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Create non-root user and group
+RUN groupadd --system acos && useradd --system --gid acos --no-create-home acos
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY --chown=acos:acos . .
+
+USER acos
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 8001
+
+CMD ["uvicorn", "apps.chat_api.main:app", "--host", "0.0.0.0", "--port", "8001"]

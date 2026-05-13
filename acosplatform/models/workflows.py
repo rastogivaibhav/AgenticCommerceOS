@@ -1,0 +1,44 @@
+"""Pydantic models for workflow registry operations."""
+
+from typing import Literal, Optional
+
+from pydantic import AliasChoices, BaseModel, Field
+
+
+WORKFLOW_FAMILIES = ("discovery", "purchase", "post_purchase", "service", "engagement")
+
+
+class WorkflowCreateRequest(BaseModel):
+    tenant_id: str = Field(default="default", max_length=64)
+    name: str = Field(..., min_length=3, max_length=120)
+    workflow_family: Literal["discovery", "purchase", "post_purchase", "service", "engagement"] = Field(
+        ...,
+        validation_alias=AliasChoices("workflow_family", "family"),
+    )
+    description: str = Field(default="", max_length=500)
+    business_owner: str = Field(default="acos-team", max_length=120)
+    change_summary: str = Field(default="Initial workflow draft", max_length=240)
+
+
+class WorkflowVersionCreateRequest(BaseModel):
+    change_summary: str = Field(..., min_length=3, max_length=240)
+    validation_status: Literal["draft", "validated", "approved"] = "draft"
+    agent_bindings: list[str] = Field(default_factory=list)
+    step_definitions: list[dict] = Field(default_factory=list)
+    input_schema: dict = Field(default_factory=dict)
+
+
+class WorkflowPromotionRequest(BaseModel):
+    target_environment: Literal["dev", "test", "stage", "prod"] = "dev"
+    approval_note: str = Field(default="", max_length=240)
+    source_environment: Optional[Literal["dev", "test", "stage", "prod"]] = None
+
+
+class WorkflowApprovalRequest(BaseModel):
+    approval_note: str = Field(default="", max_length=240)
+
+
+class WorkflowRollbackRequest(BaseModel):
+    target_environment: Literal["dev", "test", "stage", "prod"] = "dev"
+    to_version: Optional[str] = Field(default=None, max_length=32)
+    reason: str = Field(default="", max_length=240)

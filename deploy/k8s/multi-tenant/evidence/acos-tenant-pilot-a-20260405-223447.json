@@ -1,0 +1,33 @@
+﻿{
+    "timestamp":  "2026-04-05T21:36:36.7219468Z",
+    "manifests":  [
+                      "namespace-template.yaml",
+                      "networkpolicy-allow-acos-control-plane.yaml",
+                      "networkpolicy-allow-dns.yaml",
+                      "networkpolicy-default-deny.yaml",
+                      "peer-authentication-strict.yaml"
+                  ],
+    "overall_pass":  false,
+    "namespace":  "acos-tenant-pilot-a",
+    "checks":  [
+                   {
+                       "details":  {
+                                       "phase":  "Succeeded",
+                                       "logs":  "Server:\t\t10.43.0.10\r\nAddress:\t10.43.0.10:53\r\n\r\n\r\nName:\tkubernetes.default.svc.cluster.local\r\nAddress: 10.43.0.1",
+                                       "name":  "dns-allowed"
+                                   },
+                       "name":  "dns_allowed",
+                       "passed":  true
+                   },
+                   {
+                       "details":  {
+                                       "phase":  "Failed",
+                                       "logs":  "Connecting to example.com (104.18.26.120:80)\r\nwriting to stdout\r\n\u003c!doctype html\u003e\u003chtml lang=\"en\"\u003e\u003chead\u003e\u003ctitle\u003eExample Domain\u003c/title\u003e\u003cmeta name=\"viewport\" content=\"width=device-width, initial-scale=1\"\u003e\u003cstyle\u003ebody{background:#eee;width:60vw;margin:15vh auto;font-family:system-ui,sans-serif}h1{font-size:1.5em}div{opacity:0.8}a:link,a:visited{color:#348}\u003c/style\u003e\u003c/head\u003e\u003cbody\u003e\u003cdiv\u003e\u003ch1\u003eExample Domain\u003c/h1\u003e\u003cp\u003eThis domain is for use in documentation examples without needing permission. Avoid use in operations.\u003c/p\u003e\u003cp\u003e\u003ca href=\"https://iana.org/domains/example\"\u003eLearn more\u003c/a\u003e\u003c/p\u003e\u003c/div\u003e\u003c/body\u003e\u003c/html\u003e\r\n-                    100% |********************************|   528  0:00:00 ETA\r\nwritten to stdout",
+                                       "name":  "internet-denied"
+                                   },
+                       "name":  "internet_denied",
+                       "passed":  false
+                   }
+               ],
+    "tenant_id":  "pilot-a"
+}

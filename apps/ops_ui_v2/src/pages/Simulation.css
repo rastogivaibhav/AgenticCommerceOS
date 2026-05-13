@@ -1,0 +1,244 @@
+/* Simulation View Styles */
+.simulation-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.flow-container {
+  flex-grow: 1;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  position: relative;
+  background: rgba(0, 0, 0, 0.2);
+  margin-top: 16px;
+}
+
+/* Custom Node Styles */
+.react-flow__node {
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.react-flow__node:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+}
+
+.react-flow__node-input, .react-flow__node-default, .react-flow__node-output {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.node-marketing {
+  background: linear-gradient(135deg, rgba(219, 39, 119, 0.8), rgba(157, 23, 77, 0.8)) !important;
+  border-color: #fbcfe8 !important;
+}
+
+.node-core {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.8), rgba(4, 120, 87, 0.8)) !important;
+  border-color: #a7f3d0 !important;
+}
+
+.node-payment {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.8), rgba(180, 83, 9, 0.8)) !important;
+  border-color: #fde68a !important;
+}
+
+.node-support {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.8), rgba(67, 56, 202, 0.8)) !important;
+  border-color: #c7d2fe !important;
+}
+
+/* Mode Toggle */
+.mode-toggle {
+  display: flex;
+  background: var(--md-surface-container-high);
+  border-radius: 8px;
+  padding: 4px;
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface);
+}
+
+.toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #a1a1aa;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn:hover {
+  color: #f4f4f5;
+}
+
+.toggle-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-btn.active.live-active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Toolbox */
+.toolbox {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 5;
+  width: 200px;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+}
+
+.toolbox h3 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: #f4f4f5;
+}
+
+.mb-3 {
+  margin-bottom: 12px;
+}
+
+.draggable-agent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: grab;
+  transition: all 0.2s ease;
+}
+
+.draggable-agent:hover {
+  background: var(--md-primary-container);
+  border-color: var(--md-primary);
+}
+
+.draggable-agent:active {
+  cursor: grabbing;
+}
+
+/* Live Overlay Banner */
+.live-overlay-banner {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  background: var(--md-success-container);
+  border: 1px solid var(--md-on-success-container);
+  color: var(--md-on-success-container);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--md-on-success-container);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* React Flow Built-ins Override */
+.react-flow__attribution {
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: #a1a1aa !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .flow-container {
+    border-radius: 8px;
+    margin-top: 12px;
+  }
+
+  .react-flow__node {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  .toolbox {
+    width: 160px;
+    top: 8px;
+    left: 8px;
+  }
+
+  .live-overlay-banner {
+    top: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .toggle-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .react-flow__node {
+    padding: 6px 12px;
+    font-size: 11px;
+    min-width: 80px;
+  }
+
+  .toolbox {
+    width: 140px;
+    font-size: 12px;
+  }
+
+  .draggable-agent {
+    padding: 6px 8px;
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .live-overlay-banner {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .toggle-btn {
+    padding: 4px 8px;
+  }
+}

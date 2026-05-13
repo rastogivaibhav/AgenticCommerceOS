@@ -1,0 +1,192 @@
+.studio-proof-page {
+  padding: 24px;
+  color: var(--md-on-surface);
+}
+
+.studio-proof-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.studio-card {
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.studio-proof-title {
+  font-size: 28px;
+  line-height: 1.1;
+  margin: 8px 0;
+  font-weight: 800;
+}
+
+.studio-proof-muted {
+  color: var(--md-on-surface-variant);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.studio-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.studio-proof-kpi {
+  border-radius: 18px;
+  border: 1px solid var(--md-outline-variant);
+  padding: 14px;
+  background: var(--md-surface-container-low);
+}
+
+.studio-proof-kpi strong {
+  display: block;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.studio-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.studio-tabs button {
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface-variant);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.studio-tabs button.active {
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.timeline-list, .tool-list, .agent-list {
+  display: grid;
+  gap: 10px;
+}
+
+.timeline-item, .tool-item, .agent-item {
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--md-surface-container-lowest);
+}
+
+.pill-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.status-pill {
+  border-radius: 999px;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.status-pill.warning {
+  background: var(--md-warning-container);
+  color: var(--md-on-warning-container);
+}
+
+.proof-textarea {
+  width: 100%;
+  min-height: 92px;
+  border-radius: 16px;
+  border: 1px solid var(--md-outline-variant);
+  padding: 12px;
+  background: var(--md-surface-container-lowest);
+  color: var(--md-on-surface);
+}
+
+@media (max-width: 920px) {
+  .studio-proof-hero {
+    grid-template-columns: 1fr;
+  }
+}
+.secondary-button {
+  margin-top: 8px;
+  border: 1px solid var(--md-outline-variant, #d0d5dd);
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: var(--md-surface, #fff);
+  color: var(--md-primary, #0f172a);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.proof-code {
+  display: block;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--md-surface-container-highest);
+  border: 1px solid var(--md-outline-variant);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--md-on-surface);
+}
+code {
+  display: inline-block;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--md-surface-container-highest);
+  border: 1px solid var(--md-outline-variant);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.proof-input {
+  width: 100%;
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.run-row {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-low);
+  color: var(--md-on-surface);
+  border-radius: 16px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.run-row:hover {
+  border-color: var(--md-primary);
+  background: var(--md-secondary-container);
+}
+
+.run-row span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.run-row-metrics {
+  align-items: flex-end;
+}

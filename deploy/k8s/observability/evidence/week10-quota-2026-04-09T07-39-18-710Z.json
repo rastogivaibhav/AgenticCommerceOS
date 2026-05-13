@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-04-09T07:39:18.710Z",
+  "overall_pass": false,
+  "tenants_tested": [],
+  "journey_requests_validated": false,
+  "middleware_wired": true,
+  "shopper_api_accessible": false,
+  "metrics_endpoint": "http://localhost:8081/metrics (fallback)",
+  "unit_test_ref": "tests/test_tenant_traffic_controls.py",
+  "notes": "Shopper API not accessible on expected endpoint. Metrics wiring confirmed via fallback endpoint, but tenant journey/noisy-neighbor runtime validation was skipped."
+}

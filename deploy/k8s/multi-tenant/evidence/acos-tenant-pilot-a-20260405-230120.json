@@ -1,0 +1,34 @@
+﻿{
+    "peer_authentication_applied":  false,
+    "timestamp":  "2026-04-05T22:01:38.3385638Z",
+    "manifests":  [
+                      "namespace-template.yaml",
+                      "networkpolicy-allow-acos-control-plane.yaml",
+                      "networkpolicy-allow-dns.yaml",
+                      "networkpolicy-default-deny.yaml",
+                      "peer-authentication-strict.yaml"
+                  ],
+    "overall_pass":  true,
+    "namespace":  "acos-tenant-pilot-a",
+    "checks":  [
+                   {
+                       "details":  {
+                                       "phase":  "Succeeded",
+                                       "logs":  "Server:\t\t10.43.0.10\r\nAddress:\t10.43.0.10:53\r\n\r\nName:\tkubernetes.default.svc.cluster.local\r\nAddress: 10.43.0.1",
+                                       "name":  "dns-allowed"
+                                   },
+                       "name":  "dns_allowed",
+                       "passed":  true
+                   },
+                   {
+                       "details":  {
+                                       "phase":  "Succeeded",
+                                       "logs":  "wget: bad address \u0027example.com\u0027",
+                                       "name":  "internet-denied"
+                                   },
+                       "name":  "internet_denied",
+                       "passed":  true
+                   }
+               ],
+    "tenant_id":  "pilot-a"
+}

@@ -1,0 +1,4 @@
+import { useEffect, useState } from 'react';
+import { getV2ToneProfiles, getV2ChannelModes } from '../api/northstarAPI';
+import './StudioProof.css';
+export default function V2Tone(){const [tone,setTone]=useState([]);const [modes,setModes]=useState([]);useEffect(()=>{getV2ToneProfiles().then(d=>setTone(d.tone_profiles||[]));getV2ChannelModes().then(d=>setModes(d.channel_modes||[]));},[]);return <div className="studio-proof-page"><h1 className="studio-proof-title">Tone of Voice</h1><div className="studio-grid"><section className="studio-card"><h2>Tone Profiles</h2>{tone.map(t=><div key={t.id}><strong>{t.name}</strong><p>{(t.rules||[]).join(' · ')}</p></div>)}</section><section className="studio-card"><h2>Channel Adaptation</h2>{modes.map(m=><p key={m.id}><strong>{m.label}</strong> — {m.visibility}; advisor notes {String(m.include_advisor_notes)}</p>)}</section></div></div>}

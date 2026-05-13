@@ -1,0 +1,15 @@
+
+> ops_ui_v2@0.0.0 test:e2e
+> playwright test --reporter=list
+
+
+Running 2 tests using 2 workers
+
+[2m[WebServer] [22m[2m23:23:16[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m[WebServer] [22m[2m23:23:16[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m[WebServer] [22m[2m23:23:16[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m[WebServer] [22m[2m23:23:16[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+  ✓  1 [chromium] › tests-e2e\dashboard.spec.js:4:3 › Ops Dashboard V2 › loads the primary list view and navigates successfully (912ms)
+  ✓  2 [chromium] › tests-e2e\simulation.spec.js:4:3 › Ops Dashboard V2 - Simulation Graph › interacts with the React Flow canvas (720ms)
+
+  2 passed (5.7s)

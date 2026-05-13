@@ -1,0 +1,15 @@
+/* Layout styles are now handled by Tailwind CSS in the components */
+
+/* Desktop sidebar — always a flex column on screens >= 768px */
+.sidebar-desktop {
+  display: flex;
+  flex-direction: column;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+  .sidebar-desktop {
+    display: none;
+  }
+}

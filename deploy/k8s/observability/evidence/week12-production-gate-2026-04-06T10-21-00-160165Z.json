@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-04-06T10:21:00.160165Z",
+  "week": 12,
+  "phase": "production_gate",
+  "production_readiness_checks": {
+    "workflow_versioning": {
+      "requirement": "GR-1: Versioned workflow resources exist in persistence",
+      "passed": false,
+      "details": "Version field not found"
+    },
+    "run_version_tracking": {
+      "requirement": "GR-2: Every run records the workflow version used",
+      "passed": false,
+      "details": "Version tracking not found"
+    },
+    "ui_surfaces": {
+      "requirement": "GR-8: Real React control plane with foundational views",
+      "passed": false,
+      "details": "Found UI for: "
+    },
+    "authentication": {
+      "requirement": "GNFR-2: Auth, role enforcement, secrets handling in place",
+      "passed": false,
+      "details": "Auth not found"
+    },
+    "observability": {
+      "requirement": "GNFR-3: Logs, metrics, and health endpoints for pilot operations",
+      "passed": false,
+      "details": "Health: \u274c, Metrics: \u274c"
+    },
+    "docker_deployment": {
+      "requirement": "GNFR-1: Full release runs through Docker Compose",
+      "passed": true,
+      "details": "Dockerfile: \u2705, docker-compose: \u2705"
+    },
+    "audit_logging": {
+      "requirement": "GR-6: Control-plane mutations and risky decisions generate audit evidence",
+      "passed": false,
+      "details": "Audit module not found"
+    }
+  },
+  "summary": {
+    "checks_passed": 1,
+    "checks_total": 7,
+    "overall_pass": false,
+    "readiness_percentage": 14
+  },
+  "go_live_requirements": {
+    "versioned_resources": false,
+    "auditable_promotions": false,
+    "operational_runbooks": true,
+    "rollback_plans": true,
+    "release_evidence": true,
+    "docker_deployment": true
+  }
+}

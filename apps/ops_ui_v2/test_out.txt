@@ -1,0 +1,2599 @@
+
+> ops_ui_v2@0.0.0 test
+> vitest --run
+
+
+[1m[46m RUN [49m[22m [36mv4.1.0 [39m[90mC:/Users/vrast/OneDrive/Apps/Documents/acos/apps/ops_ui_v2[39m
+
+ [31m❯[39m src/pages/Agents.test.jsx [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 142[2mms[22m[39m
+[31m     [31m×[31m renders the core title and layout[39m[32m 73[2mms[22m[39m
+[31m     [31m×[31m renders a list of agent cards[39m[32m 35[2mms[22m[39m
+[31m     [31m×[31m opens the agent detail widget when an agent card is clicked[39m[32m 29[2mms[22m[39m
+ [31m❯[39m src/pages/Skills.test.jsx [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 148[2mms[22m[39m
+[31m     [31m×[31m renders the core title and table structure[39m[32m 77[2mms[22m[39m
+[31m     [31m×[31m renders a list of available skills in the table[39m[32m 31[2mms[22m[39m
+[31m     [31m×[31m opens the skill editor widget when a table row is clicked[39m[32m 36[2mms[22m[39m
+ [32m✓[39m src/pages/Simulation.test.jsx [2m([22m[2m3 tests[22m[2m)[22m[32m 114[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 6 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/pages/Agents.test.jsx[2m > [22mAgents View Component[2m > [22mrenders the core title and layout
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element with the text: Registered Agents. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page-container list-view"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"page-header sticky-header"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mACOS Ecosystem[0m
+          [36m</div>[39m
+          [36m<h1>[39m
+            [0mSystem Agents[0m
+          [36m</h1>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"muted"[39m
+          [36m>[39m
+            [0mMonitor and manage the autonomous agents across diverse operational domains.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"header-actions"[39m
+        [36m>[39m
+          [36m<input[39m
+            [33mclass[39m=[32m"search-input"[39m
+            [33mplaceholder[39m=[32m"Search agents..."[39m
+            [33mvalue[39m=[32m""[39m
+          [36m/>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"primary-button"[39m
+          [36m>[39m
+            [0mDeploy Agent[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"content-split "[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"left-panel"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"transparent-panel"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"table-wrap glass-table-wrap"[39m
+            [36m>[39m
+              [36m<table[39m
+                [33mclass[39m=[32m"data-table"[39m
+              [36m>[39m
+                [36m<thead>[39m
+                  [36m<tr>[39m
+                    [36m<th>[39m
+                      [0mAgent[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mSubsystem[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mStatus[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mVol.[0m
+                    [36m</th>[39m
+                    [36m<th />[39m
+                  [36m</tr>[39m
+                [36m</thead>[39m
+                [36m<tbody>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mCampaign Manager[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_marketing[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mMarketing[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m12.4k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mFrontline Support[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_support_l1[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mCustomer Service[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m45.1k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mEscalation Desk[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_support_l2[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mCustomer Service[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot degraded"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mdegraded[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m2.1k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mLogistics Router[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_fulfillment[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mFulfillment[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m8.3k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mReturns Processor[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_returns[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mReverse Logistics[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m1.2k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                [36m</tbody>[39m
+              [36m</table>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/pages/Agents.test.jsx:[2m8:19[22m[39m
+    [90m  6|[39m   [34mit[39m([32m'renders the core title and layout'[39m[33m,[39m () [33m=>[39m {
+    [90m  7|[39m     [34mrender[39m([33m<[39m[33mAgents[39m [33m/[39m[33m>[39m)[33m;[39m
+    [90m  8|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'Registered Agents'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m   |[39m                   [31m^[39m
+    [90m  9|[39m     expect(screen.getByText('Core orchestration entities capable of au…
+    [90m 10|[39m   })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/pages/Agents.test.jsx[2m > [22mAgents View Component[2m > [22mrenders a list of agent cards
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element with the text: Shopper Concierge. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page-container list-view"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"page-header sticky-header"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mACOS Ecosystem[0m
+          [36m</div>[39m
+          [36m<h1>[39m
+            [0mSystem Agents[0m
+          [36m</h1>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"muted"[39m
+          [36m>[39m
+            [0mMonitor and manage the autonomous agents across diverse operational domains.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"header-actions"[39m
+        [36m>[39m
+          [36m<input[39m
+            [33mclass[39m=[32m"search-input"[39m
+            [33mplaceholder[39m=[32m"Search agents..."[39m
+            [33mvalue[39m=[32m""[39m
+          [36m/>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"primary-button"[39m
+          [36m>[39m
+            [0mDeploy Agent[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"content-split "[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"left-panel"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"transparent-panel"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"table-wrap glass-table-wrap"[39m
+            [36m>[39m
+              [36m<table[39m
+                [33mclass[39m=[32m"data-table"[39m
+              [36m>[39m
+                [36m<thead>[39m
+                  [36m<tr>[39m
+                    [36m<th>[39m
+                      [0mAgent[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mSubsystem[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mStatus[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mVol.[0m
+                    [36m</th>[39m
+                    [36m<th />[39m
+                  [36m</tr>[39m
+                [36m</thead>[39m
+                [36m<tbody>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mCampaign Manager[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_marketing[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mMarketing[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m12.4k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mFrontline Support[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_support_l1[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mCustomer Service[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m45.1k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mEscalation Desk[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_support_l2[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mCustomer Service[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot degraded"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mdegraded[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m2.1k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mLogistics Router[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_fulfillment[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mFulfillment[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m8.3k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mReturns Processor[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_returns[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mReverse Logistics[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m1.2k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                [36m</tbody>[39m
+              [36m</table>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/pages/Agents.test.jsx:[2m15:19[22m[39m
+    [90m 13|[39m     [34mrender[39m([33m<[39m[33mAgents[39m [33m/[39m[33m>[39m)[33m;[39m
+    [90m 14|[39m     [90m// Verify an agent from the MOCK_AGENTS list is rendered[39m
+    [90m 15|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'Shopper Concierge'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m   |[39m                   [31m^[39m
+    [90m 16|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'Returns Processor'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m 17|[39m   })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/pages/Agents.test.jsx[2m > [22mAgents View Component[2m > [22mopens the agent detail widget when an agent card is clicked
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element with the text: Shopper Concierge. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page-container list-view"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"page-header sticky-header"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mACOS Ecosystem[0m
+          [36m</div>[39m
+          [36m<h1>[39m
+            [0mSystem Agents[0m
+          [36m</h1>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"muted"[39m
+          [36m>[39m
+            [0mMonitor and manage the autonomous agents across diverse operational domains.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"header-actions"[39m
+        [36m>[39m
+          [36m<input[39m
+            [33mclass[39m=[32m"search-input"[39m
+            [33mplaceholder[39m=[32m"Search agents..."[39m
+            [33mvalue[39m=[32m""[39m
+          [36m/>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"primary-button"[39m
+          [36m>[39m
+            [0mDeploy Agent[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"content-split "[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"left-panel"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"transparent-panel"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"table-wrap glass-table-wrap"[39m
+            [36m>[39m
+              [36m<table[39m
+                [33mclass[39m=[32m"data-table"[39m
+              [36m>[39m
+                [36m<thead>[39m
+                  [36m<tr>[39m
+                    [36m<th>[39m
+                      [0mAgent[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mSubsystem[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mStatus[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mVol.[0m
+                    [36m</th>[39m
+                    [36m<th />[39m
+                  [36m</tr>[39m
+                [36m</thead>[39m
+                [36m<tbody>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mCampaign Manager[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_marketing[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mMarketing[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m12.4k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mFrontline Support[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_support_l1[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mCustomer Service[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m45.1k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mEscalation Desk[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_support_l2[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mCustomer Service[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot degraded"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mdegraded[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m2.1k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mLogistics Router[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_fulfillment[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mFulfillment[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m8.3k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"primary-cell"[39m
+                      [36m>[39m
+                        [0mReturns Processor[0m
+                      [36m</div>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"secondary-cell mono"[39m
+                      [36m>[39m
+                        [0mag_returns[0m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-subsystem"[39m
+                      [36m>[39m
+                        [0mReverse Logistics[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"status-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"status-dot healthy"[39m
+                        [36m/>[39m
+                        [36m<span[39m
+                          [33mstyle[39m=[32m"text-transform: capitalize;"[39m
+                        [36m>[39m
+                          [0mhealthy[0m
+                        [36m</span>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m1.2k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                [36m</tbody>[39m
+              [36m</table>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/pages/Agents.test.jsx:[2m24:34[22m[39m
+    [90m 22|[39m     // The widget shouldn't show "Agent Details" initially, or maybe j…
+    [90m 23|[39m     [90m// Wait, the widget only renders if selectedAgent is true.[39m
+    [90m 24|[39m     const conciergeCard = screen.getByText('Shopper Concierge').closes…
+    [90m   |[39m                                  [31m^[39m
+    [90m 25|[39m     fireEvent[33m.[39m[34mclick[39m(conciergeCard)[33m;[39m
+    [90m 26|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/pages/Skills.test.jsx[2m > [22mSkills View Component[2m > [22mrenders the core title and table structure
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element with the text: Capability Plugins. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page-container list-view"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"page-header sticky-header"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mACOS Capabilities[0m
+          [36m</div>[39m
+          [36m<h1>[39m
+            [0mSkill Library[0m
+          [36m</h1>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"muted"[39m
+          [36m>[39m
+            [0mBrowse and manage pluggable skills, API integrations, and utilities used by agents.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"header-actions"[39m
+        [36m>[39m
+          [36m<input[39m
+            [33mclass[39m=[32m"search-input"[39m
+            [33mplaceholder[39m=[32m"Search skills..."[39m
+            [33mvalue[39m=[32m""[39m
+          [36m/>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"primary-button"[39m
+          [36m>[39m
+            [0mAuthor Skill[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"content-split "[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"left-panel"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"transparent-panel"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"table-wrap glass-table-wrap"[39m
+            [36m>[39m
+              [36m<table[39m
+                [33mclass[39m=[32m"data-table"[39m
+              [36m>[39m
+                [36m<thead>[39m
+                  [36m<tr>[39m
+                    [36m<th>[39m
+                      [0mSkill Name[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mCategory[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mType[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mVol.[0m
+                    [36m</th>[39m
+                    [36m<th />[39m
+                  [36m</tr>[39m
+                [36m</thead>[39m
+                [36m<tbody>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-database"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<ellipse[39m
+                              [33mcx[39m=[32m"12"[39m
+                              [33mcy[39m=[32m"5"[39m
+                              [33mrx[39m=[32m"9"[39m
+                              [33mry[39m=[32m"3"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M3 5V19A9 3 0 0 0 21 19V5"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M3 12A9 3 0 0 0 21 12"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mCatalog Search[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_catalog_search[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mIntegration[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type read"[39m
+                      [36m>[39m
+                        [0mREAD[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m105k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-lock"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<rect[39m
+                              [33mheight[39m=[32m"11"[39m
+                              [33mrx[39m=[32m"2"[39m
+                              [33mry[39m=[32m"2"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mx[39m=[32m"3"[39m
+                              [33my[39m=[32m"11"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M7 11V7a5 5 0 0 1 10 0v4"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mProcess Refund[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_process_refund[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mFinance[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type write"[39m
+                      [36m>[39m
+                        [0mWRITE[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m340[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-lock"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<rect[39m
+                              [33mheight[39m=[32m"11"[39m
+                              [33mrx[39m=[32m"2"[39m
+                              [33mry[39m=[32m"2"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mx[39m=[32m"3"[39m
+                              [33my[39m=[32m"11"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M7 11V7a5 5 0 0 1 10 0v4"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mCheck Loyalty Tier[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_check_loyalty[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mCRM[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type read"[39m
+                      [36m>[39m
+                        [0mREAD[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m45k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-lock"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<rect[39m
+                              [33mheight[39m=[32m"11"[39m
+                              [33mrx[39m=[32m"2"[39m
+                              [33mry[39m=[32m"2"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mx[39m=[32m"3"[39m
+                              [33my[39m=[32m"11"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M7 11V7a5 5 0 0 1 10 0v4"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mCreate Return Label[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_create_label[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mLogistics[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type write"[39m
+                      [36m>[39m
+                        [0mWRITE[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m1.2k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                [36m</tbody>[39m
+              [36m</table>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/pages/Skills.test.jsx:[2m15:19[22m[39m
+    [90m 13|[39m   [34mit[39m([32m'renders the core title and table structure'[39m[33m,[39m () [33m=>[39m {
+    [90m 14|[39m     [34mrender[39m([33m<[39m[33mSkills[39m [33m/[39m[33m>[39m)[33m;[39m
+    [90m 15|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'Capability Plugins'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m   |[39m                   [31m^[39m
+    [90m 16|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'Skill Registry'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m 17|[39m   })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/pages/Skills.test.jsx[2m > [22mSkills View Component[2m > [22mrenders a list of available skills in the table
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element with the text: postgres_lookup. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page-container list-view"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"page-header sticky-header"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mACOS Capabilities[0m
+          [36m</div>[39m
+          [36m<h1>[39m
+            [0mSkill Library[0m
+          [36m</h1>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"muted"[39m
+          [36m>[39m
+            [0mBrowse and manage pluggable skills, API integrations, and utilities used by agents.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"header-actions"[39m
+        [36m>[39m
+          [36m<input[39m
+            [33mclass[39m=[32m"search-input"[39m
+            [33mplaceholder[39m=[32m"Search skills..."[39m
+            [33mvalue[39m=[32m""[39m
+          [36m/>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"primary-button"[39m
+          [36m>[39m
+            [0mAuthor Skill[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"content-split "[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"left-panel"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"transparent-panel"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"table-wrap glass-table-wrap"[39m
+            [36m>[39m
+              [36m<table[39m
+                [33mclass[39m=[32m"data-table"[39m
+              [36m>[39m
+                [36m<thead>[39m
+                  [36m<tr>[39m
+                    [36m<th>[39m
+                      [0mSkill Name[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mCategory[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mType[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mVol.[0m
+                    [36m</th>[39m
+                    [36m<th />[39m
+                  [36m</tr>[39m
+                [36m</thead>[39m
+                [36m<tbody>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-database"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<ellipse[39m
+                              [33mcx[39m=[32m"12"[39m
+                              [33mcy[39m=[32m"5"[39m
+                              [33mrx[39m=[32m"9"[39m
+                              [33mry[39m=[32m"3"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M3 5V19A9 3 0 0 0 21 19V5"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M3 12A9 3 0 0 0 21 12"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mCatalog Search[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_catalog_search[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mIntegration[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type read"[39m
+                      [36m>[39m
+                        [0mREAD[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m105k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-lock"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<rect[39m
+                              [33mheight[39m=[32m"11"[39m
+                              [33mrx[39m=[32m"2"[39m
+                              [33mry[39m=[32m"2"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mx[39m=[32m"3"[39m
+                              [33my[39m=[32m"11"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M7 11V7a5 5 0 0 1 10 0v4"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mProcess Refund[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_process_refund[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mFinance[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type write"[39m
+                      [36m>[39m
+                        [0mWRITE[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m340[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-lock"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<rect[39m
+                              [33mheight[39m=[32m"11"[39m
+                              [33mrx[39m=[32m"2"[39m
+                              [33mry[39m=[32m"2"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mx[39m=[32m"3"[39m
+                              [33my[39m=[32m"11"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M7 11V7a5 5 0 0 1 10 0v4"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mCheck Loyalty Tier[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_check_loyalty[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mCRM[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type read"[39m
+                      [36m>[39m
+                        [0mREAD[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m45k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-lock"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<rect[39m
+                              [33mheight[39m=[32m"11"[39m
+                              [33mrx[39m=[32m"2"[39m
+                              [33mry[39m=[32m"2"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mx[39m=[32m"3"[39m
+                              [33my[39m=[32m"11"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M7 11V7a5 5 0 0 1 10 0v4"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mCreate Return Label[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_create_label[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mLogistics[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type write"[39m
+                      [36m>[39m
+                        [0mWRITE[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m1.2k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                [36m</tbody>[39m
+              [36m</table>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/pages/Skills.test.jsx:[2m21:19[22m[39m
+    [90m 19|[39m   [34mit[39m([32m'renders a list of available skills in the table'[39m[33m,[39m () [33m=>[39m {
+    [90m 20|[39m     [34mrender[39m([33m<[39m[33mSkills[39m [33m/[39m[33m>[39m)[33m;[39m
+    [90m 21|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'postgres_lookup'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m   |[39m                   [31m^[39m
+    [90m 22|[39m     [34mexpect[39m(screen[33m.[39m[34mgetByText[39m([32m'stripe_refund'[39m))[33m.[39m[34mtoBeInTheDocument[39m()[33m;[39m
+    [90m 23|[39m   })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/pages/Skills.test.jsx[2m > [22mSkills View Component[2m > [22mopens the skill editor widget when a table row is clicked
+[31m[1mTestingLibraryElementError[22m[39m: Unable to find an element with the text: postgres_lookup. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"page-container list-view"[39m
+    [36m>[39m
+      [36m<header[39m
+        [33mclass[39m=[32m"page-header sticky-header"[39m
+      [36m>[39m
+        [36m<div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"eyebrow"[39m
+          [36m>[39m
+            [0mACOS Capabilities[0m
+          [36m</div>[39m
+          [36m<h1>[39m
+            [0mSkill Library[0m
+          [36m</h1>[39m
+          [36m<p[39m
+            [33mclass[39m=[32m"muted"[39m
+          [36m>[39m
+            [0mBrowse and manage pluggable skills, API integrations, and utilities used by agents.[0m
+          [36m</p>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"header-actions"[39m
+        [36m>[39m
+          [36m<input[39m
+            [33mclass[39m=[32m"search-input"[39m
+            [33mplaceholder[39m=[32m"Search skills..."[39m
+            [33mvalue[39m=[32m""[39m
+          [36m/>[39m
+          [36m<button[39m
+            [33mclass[39m=[32m"primary-button"[39m
+          [36m>[39m
+            [0mAuthor Skill[0m
+          [36m</button>[39m
+        [36m</div>[39m
+      [36m</header>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"content-split "[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"left-panel"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"transparent-panel"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"table-wrap glass-table-wrap"[39m
+            [36m>[39m
+              [36m<table[39m
+                [33mclass[39m=[32m"data-table"[39m
+              [36m>[39m
+                [36m<thead>[39m
+                  [36m<tr>[39m
+                    [36m<th>[39m
+                      [0mSkill Name[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mCategory[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mType[0m
+                    [36m</th>[39m
+                    [36m<th>[39m
+                      [0mVol.[0m
+                    [36m</th>[39m
+                    [36m<th />[39m
+                  [36m</tr>[39m
+                [36m</thead>[39m
+                [36m<tbody>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-database"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<ellipse[39m
+                              [33mcx[39m=[32m"12"[39m
+                              [33mcy[39m=[32m"5"[39m
+                              [33mrx[39m=[32m"9"[39m
+                              [33mry[39m=[32m"3"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M3 5V19A9 3 0 0 0 21 19V5"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M3 12A9 3 0 0 0 21 12"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mCatalog Search[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_catalog_search[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mIntegration[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type read"[39m
+                      [36m>[39m
+                        [0mREAD[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m105k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-lock"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<rect[39m
+                              [33mheight[39m=[32m"11"[39m
+                              [33mrx[39m=[32m"2"[39m
+                              [33mry[39m=[32m"2"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mx[39m=[32m"3"[39m
+                              [33my[39m=[32m"11"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M7 11V7a5 5 0 0 1 10 0v4"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mProcess Refund[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_process_refund[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mFinance[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type write"[39m
+                      [36m>[39m
+                        [0mWRITE[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m340[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-lock"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<rect[39m
+                              [33mheight[39m=[32m"11"[39m
+                              [33mrx[39m=[32m"2"[39m
+                              [33mry[39m=[32m"2"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mx[39m=[32m"3"[39m
+                              [33my[39m=[32m"11"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M7 11V7a5 5 0 0 1 10 0v4"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mCheck Loyalty Tier[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_check_loyalty[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mCRM[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type read"[39m
+                      [36m>[39m
+                        [0mREAD[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m45k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"interactive-row "[39m
+                  [36m>[39m
+                    [36m<td>[39m
+                      [36m<div[39m
+                        [33mclass[39m=[32m"skill-name-cell"[39m
+                      [36m>[39m
+                        [36m<div[39m
+                          [33mclass[39m=[32m"skill-icon-wrap"[39m
+                        [36m>[39m
+                          [36m<svg[39m
+                            [33maria-hidden[39m=[32m"true"[39m
+                            [33mclass[39m=[32m"lucide lucide-lock"[39m
+                            [33mfill[39m=[32m"none"[39m
+                            [33mheight[39m=[32m"16"[39m
+                            [33mstroke[39m=[32m"currentColor"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstroke-width[39m=[32m"2"[39m
+                            [33mviewBox[39m=[32m"0 0 24 24"[39m
+                            [33mwidth[39m=[32m"16"[39m
+                            [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                          [36m>[39m
+                            [36m<rect[39m
+                              [33mheight[39m=[32m"11"[39m
+                              [33mrx[39m=[32m"2"[39m
+                              [33mry[39m=[32m"2"[39m
+                              [33mwidth[39m=[32m"18"[39m
+                              [33mx[39m=[32m"3"[39m
+                              [33my[39m=[32m"11"[39m
+                            [36m/>[39m
+                            [36m<path[39m
+                              [33md[39m=[32m"M7 11V7a5 5 0 0 1 10 0v4"[39m
+                            [36m/>[39m
+                          [36m</svg>[39m
+                        [36m</div>[39m
+                        [36m<div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"primary-cell"[39m
+                          [36m>[39m
+                            [0mCreate Return Label[0m
+                          [36m</div>[39m
+                          [36m<div[39m
+                            [33mclass[39m=[32m"secondary-cell mono"[39m
+                          [36m>[39m
+                            [0msk_create_label[0m
+                          [36m</div>[39m
+                        [36m</div>[39m
+                      [36m</div>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-category"[39m
+                      [36m>[39m
+                        [0mLogistics[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"tag-type write"[39m
+                      [36m>[39m
+                        [0mWRITE[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"metric-cell"[39m
+                    [36m>[39m
+                      [0m1.2k[0m
+                    [36m</td>[39m
+                    [36m<td>[39m
+                      [36m<svg[39m
+                        [33maria-hidden[39m=[32m"true"[39m
+                        [33mclass[39m=[32m"lucide lucide-chevron-right text-muted"[39m
+                        [33mfill[39m=[32m"none"[39m
+                        [33mheight[39m=[32m"16"[39m
+                        [33mstroke[39m=[32m"currentColor"[39m
+                        [33mstroke-linecap[39m=[32m"round"[39m
+                        [33mstroke-linejoin[39m=[32m"round"[39m
+                        [33mstroke-width[39m=[32m"2"[39m
+                        [33mviewBox[39m=[32m"0 0 24 24"[39m
+                        [33mwidth[39m=[32m"16"[39m
+                        [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                        [36m/>[39m
+                      [36m</svg>[39m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                [36m</tbody>[39m
+              [36m</table>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+[90m [2m❯[22m Object.getElementError node_modules/@testing-library/dom/dist/config.js:[2m37:19[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m76:38[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m52:17[22m[39m
+[90m [2m❯[22m node_modules/@testing-library/dom/dist/query-helpers.js:[2m95:19[22m[39m
+[36m [2m❯[22m src/pages/Skills.test.jsx:[2m28:29[22m[39m
+    [90m 26|[39m     [34mrender[39m([33m<[39m[33mSkills[39m [33m/[39m[33m>[39m)[33m;[39m
+    [90m 27|[39m
+    [90m 28|[39m     [35mconst[39m skillRow [33m=[39m screen[33m.[39m[34mgetByText[39m([32m'postgres_lookup'[39m)[33m.[39m[34mclosest[39m([32m'tr'[39m)[33m;[39m
+    [90m   |[39m                             [31m^[39m
+    [90m 29|[39m     fireEvent[33m.[39m[34mclick[39m(skillRow)[33m;[39m
+    [90m 30|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m3 passed[39m[22m[90m (9)[39m
+[2m   Start at [22m 23:05:49
+[2m   Duration [22m 2.69s[2m (transform 451ms, setup 457ms, import 2.00s, tests 404ms, environment 3.95s)[22m
+

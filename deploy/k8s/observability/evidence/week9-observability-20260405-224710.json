@@ -1,0 +1,76 @@
+{
+  "timestamp": "2026-04-05T22:47:10.133396+00:00",
+  "overall_pass": true,
+  "checks": [
+    {
+      "name": "dashboard_source_exists",
+      "passed": true,
+      "details": {
+        "path": "C:\\Users\\vrast\\OneDrive\\Apps\\Documents\\acos\\docs\\observability\\grafana_slo_dashboard.json"
+      }
+    },
+    {
+      "name": "dashboard_panels_complete",
+      "passed": true,
+      "details": {
+        "required": [
+          "API Errors by Endpoint",
+          "Journey Availability %",
+          "Journey Cost (USD)",
+          "Journey Latency P95 (ms)"
+        ],
+        "present": [
+          "API Errors by Endpoint",
+          "Journey Availability %",
+          "Journey Cost (USD)",
+          "Journey Latency P95 (ms)"
+        ]
+      }
+    },
+    {
+      "name": "kustomization_wires_dashboard",
+      "passed": true,
+      "details": {
+        "path": "C:\\Users\\vrast\\OneDrive\\Apps\\Documents\\acos\\deploy\\k8s\\observability\\kustomization.yaml"
+      }
+    },
+    {
+      "name": "alert_rules_exist",
+      "passed": true,
+      "details": {
+        "path": "C:\\Users\\vrast\\OneDrive\\Apps\\Documents\\acos\\deploy\\k8s\\observability\\prometheus-rule-slo-alerts.yaml"
+      }
+    },
+    {
+      "name": "alert_names_present",
+      "passed": true,
+      "details": {
+        "required": [
+          "AcosJourneyAvailabilityBurn",
+          "AcosJourneyLatencyP95High",
+          "AcosTenantErrorRateHigh"
+        ],
+        "present": [
+          "AcosJourneyAvailabilityBurn",
+          "AcosJourneyLatencyP95High",
+          "AcosTenantErrorRateHigh"
+        ]
+      }
+    },
+    {
+      "name": "alert_expressions_reference_metrics",
+      "passed": true,
+      "details": {
+        "required_metrics": [
+          "acos_journey_duration_seconds_bucket",
+          "acos_journey_requests_total"
+        ]
+      }
+    }
+  ],
+  "artifacts": {
+    "dashboard": "C:\\Users\\vrast\\OneDrive\\Apps\\Documents\\acos\\docs\\observability\\grafana_slo_dashboard.json",
+    "kustomization": "C:\\Users\\vrast\\OneDrive\\Apps\\Documents\\acos\\deploy\\k8s\\observability\\kustomization.yaml",
+    "alert_rules": "C:\\Users\\vrast\\OneDrive\\Apps\\Documents\\acos\\deploy\\k8s\\observability\\prometheus-rule-slo-alerts.yaml"
+  }
+}

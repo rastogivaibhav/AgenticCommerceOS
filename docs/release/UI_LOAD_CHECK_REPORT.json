@@ -1,0 +1,85 @@
+{
+  "ui_index_status": 200,
+  "ui_index_has_root": true,
+  "ui_index_has_assets": true,
+  "asset_count": 6,
+  "assets": [
+    {
+      "asset": "/ui/assets/index-X4KwYFHO.js",
+      "status": 200,
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "asset": "/ui/assets/rolldown-runtime-Dw2cE7zH.js",
+      "status": 200,
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "asset": "/ui/assets/icons-6h20_rcv.js",
+      "status": 200,
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "asset": "/ui/assets/vendor-CuSBbzan.js",
+      "status": 200,
+      "content_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "asset": "/ui/assets/vendor-8hax8RNO.css",
+      "status": 200,
+      "content_type": "text/css; charset=utf-8"
+    },
+    {
+      "asset": "/ui/assets/index-DlRbg6oU.css",
+      "status": 200,
+      "content_type": "text/css; charset=utf-8"
+    }
+  ],
+  "all_assets_200": true,
+  "deep_links": [
+    {
+      "route": "/ui/runs",
+      "status": 200,
+      "serves_shell": true
+    },
+    {
+      "route": "/ui/estate",
+      "status": 200,
+      "serves_shell": true
+    },
+    {
+      "route": "/ui/agent-registry",
+      "status": 200,
+      "serves_shell": true
+    },
+    {
+      "route": "/ui/capabilities",
+      "status": 200,
+      "serves_shell": true
+    },
+    {
+      "route": "/ui/a2a-trace",
+      "status": 200,
+      "serves_shell": true
+    },
+    {
+      "route": "/ui/channel-modes",
+      "status": 200,
+      "serves_shell": true
+    },
+    {
+      "route": "/ui/evaluations",
+      "status": 200,
+      "serves_shell": true
+    },
+    {
+      "route": "/ui/governance",
+      "status": 200,
+      "serves_shell": true
+    }
+  ],
+  "deep_link_status": 200,
+  "deep_link_serves_shell": true,
+  "head_ui_status": 200,
+  "status": "pass"
+}

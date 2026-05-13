@@ -1,0 +1,84 @@
+{
+  "timestamp": "2026-04-10T17:11:00.538358Z",
+  "suite": "agentic-commerce-sandbox",
+  "tenant_id": "default",
+  "environment_id": "dev",
+  "summary": {
+    "executed": 4,
+    "passed": 3,
+    "failed": 1,
+    "overall_status": "pass",
+    "external_checks": {
+      "executed": 1,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 1
+    }
+  },
+  "results": [
+    {
+      "scenario": "order_status",
+      "status": "pass",
+      "journey": "post_purchase",
+      "run_id": "run-2df07cae",
+      "trace_id": "trace-d721b8fb",
+      "workflow_id": null,
+      "workflow_version": null,
+      "provider": "local_fallback",
+      "model_name": "gemini-2.0-flash",
+      "duration_ms": 0.364
+    },
+    {
+      "scenario": "return_eligibility",
+      "status": "pass",
+      "journey": "service",
+      "run_id": "run-15e26a16",
+      "trace_id": "trace-3144dbba",
+      "workflow_id": "wf-default-rollback-drill-workflow",
+      "workflow_version": "v2",
+      "provider": "local_fallback",
+      "model_name": "gemini-2.0-flash",
+      "duration_ms": 0.232
+    },
+    {
+      "scenario": "refund_triage",
+      "status": "pass",
+      "journey": "service",
+      "run_id": "run-0c5a1a62",
+      "trace_id": "trace-4986feea",
+      "workflow_id": "wf-default-rollback-drill-workflow",
+      "workflow_version": "v2",
+      "provider": "local_fallback",
+      "model_name": "gemini-2.0-flash",
+      "duration_ms": 0.189
+    },
+    {
+      "scenario": "loyalty_fallback",
+      "status": "fail",
+      "journey": "post_purchase",
+      "run_id": "run-4abab5a5",
+      "trace_id": "trace-490cfb16",
+      "workflow_id": null,
+      "workflow_version": null,
+      "provider": "local_fallback",
+      "model_name": "gemini-2.0-flash",
+      "duration_ms": 0.275
+    }
+  ],
+  "external_checks": [
+    {
+      "name": "shopify_admin_api",
+      "status": "skip",
+      "tenant_id": "default",
+      "connector_source": "local_fallback",
+      "probe": null,
+      "details": {
+        "reason": "shopify_not_configured",
+        "error": null,
+        "store_domain": null,
+        "api_version": null,
+        "attempts": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+﻿{
+    "timestamp_utc":  "2026-04-09T09:05:22.7479329Z",
+    "week":  10,
+    "phase":  "performance_baseline",
+    "base_url":  "http://localhost:8082",
+    "configuration":  {
+                          "single_tenant_requests":  60,
+                          "mixed_tenant_requests":  120
+                      },
+    "scenarios":  [
+                      {
+                          "scenario_name":  "single_tenant_default",
+                          "request_count":  60,
+                          "success_count":  60,
+                          "error_count":  0,
+                          "error_rate_percent":  0,
+                          "throughput_rps":  3.26,
+                          "latency_ms":  {
+                                             "p50":  269.331,
+                                             "p95":  528.254,
+                                             "p99":  888.764,
+                                             "min":  216.512,
+                                             "max":  888.764
+                                         },
+                          "status_breakdown":  [
+                                                   {
+                                                       "status_code":  200,
+                                                       "count":  60
+                                                   }
+                                               ],
+                          "tenant_breakdown":  [
+                                                   {
+                                                       "tenant_id":  "default",
+                                                       "count":  60,
+                                                       "success":  60,
+                                                       "failures":  0,
+                                                       "p95_ms":  528.254
+                                                   }
+                                               ]
+                      },
+                      {
+                          "scenario_name":  "mixed_tenant_default_eu_store",
+                          "request_count":  120,
+                          "success_count":  0,
+                          "error_count":  120,
+                          "error_rate_percent":  100,
+                          "throughput_rps":  14.926,
+                          "latency_ms":  {
+                                             "p50":  64.11,
+                                             "p95":  79.491,
+                                             "p99":  95.532,
+                                             "min":  34.884,
+                                             "max":  126.656
+                                         },
+                          "status_breakdown":  [
+                                                   {
+                                                       "status_code":  429,
+                                                       "count":  120
+                                                   }
+                                               ],
+                          "tenant_breakdown":  [
+                                                   {
+                                                       "tenant_id":  "default",
+                                                       "count":  60,
+                                                       "success":  0,
+                                                       "failures":  60,
+                                                       "p95_ms":  77.317
+                                                   },
+                                                   {
+                                                       "tenant_id":  "eu-store",
+                                                       "count":  60,
+                                                       "success":  0,
+                                                       "failures":  60,
+                                                       "p95_ms":  79.491
+                                                   }
+                                               ]
+                      }
+                  ],
+    "overall":  {
+                    "pass":  false,
+                    "pass_rule":  "Each scenario error_rate_percent \u003c 2.0",
+                    "single_tenant_p95_ms":  528.254,
+                    "mixed_tenant_p95_ms":  79.491,
+                    "single_tenant_rps":  3.26,
+                    "mixed_tenant_rps":  14.926
+                }
+}

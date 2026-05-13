@@ -1,0 +1,81 @@
+
+> ops_ui_v2@0.0.0 test:e2e
+> playwright test --reporter=list
+
+
+Running 2 tests using 2 workers
+
+[2m[WebServer] [22m[2m05:35:57[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+[2m[WebServer] [22m    at http://localhost:5173/ui/src/pages/Agents.jsx:13:3
+[2m[WebServer] [22m    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:12903:13)
+[2m[WebServer] [22m    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:850:66)
+[2m[WebServer] [22m    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6616:153)
+[2m[WebServer] [22m    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6651:55)
+[2m[WebServer] [22m    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7617:22)
+[2m[WebServer] [22m    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7605:5)
+[2m[WebServer] [22m    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7671:14)
+[2m[WebServer] [22m    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7605:5)
+[2m[WebServer] [22m    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7616:6)
+[2m[WebServer] [22m[2m05:35:57[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+[2m[WebServer] [22m    at http://localhost:5173/ui/src/pages/Agents.jsx:13:3
+[2m[WebServer] [22m    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:12903:13)
+[2m[WebServer] [22m    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:850:66)
+[2m[WebServer] [22m    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6616:153)
+[2m[WebServer] [22m    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6651:55)
+[2m[WebServer] [22m    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7700:6)
+[2m[WebServer] [22m    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7687:5)
+[2m[WebServer] [22m    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7712:14)
+[2m[WebServer] [22m    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7687:5)
+[2m[WebServer] [22m    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7699:6)
+[2m[WebServer] [22m[2m05:35:57[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+[2m[WebServer] [22m    at http://localhost:5173/ui/src/pages/Agents.jsx:13:3
+[2m[WebServer] [22m    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:12903:13)
+[2m[WebServer] [22m    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:850:66)
+[2m[WebServer] [22m    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6616:153)
+[2m[WebServer] [22m    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6651:55)
+[2m[WebServer] [22m    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7617:22)
+[2m[WebServer] [22m    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7605:5)
+[2m[WebServer] [22m    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7671:14)
+[2m[WebServer] [22m    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7605:5)
+[2m[WebServer] [22m    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7616:6)
+[2m[WebServer] [22m[2m05:35:57[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load agents: TypeError: Failed to fetch
+[2m[WebServer] [22m    at http://localhost:5173/ui/src/pages/Agents.jsx:13:3
+[2m[WebServer] [22m    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:12903:13)
+[2m[WebServer] [22m    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:850:66)
+[2m[WebServer] [22m    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6616:153)
+[2m[WebServer] [22m    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6651:55)
+[2m[WebServer] [22m    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7700:6)
+[2m[WebServer] [22m    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7687:5)
+[2m[WebServer] [22m    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7712:14)
+[2m[WebServer] [22m    at recursivelyTraverseReconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7687:5)
+[2m[WebServer] [22m    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7699:6)
+[2m[WebServer] [22m[2m05:35:58[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m[WebServer] [22m[2m05:35:58[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m[WebServer] [22m[2m05:35:58[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m[WebServer] [22m[2m05:35:58[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[React Flow]: It looks like you've created a new nodeTypes or edgeTypes object. If this wasn't on purpose please define the nodeTypes/edgeTypes outside of the component or memoize them. Help: https://reactflow.dev/error#002
+[2m[WebServer] [22m[2m05:35:58[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load skills: TypeError: Failed to fetch
+[2m[WebServer] [22m    at http://localhost:5173/ui/src/pages/Skills.jsx:14:3
+[2m[WebServer] [22m    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:12903:13)
+[2m[WebServer] [22m    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:850:66)
+[2m[WebServer] [22m    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6616:153)
+[2m[WebServer] [22m    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6651:55)
+[2m[WebServer] [22m    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7617:22)
+[2m[WebServer] [22m    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7605:5)
+[2m[WebServer] [22m    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7671:14)
+[2m[WebServer] [22m    at recursivelyTraversePassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7605:5)
+[2m[WebServer] [22m    at commitPassiveMountOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7616:6)
+[2m[WebServer] [22m[2m05:35:58[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22mFailed to load skills: TypeError: Failed to fetch
+[2m[WebServer] [22m    at http://localhost:5173/ui/src/pages/Skills.jsx:14:3
+[2m[WebServer] [22m    at Object.react_stack_bottom_frame (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:12903:13)
+[2m[WebServer] [22m    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:850:66)
+[2m[WebServer] [22m    at commitHookEffectListMount (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6616:153)
+[2m[WebServer] [22m    at commitHookPassiveMountEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:6651:55)
+[2m[WebServer] [22m    at reconnectPassiveEffects (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:7700:6)
+[2m[WebServer] [22m    at doubleInvokeEffectsOnFiber (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:8923:125)
+[2m[WebServer] [22m    at runWithFiberInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:850:66)
+[2m[WebServer] [22m    at recursivelyTraverseAndDoubleInvokeEffectsInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:8916:70)
+[2m[WebServer] [22m    at recursivelyTraverseAndDoubleInvokeEffectsInDEV (http://localhost:5173/ui/node_modules/.vite/deps/react-dom_client.js?v=e350cd85:8916:138)
+  ✓  1 [chromium] › tests-e2e\dashboard.spec.js:4:3 › Ops Dashboard V2 › loads the primary list view and navigates successfully (1.9s)
+  ✓  2 [chromium] › tests-e2e\simulation.spec.js:4:3 › Ops Dashboard V2 - Simulation Graph › interacts with the React Flow canvas (2.0s)
+
+  2 passed (8.7s)

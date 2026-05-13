@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nursery & Baby | John Lewis & Partners</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --jl-green: #3d5a45;
+            --jl-light-green: #f4f7f5;
+            --primary: #3d5a45;
+            --text: #1a1a1a;
+            --text-muted: #666;
+            --glass: rgba(255, 255, 255, 0.95);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #fff;
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            padding: 20px 40px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+        }
+
+        .logo {
+            font-weight: 600;
+            font-size: 24px;
+            letter-spacing: 1px;
+            color: var(--jl-green);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            padding: 40px;
+            gap: 60px;
+            overflow-y: auto;
+        }
+
+        .product-gallery {
+            flex: 1;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 500px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            color: #ddd;
+        }
+
+        .product-info {
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .category {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 600;
+        }
+
+        .price {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .add-to-basket {
+            background: var(--jl-green);
+            color: white;
+            padding: 16px;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* ACOS Concierge Widget */
+        .acos-widget {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 380px;
+            height: 500px;
+            background: var(--glass);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            border: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .acos-header {
+            background: var(--jl-green);
+            color: white;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .acos-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .msg {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            line-height: 1.4;
+        }
+
+        .msg.bot {
+            background: #f0f0f0;
+            align-self: flex-start;
+        }
+
+        .msg.user {
+            background: var(--jl-green);
+            color: white;
+            align-self: flex-end;
+        }
+
+        .acos-input {
+            padding: 16px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 8px;
+        }
+
+        .acos-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .acos-input button {
+            background: var(--jl-green);
+            color: white;
+            border: none;
+            padding: 0 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">John Lewis & Partners</div>
+        <div style="display: flex; gap: 20px; font-size: 14px;">
+            <span>Home & Garden</span>
+            <span>Furniture</span>
+            <span><b>Nursery & Baby</b></span>
+            <span>Offers</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="product-gallery">
+            <div class="product-image">🛏️</div>
+            <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                <div style="height: 100px; background: #f9f9f9;"></div>
+                <div style="height: 100px; background: #f9f9f9;"></div>
+                <div style="height: 100px; background: #f9f9f9;"></div>
+                <div style="height: 100px; background: #f9f9f9;"></div>
+            </div>
+        </div>
+
+        <div class="product-info">
+            <div class="category">Furniture > Cribs</div>
+            <h1>Anyday Elementary Cot Bed</h1>
+            <div class="price">£150.00</div>
+            <p style="color: var(--text-muted);">A timeless design that grows with your child. FSC-certified pine with adjustable mattress heights.</p>
+            <button class="add-to-basket">Add to Basket</button>
+            <div style="margin-top: 20px; font-size: 14px; border-top: 1px solid #eee; padding-top: 20px;">
+                <p>✓ 2 Year Guarantee</p>
+                <p>✓ Click & Collect available</p>
+                <p>✓ Sustainable source</p>
+            </div>
+        </div>
+    </main>
+
+    <div class="acos-widget">
+        <div class="acos-header">
+            <div style="width: 10px; height: 100%; background: #fff; border-radius: 2px;"></div>
+            <div>
+                <div style="font-weight: 600; font-size: 14px;">Nursery Concierge</div>
+                <div style="font-size: 10px; opacity: 0.8;">Powered by AgenticCommerceOS</div>
+            </div>
+        </div>
+        <div class="acos-messages" id="messages">
+            <div class="msg bot">Hello! Thinking about setting up a nursery? I can help you find everything from cribs to monitors based on your space and budget.</div>
+        </div>
+        <div class="acos-input">
+            <input type="text" id="userInput" placeholder="Ask about products or loyalty..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:9005/v1/journey';
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendMessage(text, 'user');
+            input.value = '';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': 'dev-key-insecure'
+                    },
+                    body: JSON.stringify({
+                        message: text,
+                        customer_id: 'cust_8822',
+                        tenant_id: 'default'
+                    })
+                });
+
+                const data = await response.json();
+                let botReply = "I'm checking our nursery catalog for you...";
+                
+                if (data.result && data.result.recommendation) {
+                    botReply = data.result.recommendation.recommendation_text;
+                } else if (data.result && data.result.explanation) {
+                    botReply = data.result.explanation.explanation_text;
+                }
+
+                appendMessage(botReply, 'bot');
+            } catch (error) {
+                appendMessage('Connecting to John Lewis Retail Engine...', 'bot');
+            }
+        }
+
+        function appendMessage(text, type) {
+            const container = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = `msg ${type}`;
+            div.textContent = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+</body>
+</html>

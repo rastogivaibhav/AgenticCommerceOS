@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-04-09T09:58:24.784073Z",
+  "week": 11,
+  "phase": "pilot_uat",
+  "evidence": {
+    "operator_journeys": {
+      "journey_1_workflow_inventory": {
+        "status": false,
+        "tests": [
+          "list_workflows",
+          "version_badges",
+          "filter_by_family",
+          "filter_by_status",
+          "drill_in"
+        ]
+      },
+      "journey_2_workflow_promotion": {
+        "status": false,
+        "tests": [
+          "view_diff",
+          "approval_chain",
+          "audit_logging",
+          "rollback_tracking"
+        ]
+      },
+      "journey_3_run_investigation": {
+        "status": false,
+        "tests": [
+          "list_failed_runs",
+          "view_timeline",
+          "policy_decisions",
+          "replay",
+          "escalate"
+        ]
+      },
+      "journey_4_approvals": {
+        "status": false,
+        "tests": [
+          "view_queue",
+          "review_evidence"
+        ]
+      },
+      "journey_5_analytics": {
+        "status": false,
+        "tests": [
+          "kpi_overview",
+          "segment_by_workflow",
+          "export"
+        ]
+      },
+      "journey_6_incidents": {
+        "status": false,
+        "tests": [
+          "detect_spike",
+          "pause_workflow",
+          "failsafe",
+          "rollback",
+          "audit"
+        ]
+      }
+    },
+    "pilot_scope": {
+      "tenants": [
+        "tenant_uat_pilot_a",
+        "tenant_uat_pilot_b"
+      ],
+      "workflow_families": [
+        "discovery",
+        "post_purchase",
+        "service_guidance",
+        "returns"
+      ],
+      "validation": "all_journeys_tested"
+    },
+    "go_live_checklist": {
+      "versioned_workflows": true,
+      "observable_runs": true,
+      "replayable_runs": true,
+      "approval_controls": true,
+      "audit_coverage": true,
+      "environment_isolation": true
+    }
+  },
+  "result": {
+    "overall_pass": false,
+    "journeys_validated": 0,
+    "total_journeys": 6
+  }
+}
