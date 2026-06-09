@@ -55,7 +55,7 @@ def create_job(payload: dict):
         )
 
 
-@router.get("/{job_id}/status")
+@router.get("/{job_id}/status", dependencies=[Depends(require_chat_token)])
 def get_job_status(job_id: str):
     """Get status of an async job.
 
@@ -168,7 +168,7 @@ def get_job_status(job_id: str):
     return response
 
 
-@router.get("/{job_id}/result")
+@router.get("/{job_id}/result", dependencies=[Depends(require_chat_token)])
 async def get_job_result(job_id: str):
     """Get final result of an async job.
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 import strawberry
 from strawberry.fastapi import GraphQLRouter
+from strawberry.types import Info
+from fastapi import Request
 
 from acosplatform.channels.contracts import MessageEnvelope
 from acosplatform.db.repository import get_agents, get_runs
@@ -126,6 +128,33 @@ class GenerateAgentInput:
     role: str | None = None
 
 
+def _auth_from_info(info: Info) -> Any:
+    return (info.context or {}).get("northstar_auth")
+
+
+def _is_admin(auth: Any) -> bool:
+    return bool(auth and "admin" in getattr(auth, "roles", ()))
+
+
+def _tenant_scope(auth: Any) -> str | None:
+    if auth is None or _is_admin(auth):
+        return None
+    return auth.tenant_id
+
+
+def _enforced_tenant(auth: Any, requested_tenant: str) -> str:
+    if auth is None or _is_admin(auth):
+        return requested_tenant
+    return auth.tenant_id
+
+
+async def graphql_context(request: Request) -> dict[str, Any]:
+    return {
+        "request": request,
+        "northstar_auth": getattr(request.state, "northstar_auth", None),
+    }
+
+
 @strawberry.type
 class Query:
     @strawberry.field
@@ -149,30 +178,40 @@ class Query:
         return [ToolGQL(name=t["name"], description=t["description"], protocol=t["protocol"]) for t in list_tools()]
 
     @strawberry.field
-    def runs(self, limit: int = 20) -> list[RunGQL]:
-        rows = get_runs(limit=limit)
+    def runs(self, info: Info, limit: int = 20) -> list[RunGQL]:
+        rows = get_runs(tenant_id=_tenant_scope(_auth_from_info(info)), limit=limit)
         return [RunGQL(id=str(r.get("id") or r.get("run_id")), status=str(r.get("status") or "completed"), workflow_id=r.get("workflow_id"), customer_id=r.get("customer_id")) for r in rows]
 
     @strawberry.field
-    def evidence(self, correlation_id: str | None = None, journey_id: str | None = None) -> list[EvidenceGQL]:
-        return [EvidenceGQL(id=e["id"], event_type=e["event_type"], correlation_id=e["correlation_id"], journey_id=e.get("journey_id"), agent_id=e.get("agent_id"), tool_name=e.get("tool_name"), payload=_kv(e.get("payload"))) for e in list_evidence(correlation_id=correlation_id, journey_id=journey_id)]
+    def evidence(self, info: Info, correlation_id: str | None = None, journey_id: str | None = None) -> list[EvidenceGQL]:
+        tenant_id = _tenant_scope(_auth_from_info(info))
+        return [EvidenceGQL(id=e["id"], event_type=e["event_type"], correlation_id=e["correlation_id"], journey_id=e.get("journey_id"), agent_id=e.get("agent_id"), tool_name=e.get("tool_name"), payload=_kv(e.get("payload"))) for e in list_evidence(correlation_id=correlation_id, journey_id=journey_id, tenant_id=tenant_id)]
 
     @strawberry.field
-    def session(self, id: str) -> list[KeyValue]:
-        return _kv(get_session(id) or {})
+    def session(self, info: Info, id: str) -> list[KeyValue]:
+        session = get_session(id) or {}
+        auth = _auth_from_info(info)
+        if session and auth is not None and not _is_admin(auth) and session.get("tenant_id") != auth.tenant_id:
+            return []
+        return _kv(session)
 
     @strawberry.field
-    def journey(self, id: str) -> list[KeyValue]:
-        return _kv(get_journey(id) or {})
+    def journey(self, info: Info, id: str) -> list[KeyValue]:
+        journey = get_journey(id) or {}
+        auth = _auth_from_info(info)
+        if journey and auth is not None and not _is_admin(auth) and journey.get("tenant_id") != auth.tenant_id:
+            return []
+        return _kv(journey)
 
 
 @strawberry.type
 class Mutation:
     @strawberry.mutation
-    def create_workflow_draft(self, input: WorkflowDraftInput) -> MutationResult:
+    def create_workflow_draft(self, info: Info, input: WorkflowDraftInput) -> MutationResult:
         try:
+            auth = _auth_from_info(info)
             payload = WorkflowCreateRequest(
-                tenant_id=input.tenant_id,
+                tenant_id=_enforced_tenant(auth, input.tenant_id),
                 name=input.name,
                 workflow_family=input.workflow_family,  # type: ignore[arg-type]
                 description=input.description,
@@ -186,8 +225,9 @@ class Mutation:
             return MutationResult(ok=False, status="error", message=str(exc), payload=[])
 
     @strawberry.mutation
-    def run_dry_test(self, input: DryRunInput) -> MutationResult:
-        envelope = MessageEnvelope(tenant_id=input.tenant_id, channel=input.channel, channel_user_id=input.channel_user_id, text=input.text, customer_id=input.customer_id)
+    def run_dry_test(self, info: Info, input: DryRunInput) -> MutationResult:
+        auth = _auth_from_info(info)
+        envelope = MessageEnvelope(tenant_id=_enforced_tenant(auth, input.tenant_id), channel=input.channel, channel_user_id=input.channel_user_id, text=input.text, customer_id=input.customer_id)
         result = run_omnichannel_turn(envelope)
         payload = {
             "status": result.get("status"),
@@ -226,4 +266,4 @@ class Mutation:
 
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
-graphql_router = GraphQLRouter(schema)
+graphql_router = GraphQLRouter(schema, context_getter=graphql_context)

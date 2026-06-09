@@ -26,7 +26,7 @@ export default function StudioProof() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('Evidence');
-  const [message, setMessage] = useState('I need an outfit for a winter wedding under £200, available for pickup near Reading');
+  const [message, setMessage] = useState('I need an outfit for a winter wedding under GBP200, available for pickup near Reading');
   const [dryRun, setDryRun] = useState(null);
   const [running, setRunning] = useState(false);
   const [replays, setReplays] = useState([]);
@@ -55,7 +55,6 @@ export default function StudioProof() {
     if (!values.length) return 0;
     return Math.round((values.filter(Boolean).length / values.length) * 100);
   }, [readiness]);
-
 
   const handleReplay = async (replayId) => {
     setReplayResult(null);
@@ -88,7 +87,7 @@ export default function StudioProof() {
   };
 
   if (loading) {
-    return <div className="studio-proof-page">Loading Studio Proof…</div>;
+    return <div className="studio-proof-page">Loading Studio Proof...</div>;
   }
 
   return (
@@ -98,7 +97,7 @@ export default function StudioProof() {
           <div className="studio-proof-title">Agentic Retail Control Plane</div>
           <p className="studio-proof-muted">
             This screen proves the target Studio experience: canvas-ready orchestration, tabbed inspector,
-            MCP tool discovery, run timeline, evidence, human handoff and deployment readiness from live APIs.
+            MCP tool discovery, run timeline, evidence, human handoff and deployment readiness from connected APIs.
           </p>
           {error && <p className="studio-proof-muted" style={{ color: 'var(--md-error)' }}>{error}</p>}
           <div className="pill-row">
@@ -113,7 +112,7 @@ export default function StudioProof() {
         <Card title="Deployment Readiness" icon={<ShieldCheck size={18} />}>
           <div className="studio-proof-kpi">
             <strong>{readinessScore}%</strong>
-            <span className="studio-proof-muted">Production Runtime + Studio Proof score</span>
+            <span className="studio-proof-muted">Production runtime + Studio Proof score</span>
           </div>
           <div className="pill-row">
             {Object.entries(readiness).map(([key, value]) => (
@@ -124,14 +123,17 @@ export default function StudioProof() {
       </div>
 
       <div className="studio-proof-grid">
-        <Card title="Retail Simulation Console" icon={<PlayCircle size={18} />}>
+        <Card title="Retail Proof Console" icon={<PlayCircle size={18} />}>
           <textarea className="proof-textarea" value={message} onChange={(e) => setMessage(e.target.value)} />
+          <p className="studio-proof-muted" style={{ marginTop: 10 }}>
+            This action creates a real sample north-star run for inspection. It is not a dry-run sandbox.
+          </p>
           <button className="primary-button" onClick={handleDryRun} disabled={running} style={{ marginTop: 10 }}>
-            {running ? 'Running…' : 'Run dry test'}
+            {running ? 'Running...' : 'Create sample proof run'}
           </button>
           {dryRun && (
             <p className="studio-proof-muted">
-              Result: {dryRun.intent?.intent} · {dryRun.participating_agents?.length || 0} agents · {dryRun.tool_trace?.length || 0} tools
+              Result: {dryRun.intent?.intent} | {dryRun.participating_agents?.length || 0} agents | {dryRun.tool_trace?.length || 0} tools
             </p>
           )}
         </Card>
@@ -141,7 +143,7 @@ export default function StudioProof() {
             {agents.map((agent) => (
               <div className="agent-item" key={agent.id}>
                 <strong>{agent.name}</strong>
-                <div className="studio-proof-muted">{agent.id} · {agent.role}</div>
+                <div className="studio-proof-muted">{agent.id} | {agent.role}</div>
               </div>
             ))}
           </div>
@@ -152,7 +154,7 @@ export default function StudioProof() {
             {(proof?.tools || []).map((tool) => (
               <div className="tool-item" key={tool.name}>
                 <strong>{tool.name}</strong>
-                <div className="studio-proof-muted">{tool.protocol} · {tool.description}</div>
+                <div className="studio-proof-muted">{tool.protocol} | {tool.description}</div>
               </div>
             ))}
           </div>
@@ -163,7 +165,7 @@ export default function StudioProof() {
             proof.handoffs.map((handoff) => (
               <div className="timeline-item" key={handoff.id}>
                 <strong>{handoff.event_type}</strong>
-                <div className="studio-proof-muted">{handoff.agent_id} · {handoff.created_at}</div>
+                <div className="studio-proof-muted">{handoff.agent_id} | {handoff.created_at}</div>
               </div>
             ))
           ) : (
@@ -177,8 +179,8 @@ export default function StudioProof() {
               {replays.slice(0, 5).map((replay) => (
                 <div className="timeline-item" key={replay.id}>
                   <strong>{replay.id}</strong>
-                  <div className="studio-proof-muted">{replay.tenant_id} · {replay.status} · {replay.created_at}</div>
-                  <button className="secondary-button" onClick={() => handleReplay(replay.id)}>Replay</button>
+                  <div className="studio-proof-muted">{replay.tenant_id} | {replay.status} | {replay.created_at}</div>
+                  <button className="secondary-button" onClick={() => handleReplay(replay.id)}>Re-run from evidence</button>
                 </div>
               ))}
             </div>
@@ -201,9 +203,7 @@ export default function StudioProof() {
             {evidence.map((event) => (
               <div className="timeline-item" key={event.id}>
                 <strong>{event.event_type}</strong>
-                <div className="studio-proof-muted">
-                  {event.agent_id || 'system'} · {event.tool_name || 'no tool'} · {event.policy_verdict || 'recorded'}
-                </div>
+                <div className="studio-proof-muted">{event.agent_id || 'system'} | {event.tool_name || 'no tool'} | {event.policy_verdict || 'recorded'}</div>
               </div>
             ))}
           </div>
@@ -213,7 +213,7 @@ export default function StudioProof() {
             {tools.map((tool) => (
               <div className="tool-item" key={tool.tool_trace_id}>
                 <strong>{tool.tool_name}</strong>
-                <div className="studio-proof-muted">{tool.protocol} · {tool.status} · {tool.latency_ms}ms</div>
+                <div className="studio-proof-muted">{tool.protocol} | {tool.status} | {tool.latency_ms}ms</div>
               </div>
             ))}
           </div>
@@ -222,7 +222,7 @@ export default function StudioProof() {
           <div className="timeline-list">
             {Object.entries(readiness).map(([key, value]) => (
               <div className="timeline-item" key={key}>
-                <strong>{value ? <CheckCircle2 size={15} /> : '⚠'} {key.replaceAll('_', ' ')}</strong>
+                <strong>{value ? <CheckCircle2 size={15} /> : 'WARN'} {key.replaceAll('_', ' ')}</strong>
                 <div className="studio-proof-muted">{value ? 'Ready' : 'Needs completion'}</div>
               </div>
             ))}

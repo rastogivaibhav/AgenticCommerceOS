@@ -56,20 +56,20 @@ class ProductionGateChecker:
     def check_workflow_versioning(self) -> bool:
         """GR-1: Versioned workflow resources exist"""
         print("\nCheck: Workflow versioning")
-        model_has_version = self._contains_all(
-            "apps/ops_api/models/workflow.py",
-            ["version: str", "active_version: str"],
+        service_has_versioning = self._contains_all(
+            "acosplatform/workflows/service.py",
+            ["def create_workflow_version(", "active_version", "validation_status"],
         )
         persistence_has_versioning = self._contains_all(
             "acosplatform/db/repository.py",
             ["def save_workflow_version(", "workflow_versions", "version"],
         )
-        passed = model_has_version and persistence_has_versioning
+        passed = service_has_versioning and persistence_has_versioning
         details = (
-            "Version fields present in workflow model and workflow version persistence hooks found"
+            "Workflow service and persistence both expose versioned workflow lifecycle hooks"
             if passed
             else (
-                f"model_has_version={model_has_version}, "
+                f"service_has_versioning={service_has_versioning}, "
                 f"persistence_has_versioning={persistence_has_versioning}"
             )
         )
@@ -125,9 +125,9 @@ class ProductionGateChecker:
         investigation_routes_exist = all(
             self._exists(path)
             for path in [
-                "apps/ops_api/routers/runs.py",
-                "apps/ops_api/routers/promotions.py",
-                "apps/ops_api/routers/approvals.py",
+                "apps/ops_api/routers/northstar_api.py",
+                "apps/ops_api/routers/uat_compat.py",
+                "apps/ops_api/routers/v2_control_plane.py",
             ]
         )
         passed = app_routes_exist and ui_pages_exist and investigation_routes_exist

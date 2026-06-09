@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from slowapi.errors import RateLimitExceeded
 
 from acosplatform.audit.logger import audit
-from acosplatform.auth.api_key import require_ops_roles
+from acosplatform.auth.api_key import require_ops_roles, _decode_jwt, _extract_roles
 from acosplatform.config.startup_validation import validate_auth_configuration
 from acosplatform.billing.engine import get_cost_summary, get_usage
 from acosplatform.db.connection import ensure_schema, check_connection
@@ -97,31 +97,28 @@ from acosplatform.workflows.service import (
     rollback_workflow_version,
 )
 from acosplatform.workflows.executor import execute_saved_workflow
-from apps.ops_api.routers import experiments, analytics, promotions, runs, approvals, incidents
+from apps.ops_api.routers import analytics, experiments, northstar_api, uat_compat, v2_control_plane
 from apps.ops_api.graphql.schema import graphql_router
-from acosplatform.channels.contracts import MessageEnvelope
-from acosplatform.evidence.store import list_evidence
-from acosplatform.orchestration.runtime import run_omnichannel_turn
-from acosplatform.tools.registry import list_tools as list_northstar_tools
-from acosplatform.northstar.repository import (
-    list_sessions as list_northstar_sessions,
-    list_journeys as list_northstar_journeys,
-    get_session as get_northstar_session,
-    list_messages as list_northstar_messages,
-)
-from acosplatform.events.outbox import list_pending as list_outbox_pending
-from acosplatform.auth.northstar import NorthstarAuthContext, authenticate_api_key, enforce_tenant, require_roles
-from acosplatform.northstar.repository import list_replay_runs, get_replay_run
+from acosplatform.auth.northstar import authenticate_api_key, require_roles
+from apps.ops_api.dependencies import OPS_ENVIRONMENT
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 APP_VERSION = os.environ.get("APP_VERSION", "1.0.0")
-OPS_ENVIRONMENT = os.environ.get("OPS_ENVIRONMENT", "dev")
 EMBEDDED_UI_DIR = Path("apps/ops_api/ui")
 LOCAL_UI_DIR = Path("apps/ops_ui_v2/dist")
 UI_DIR = EMBEDDED_UI_DIR if (EMBEDDED_UI_DIR / "index.html").exists() else LOCAL_UI_DIR
 SUPPORTED_PLATFORM_MODES = ("normal", "demo")
+LEGACY_UAT_PATH_PREFIXES = (
+    "/api/workflows",
+    "/api/runs",
+    "/api/approvals",
+    "/api/audit",
+    "/api/analytics/kpi",
+    "/api/analytics/export",
+    "/api/health/workflows",
+)
 
 
 def _flag_enabled(name: str, default: str = "0") -> bool:
@@ -161,7 +158,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def graphql_rbac_middleware(request: Request, call_next):
-    if request.url.path.startswith("/graphql") and _flag_enabled("ACOS_GRAPHQL_REQUIRE_AUTH", os.environ.get("ACOS_NORTHSTAR_REQUIRE_AUTH", "0")):
+    if request.url.path.startswith("/graphql"):
         try:
             auth = authenticate_api_key(
                 request.headers.get("x-api-key"),
@@ -169,19 +166,39 @@ async def graphql_rbac_middleware(request: Request, call_next):
                 key_env="ACOS_NORTHSTAR_API_KEYS",
             )
             require_roles(auth, "admin", "ops", "analyst", "viewer")
+            request.state.northstar_auth = auth
         except PermissionError as exc:
             return JSONResponse(status_code=403, content={"detail": str(exc)})
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def legacy_uat_surface_middleware(request: Request, call_next):
+    if any(request.url.path.startswith(prefix) for prefix in LEGACY_UAT_PATH_PREFIXES):
+        if not _flag_enabled("ACOS_ENABLE_UAT_COMPAT_API", "0"):
+            return JSONResponse(status_code=404, content={"detail": "Not found"})
+
+        auth_header = request.headers.get("authorization", "").strip()
+        if not auth_header.lower().startswith("bearer "):
+            return JSONResponse(status_code=401, content={"detail": "Bearer token required"})
+
+        try:
+            token = _decode_jwt(auth_header.split(" ", 1)[1])
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+        roles = _extract_roles(token)
+        if "admin" not in roles:
+            return JSONResponse(status_code=403, content={"detail": "Admin role required"})
+
     return await call_next(request)
 
 # Include routers
 app.include_router(experiments.router)
 app.include_router(analytics.router)
-app.include_router(promotions.router)
-app.include_router(promotions.approvals_router)
-app.include_router(promotions.audit_router)
-app.include_router(runs.router)
-app.include_router(approvals.router)
-app.include_router(incidents.router)
+app.include_router(northstar_api.router)
+app.include_router(v2_control_plane.router)
+app.include_router(uat_compat.router)
 app.include_router(graphql_router, prefix="/graphql")
 
 
@@ -257,7 +274,7 @@ class WorkflowTestRunRequest(BaseModel):
 
 class WorkflowExecuteRequest(BaseModel):
     tenant_id: str = "default"
-    customer_id: str = "cust_1001"
+    customer_id: str = "ops-test-customer"
     environment: str = OPS_ENVIRONMENT
     message: str = "Where is my order ORD-1001?"
     order_id: str | None = None
@@ -284,50 +301,11 @@ class ChannelTestRequest(BaseModel):
     text: str = "ACOS channel test"
     recipient: str = ""
     binding_id: str | None = None
+    confirm_live_send: bool = False
 
 
 class ChannelPairingRequest(BaseModel):
     route_id: str
-
-
-
-
-def require_northstar_api_key(x_api_key: str | None = Header(default=None)) -> NorthstarAuthContext:
-    """Optional RBAC guard for north-star pilot endpoints.
-
-    Local demos remain open by default. Set ACOS_NORTHSTAR_REQUIRE_AUTH=1 and
-    ACOS_NORTHSTAR_API_KEYS=key:tenant:role|role2 to enforce tenant-facing API keys.
-    """
-    try:
-        return authenticate_api_key(x_api_key)
-    except PermissionError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
-
-
-def require_northstar_role(context: NorthstarAuthContext, *roles: str) -> None:
-    try:
-        require_roles(context, *roles)
-    except PermissionError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
-
-
-def tenant_for_context(context: NorthstarAuthContext, requested_tenant: str | None = None) -> str:
-    try:
-        return enforce_tenant(context, requested_tenant)
-    except PermissionError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
-
-class NorthstarMessageRequest(BaseModel):
-    tenant_id: str = "default"
-    channel: str = "web"
-    channel_user_id: str = "demo-user"
-    text: str
-    customer_id: str | None = None
-    conversation_session_id: str | None = None
-    journey_id: str | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
-    expires_in_hours: int | None = 72
-
 
 class SenderApprovalRequest(BaseModel):
     customer_id: str | None = None
@@ -341,6 +319,7 @@ class DemoRouteDispatchRequest(BaseModel):
     display_name: str = "Demo Customer"
     tenant_id: str = "default"
     environment: str = OPS_ENVIRONMENT
+    allow_live_send: bool = False
 
 
 class CRMCaseCreateRequest(BaseModel):
@@ -1581,6 +1560,16 @@ def send_channel_test(binding_id: str, payload: ChannelTestRequest, _claims: dic
     if not binding:
         return JSONResponse(status_code=404, content={"error": "Channel not found"})
     metadata = binding.get("metadata") or {}
+    live_binding = binding.get("mode") == "live"
+    if live_binding and not payload.confirm_live_send:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error": "Live delivery requires explicit confirmation",
+                "binding_id": binding_id,
+                "recipient": payload.recipient or metadata.get("default_recipient") or metadata.get("default_chat_id") or metadata.get("start_chat_number"),
+            },
+        )
     if binding.get("type") == "telegram":
         result = send_telegram_message(
             payload.text,
@@ -1591,7 +1580,7 @@ def send_channel_test(binding_id: str, payload: ChannelTestRequest, _claims: dic
         result = execute_whatsapp_action(
             "send_message",
             {"to": payload.recipient or metadata.get("default_recipient") or metadata.get("start_chat_number"), "message": payload.text},
-            allow_live_send=True,
+            allow_live_send=bool(payload.confirm_live_send and live_binding),
             config_override=metadata,
         )
     else:
@@ -1636,22 +1625,17 @@ def list_demo_routes_endpoint(_claims: dict = Depends(READ_ACCESS)):
 @app.post("/api/v1/demo/routes/{route_id}/simulate")
 def simulate_demo_route(route_id: str, payload: DemoRouteDispatchRequest, _claims: dict = Depends(OPERATE_ACCESS)):
     existing_sender = get_channel_sender_by_external_id(payload.channel_binding_id, payload.sender_external_id)
-    sender = existing_sender or save_channel_sender(
-        {
-            "id": f"sender-{uuid4().hex[:10]}",
-            "channel_binding_id": payload.channel_binding_id,
-            "sender_external_id": payload.sender_external_id,
-            "display_name": payload.display_name,
-            "customer_id": "cust_1001" if payload.sender_external_id.endswith("0001") else None,
-            "approval_status": "approved",
-            "last_message": payload.message,
-            "last_seen_at": _utc_iso(),
-            "metadata": {"simulated": True},
-        }
-    )
-    if sender.get("approval_status") != "approved":
-        sender["approval_status"] = "approved"
-        sender = save_channel_sender(sender)
+    sender = dict(existing_sender) if existing_sender else {
+        "id": f"simulated-sender-{uuid4().hex[:10]}",
+        "channel_binding_id": payload.channel_binding_id,
+        "sender_external_id": payload.sender_external_id,
+        "display_name": payload.display_name,
+        "customer_id": None,
+        "approval_status": "simulation_only",
+        "last_message": payload.message,
+        "last_seen_at": _utc_iso(),
+        "metadata": {"simulated": True, "persisted": False},
+    }
     result = dispatch_demo_route(
         route_id=route_id,
         channel_binding_id=payload.channel_binding_id,
@@ -1659,6 +1643,7 @@ def simulate_demo_route(route_id: str, payload: DemoRouteDispatchRequest, _claim
         message=payload.message,
         tenant_id=payload.tenant_id,
         environment=payload.environment,
+        allow_live_send=payload.allow_live_send,
     )
     return result
 
@@ -2776,798 +2761,3 @@ def head_ui_path(path: str):
     if requested.exists() and requested.is_file():
         return Response(status_code=200)
     return Response(status_code=200, media_type="text/html")
-
-
-@app.post("/api/northstar/messages")
-def northstar_message(request: NorthstarMessageRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    tenant_for_context(auth, request.tenant_id)
-    require_northstar_role(auth, "admin", "ops")
-    envelope = MessageEnvelope(
-        tenant_id=request.tenant_id,
-        channel=request.channel,
-        channel_user_id=request.channel_user_id,
-        text=request.text,
-        customer_id=request.customer_id,
-        conversation_session_id=request.conversation_session_id,
-        journey_id=request.journey_id,
-        metadata=request.metadata,
-    )
-    return run_omnichannel_turn(envelope)
-
-
-@app.get("/api/northstar/tools")
-def northstar_tools(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"tools": list_northstar_tools()}
-
-
-@app.get("/api/northstar/studio-proof")
-def northstar_studio_proof(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    """Return a Studio/Ops proof bundle for the north-star UI.
-
-    This endpoint is deliberately read-only and aggregates the golden journey
-    evidence, agent participation, tool inventory, sessions, journeys, handoffs
-    and deployment readiness into one payload for the Studio Proof screen.
-    """
-    result = run_omnichannel_turn(MessageEnvelope(
-        tenant_id=auth.tenant_id,
-        channel="web",
-        channel_user_id="studio-proof-user",
-        customer_id="studio-proof-customer",
-        text="I need an outfit for a winter wedding under £200, available for pickup near Reading",
-    ))
-    evidence = result.get("evidence", [])
-    event_types = [event.get("event_type") for event in evidence]
-    handoffs = [event for event in evidence if event.get("event_type") == "human.handoff.created"]
-    return {
-        "status": "ready" if result.get("status") == "success" else "warning",
-        "golden_journey": result,
-        "studio_capabilities": {
-            "workflow_canvas": True,
-            "tabbed_inspector": True,
-            "mcp_tool_browser": True,
-            "run_timeline": True,
-            "evidence_inspector": True,
-            "human_handoff_queue": True,
-            "retail_simulation_console": True,
-            "deployment_readiness": True,
-        },
-        "readiness": {
-            "multi_agent_orchestration": len(result.get("participating_agents", [])) >= 3,
-            "retail_tools": len(result.get("tool_trace", [])) >= 3,
-            "evidence_timeline": len(evidence) >= 8,
-            "human_handoff": bool(handoffs),
-            "mcp_tools_available": any(t["name"] == "catalog.search" for t in list_northstar_tools()),
-            "graphql_available": True,
-            "production_compose_present": Path("docker-compose.prod.yml").exists(),
-        },
-        "event_types": event_types,
-        "handoffs": handoffs,
-        "tools": list_northstar_tools(),
-        "sessions": list_northstar_sessions(tenant_id=auth.tenant_id, limit=10),
-        "journeys": list_northstar_journeys(tenant_id=auth.tenant_id, limit=10),
-        "outbox_pending": list_outbox_pending(limit=10),
-    }
-
-
-@app.get("/api/northstar/handoffs")
-def northstar_handoffs(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    events = list_evidence(limit=200)
-    require_northstar_role(auth, "admin", "ops", "analyst")
-    return {"handoffs": [event for event in events if event.get("event_type") == "human.handoff.created" and event.get("tenant_id") == auth.tenant_id]}
-
-
-@app.get("/api/northstar/sessions/{session_id}/identity-linkage")
-def northstar_session_identities(session_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    session = get_northstar_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    
-    # Verify tenant access
-    if session.get("tenant_id") != auth.tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-    messages = list_northstar_messages(conversation_session_id=session_id)
-    
-    return {
-        "session_id": session_id,
-        "customer_id": session.get("customer_id"),
-        "linked_identities": session.get("channel_identities", {}),
-        "channel_transition_count": len(set(m.get("channel") for m in messages)),
-        "chronological_sources": [
-            {"timestamp": m.get("timestamp"), "channel": m.get("channel"), "user_id": m.get("channel_user_id")}
-            for m in messages
-        ]
-    }
-
-
-@app.get("/api/northstar/outbox")
-def northstar_outbox(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    return {"pending": [event for event in list_outbox_pending(limit=50) if event.get("tenant_id") == auth.tenant_id]}
-
-
-@app.get("/api/northstar/readiness")
-def northstar_readiness(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    checks = {
-        "production_compose_present": Path("docker-compose.prod.yml").exists(),
-        "production_env_example_present": Path(".env.production.example").exists(),
-        "northstar_schema_present": Path("db/northstar_schema.sql").exists(),
-        "mcp_server_available": True,
-        "graphql_available": True,
-        "northstar_auth_configurable": True,
-    }
-    return {"status": "ready" if all(checks.values()) else "warning", "checks": checks}
-
-
-
-@app.get("/api/northstar/api-plane")
-def northstar_api_plane(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    screen_matrix = [
-        {"screen": "Estate Dashboard", "route": "/ui/estate", "api_plane": "ACOS v2 REST", "endpoints": ["GET /api/v2/estate-summary", "POST /api/v2/a2a/invoke"], "status": "connected"},
-        {"screen": "Agent Registry", "route": "/ui/agent-registry", "api_plane": "ACOS v2 REST", "endpoints": ["GET /api/v2/agents", "POST /api/v2/agents", "GET /api/v2/agents/{id}", "GET /api/v2/agents/{id}/card"], "status": "connected"},
-        {"screen": "Capability Registry", "route": "/ui/capabilities", "api_plane": "ACOS v2 REST", "endpoints": ["GET /api/v2/capabilities", "POST /api/v2/capabilities", "POST /api/v2/capabilities/{id}/map-agent"], "status": "connected"},
-        {"screen": "A2A Trace", "route": "/ui/a2a-trace", "api_plane": "ACOS v2 REST", "endpoints": ["GET /api/v2/a2a/agent-cards", "POST /api/v2/a2a/invoke", "GET /api/v2/a2a/traces"], "status": "connected"},
-        {"screen": "Channel Modes", "route": "/ui/channel-modes", "api_plane": "ACOS v2 REST", "endpoints": ["GET /api/v2/channel-modes", "GET /api/v2/tone-profiles"], "status": "connected"},
-        {"screen": "Evaluations", "route": "/ui/evaluations", "api_plane": "ACOS v2 REST", "endpoints": ["GET /api/v2/evaluations"], "status": "connected"},
-        {"screen": "Governance", "route": "/ui/governance", "api_plane": "ACOS v2 REST", "endpoints": ["GET /api/v2/guardrails", "GET /api/v2/finops", "GET /api/v2/route-to-production", "GET /api/v2/memory/access-events"], "status": "connected"},
-        {"screen": "Workflows", "route": "/ui/workflows", "api_plane": "REST", "endpoints": ["GET /workflows", "POST /workflows", "GET /workflows/{id}", "PATCH /workflows/{id}", "POST /workflows/{id}/test-run", "POST /workflows/{id}/execute"], "status": "connected"},
-        {"screen": "Workflow Editor", "route": "/ui/workflows/:id/editor", "api_plane": "REST", "endpoints": ["GET /workflows/{id}", "PATCH /workflows/{id}", "POST /workflows/{id}/test-run", "POST /workflows/{id}/execute", "GET /api/v1/agents", "GET /api/v1/connectors/bindings"], "status": "connected"},
-        {"screen": "Studio Proof", "route": "/ui/studio-proof", "api_plane": "North-star REST", "endpoints": ["GET /api/northstar/studio-proof", "GET /api/northstar/replays", "POST /api/northstar/replays/{id}/rerun", "POST /api/northstar/messages"], "status": "connected"},
-        {"screen": "Runs", "route": "/ui/runs", "api_plane": "North-star REST", "endpoints": ["GET /api/northstar/runs", "GET /api/northstar/runs/{id}", "POST /api/northstar/messages", "POST /api/northstar/replays/{id}/rerun"], "status": "connected"},
-        {"screen": "Demo Guide", "route": "/ui/demo-guide", "api_plane": "North-star REST", "endpoints": ["GET /api/northstar/demo-script"], "status": "connected"},
-        {"screen": "Test Center", "route": "/ui/test-center", "api_plane": "North-star REST", "endpoints": ["GET /api/northstar/test-plan", "POST /api/northstar/messages"], "status": "connected"},
-        {"screen": "API Plane", "route": "/ui/api-plane", "api_plane": "North-star REST + GraphQL", "endpoints": ["GET /api/northstar/api-plane", "POST /graphql"], "status": "connected"},
-        {"screen": "Channels", "route": "/ui/channels", "api_plane": "REST", "endpoints": ["GET /api/v1/channels", "POST /api/v1/channels/telegram/link", "POST /api/v1/channels/whatsapp/link", "POST /api/v1/channels/{id}/test", "GET /api/v1/channels/approvals", "POST /api/v1/channels/approvals/{sender}/approve"], "status": "connected"},
-        {"screen": "Routes", "route": "/ui/demo-routes", "api_plane": "REST", "endpoints": ["GET /api/v1/demo/routes", "POST /api/v1/demo/routes/{id}/simulate", "GET /api/v1/runtime/providers", "GET /api/v1/channels"], "status": "connected"},
-        {"screen": "Agents", "route": "/ui/agents", "api_plane": "REST", "endpoints": ["GET /api/v1/agents", "GET /api/v1/agents/{id}", "POST /api/v1/agents", "POST /api/v1/agents/{id}/test", "GET /api/v1/connectors/bindings"], "status": "connected"},
-        {"screen": "Skills", "route": "/ui/skills", "api_plane": "REST", "endpoints": ["GET /api/v1/skills", "POST /api/v1/skills", "POST /api/v1/skills/{id}/test"], "status": "connected"},
-        {"screen": "Analytics", "route": "/ui/analytics", "api_plane": "REST", "endpoints": ["GET /api/analytics/metrics", "GET /api/analytics/timeseries", "GET /api/analytics/workflows", "GET /api/analytics/export"], "status": "connected"},
-        {"screen": "Tenants", "route": "/ui/tenants", "api_plane": "REST", "endpoints": ["GET /api/v1/tenants", "POST /api/v1/tenants"], "status": "connected"},
-        {"screen": "Experiments", "route": "/ui/experiments", "api_plane": "REST", "endpoints": ["GET /experiments", "POST /experiments", "GET /experiments/{id}/results"], "status": "connected"},
-        {"screen": "Simulation", "route": "/ui/simulation", "api_plane": "North-star REST", "endpoints": ["GET /api/northstar/runs", "POST /api/northstar/messages"], "status": "connected"},
-    ]
-    return {
-        "status": "connected",
-        "tenant_id": auth.tenant_id,
-        "summary": {
-            "screens": len(screen_matrix),
-            "connected": len([item for item in screen_matrix if item["status"] == "connected"]),
-            "rest_plane": True,
-            "northstar_plane": True,
-            "graphql_plane": True,
-            "mcp_plane": True,
-        },
-        "screens": screen_matrix,
-        "notes": [
-            "MCP is exposed as a backend/server plane and surfaced in Studio Proof/API Plane rather than called directly from browser screens.",
-            "Shopper journey simulation uses the shopper-api service via VITE_SHOPPER_API_URL when that service is deployed separately.",
-            "All browser calls include Authorization and X-API-Key headers through the shared API client where applicable.",
-        ],
-    }
-
-
-@app.get("/api/northstar/demo-script")
-def northstar_demo_script(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {
-        "title": "ACOS North-Star CTO Demo",
-        "duration_minutes": 12,
-        "persona": "Retail CTO / Head of Digital Operations",
-        "demo_message": "I need an outfit for a winter wedding under £200, available for pickup near Reading",
-        "storyboard": [
-            {"step": 1, "screen": "Demo Guide", "say": "ACOS is the control plane for agentic retail operations, not a chatbot.", "prove": "North-star architecture, demo objective, and success criteria are visible."},
-            {"step": 2, "screen": "Studio Proof", "say": "A customer message becomes a session, journey, routed intent, multi-agent run and evidence trail.", "prove": "Run the winter-wedding dry test and show participating agents/tool traces."},
-            {"step": 3, "screen": "Runs", "say": "Every orchestration is captured as an inspectable run with agents, tools, evidence and replay.", "prove": "Open Runs, select the latest run, show session/journey IDs, timeline and replay."},
-            {"step": 4, "screen": "Studio Proof / Tabbed Inspector", "say": "Operators can inspect node, connector, evidence, tests and deployment readiness from one place.", "prove": "Switch between Evidence, Connectors, Tests and Deployment tabs."},
-            {"step": 5, "screen": "Test Center", "say": "The product ships with runnable proof checks, not slideware.", "prove": "Run smoke-style API checks and review acceptance criteria."},
-            {"step": 6, "screen": "Handoff Queue", "say": "When retail context needs human support, ACOS creates a handoff summary for store/contact-centre teams.", "prove": "Show human.handoff.created evidence event."},
-            {"step": 7, "screen": "Readiness", "say": "Production readiness is explicit: Compose, Alembic, RBAC, Redis, GraphQL, MCP, and evidence are tracked.", "prove": "Show readiness checklist and known external runtime checks."}
-        ],
-        "success_criteria": [
-            "Customer journey creates session and journey IDs.",
-            "Intent is classified as styling/product discovery.",
-            "At least three retail agents participate.",
-            "At least three tools are called.",
-            "Human handoff can be created.",
-            "Evidence timeline is visible.",
-            "Replay snapshot exists.",
-            "Readiness checks are transparent."
-        ],
-        "demo_commands": [
-            "make setup",
-            "make test-northstar",
-            "make smoke-northstar",
-            "make runtime-check",
-            "make ui-build",
-            "make compose-prod-up"
-        ],
-        "notes": [
-            "Docker runtime proof must be run on a Docker-enabled machine.",
-            "Use ACOS_NORTHSTAR_REQUIRE_AUTH=1 and ACOS_NORTHSTAR_API_KEYS for protected demos.",
-            "Use localStorage.northstar_api_key in the browser when RBAC is enabled."
-        ]
-    }
-
-
-@app.get("/api/northstar/test-plan")
-def northstar_test_plan(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    checks = [
-        {"id": "smoke.golden_journey", "area": "Functional", "command": "python scripts/northstar_smoke.py", "expected": "success with >=3 agents, >=3 tools, evidence timeline"},
-        {"id": "tests.northstar", "area": "Backend", "command": "pytest -q harness/python/tests/northstar", "expected": "all tests pass"},
-        {"id": "tests.uat", "area": "UAT", "command": "pytest -q harness/python/tests/test_week11_uat_and_production_gate.py", "expected": "all tests pass"},
-        {"id": "runtime.static", "area": "Runtime", "command": "python scripts/production_runtime_check.py", "expected": "static runtime proof passes"},
-        {"id": "ui.build", "area": "Frontend", "command": "cd apps/ops_ui_v2 && npm ci && npm run build", "expected": "Vite build succeeds"},
-        {"id": "db.migration_sql", "area": "Database", "command": "alembic upgrade head --sql", "expected": "Alembic SQL renders"},
-        {"id": "compose.prod", "area": "Deployment", "command": "docker compose -f docker-compose.prod.yml up --build", "expected": "all services healthy on Docker-enabled runner"},
-        {"id": "mcp.client", "area": "MCP", "command": "POST /mcp with tools/list and tools/call", "expected": "ACOS exposes core MCP tools"},
-        {"id": "graphql.studio", "area": "GraphQL", "command": "POST /graphql with workflows/agents/evidence query", "expected": "Studio graph data returned"},
-        {"id": "runs.screen", "area": "Ops UI", "command": "Open /ui/runs after a golden journey", "expected": "run list, detail, tool calls, evidence timeline and replay are visible"}
-    ]
-    return {"title": "ACOS Demo and Test Plan", "checks": checks, "demo_data": {"tenant_id": auth.tenant_id, "message": "I need an outfit for a winter wedding under £200, available for pickup near Reading"}}
-
-
-def _northstar_run_summary(replay: dict) -> dict:
-    result = replay.get("result") or {}
-    intent = result.get("intent") or {}
-    agent = result.get("agent") or {}
-    evidence = result.get("evidence") or []
-    tools = result.get("tool_trace") or []
-    participants = result.get("participating_agents") or []
-    message = result.get("message_envelope") or replay.get("request") or {}
-    failed_tools = [tool for tool in tools if tool.get("status") not in {"success", "ok"}]
-    handoffs = [event for event in evidence if event.get("event_type") == "human.handoff.created"]
-    return {
-        "id": replay.get("id"),
-        "tenant_id": replay.get("tenant_id"),
-        "status": result.get("status") or replay.get("status"),
-        "created_at": replay.get("created_at"),
-        "conversation_session_id": replay.get("conversation_session_id"),
-        "journey_id": replay.get("journey_id"),
-        "correlation_id": replay.get("correlation_id"),
-        "channel": message.get("channel"),
-        "customer_id": message.get("customer_id"),
-        "intent": intent.get("intent"),
-        "confidence": intent.get("confidence"),
-        "primary_agent": agent.get("id"),
-        "primary_agent_name": agent.get("name"),
-        "agent_count": len(participants),
-        "tool_count": len(tools),
-        "evidence_count": len(evidence),
-        "handoff_count": len(handoffs),
-        "failed_tool_count": len(failed_tools),
-        "response_preview": (result.get("response_text") or "")[:220],
-    }
-
-
-@app.get("/api/northstar/runs")
-def northstar_runs(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    replays = list_replay_runs(tenant_id=auth.tenant_id, limit=100)
-    runs = [_northstar_run_summary(replay) for replay in replays]
-    return {
-        "runs": runs,
-        "summary": {
-            "total": len(runs),
-            "successful": len([run for run in runs if run.get("status") == "success"]),
-            "with_handoff": len([run for run in runs if run.get("handoff_count", 0) > 0]),
-            "tool_calls": sum(run.get("tool_count", 0) for run in runs),
-            "evidence_events": sum(run.get("evidence_count", 0) for run in runs),
-        },
-    }
-
-
-@app.get("/api/northstar/runs/{run_id}")
-def northstar_run_detail(run_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    replay = get_replay_run(run_id)
-    if not replay or ("admin" not in auth.roles and replay.get("tenant_id") != auth.tenant_id):
-        raise HTTPException(status_code=404, detail="Run not found")
-    return {"run": _northstar_run_summary(replay), "replay": replay, "result": replay.get("result") or {}}
-
-@app.get("/api/northstar/replays")
-def northstar_replays(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst")
-    return {"replays": list_replay_runs(tenant_id=auth.tenant_id, limit=50)}
-
-
-@app.get("/api/northstar/replays/{replay_id}")
-def northstar_replay_detail(replay_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst")
-    replay = get_replay_run(replay_id)
-    if not replay or ("admin" not in auth.roles and replay.get("tenant_id") != auth.tenant_id):
-        raise HTTPException(status_code=404, detail="Replay not found")
-    return {"replay": replay}
-
-
-@app.post("/api/northstar/replays/{replay_id}/rerun")
-def northstar_replay_rerun(replay_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    replay = get_replay_run(replay_id)
-    if not replay or ("admin" not in auth.roles and replay.get("tenant_id") != auth.tenant_id):
-        raise HTTPException(status_code=404, detail="Replay not found")
-    request_payload = replay.get("request") or {}
-    tenant_for_context(auth, request_payload.get("tenant_id"))
-    envelope = MessageEnvelope(
-        tenant_id=request_payload.get("tenant_id", auth.tenant_id),
-        channel=request_payload.get("channel", "replay"),
-        channel_user_id=request_payload.get("channel_user_id", "replay-user"),
-        text=request_payload.get("text", ""),
-        customer_id=request_payload.get("customer_id"),
-        metadata={**(request_payload.get("metadata") or {}), "replay_of": replay_id},
-    )
-    return {"replay_of": replay_id, "result": run_omnichannel_turn(envelope)}
-
-
-
-
-# --- ACOS v2: Omnichannel Agentic Retail Estate APIs ---
-from acosplatform.agents.registry import REGISTRY as V2_AGENT_REGISTRY
-from acosplatform.capabilities.registry import CAPABILITY_REGISTRY as V2_CAPABILITY_REGISTRY
-from acosplatform.a2a.orchestrator import invoke_a2a, list_traces as list_a2a_traces, get_trace as get_a2a_trace, list_tasks as list_a2a_tasks, get_task as get_a2a_task, CHANNEL_MODES, TONE_PROFILES
-from acosplatform.evaluations_v2.service import list_evaluations as list_v2_evaluations, split_recommendations as v2_split_recommendations, run_evaluation as run_v2_evaluation, list_evaluation_runs as list_v2_evaluation_runs, get_evaluation_run as get_v2_evaluation_run
-from acosplatform.route_to_production.service import route_summary as v2_route_summary, STAGES as V2_RTP_STAGES
-from acosplatform.tools_v2.service import TOOLS as V2_TOOLS
-from acosplatform.memory_v2.service import get_session_memory as v2_get_session_memory, get_journey_memory as v2_get_journey_memory, list_access_events as v2_list_memory_events
-from acosplatform.finops_v2.service import summary as v2_finops_summary
-from acosplatform.governance_v2.service import guardrails as v2_guardrail_summary
-from acosplatform.a2a.vendor_adapter import VENDOR_REGISTRY
-
-class V2AgentRequest(BaseModel):
-    agent_id: str | None = None
-    name: str
-    description: str = ""
-    owner_team: str = "unassigned"
-    business_owner: str = ""
-    technical_owner: str = "ai-platform"
-    vendor_stack: str = "internal"
-    status: str = "draft"
-    risk_level: str = "medium"
-    supported_channels: list[str] = Field(default_factory=lambda: ["web"])
-    capabilities: list[str] = Field(default_factory=list)
-    tools: list[str] = Field(default_factory=list)
-    tone_profile: str = "john_lewis_customer_direct"
-    evaluation_score: float = 0.0
-    cost_budget_per_run: float = 0.05
-
-class V2CapabilityRequest(BaseModel):
-    capability_id: str | None = None
-    name: str
-    intent_families: list[str] = Field(default_factory=list)
-    owner: str = "unassigned"
-    risk_level: str = "medium"
-    evaluation_threshold: float = 0.85
-
-class V2CapabilityMapRequest(BaseModel):
-    agent_id: str
-
-class V2AgentVersionRequest(BaseModel):
-    version: str | None = None
-    notes: str = ''
-    prompt_ref: str | None = None
-
-class V2PromotionRequest(BaseModel):
-    target_stage: str = 'production'
-
-class V2ToolRequest(BaseModel):
-    tool_id: str | None = None
-    name: str
-    protocol: str = 'REST'
-    owner: str = 'unassigned'
-    risk_level: str = 'medium'
-    allowed_agents: list[str] = Field(default_factory=list)
-    allowed_channels: list[str] = Field(default_factory=list)
-    approval_required: bool = False
-
-class V2MCPServerRequest(BaseModel):
-    server_id: str | None = None
-    name: str
-    transport: str = 'streamable_http'
-    endpoint: str = '/mcp'
-    allowed_tools: list[str] = Field(default_factory=list)
-
-class V2EvaluationRunRequest(BaseModel):
-    agent_id: str = 'shopping_agent'
-
-class V2VendorAgentRequest(BaseModel):
-    vendor_agent_id: str | None = None
-    name: str
-    vendor: str = 'mock_vendor'
-    endpoint: str = 'mock://vendor-agent'
-    allowed_capabilities: list[str] = Field(default_factory=list)
-    allowed_tools: list[str] = Field(default_factory=list)
-    enabled: bool = True
-    kill_switch: bool = False
-
-class V2A2AInvokeRequest(BaseModel):
-    tenant_id: str = "default"
-    customer_id: str = "demo-customer"
-    channel: str = "web"
-    actor_type: str = "customer"
-    channel_mode: str = "customer_direct"
-    vendor_agent_id: str | None = None
-    message: str = "I’m buying a cot mattress for a newborn under £250, and I need to know if my previous nursery order can be returned."
-
-@app.get("/api/v2/agents")
-def v2_agents(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"agents": V2_AGENT_REGISTRY.list_agents(), "summary": {"total": len(V2_AGENT_REGISTRY.list_agents()), "production": len([a for a in V2_AGENT_REGISTRY.list_agents() if a.get("status") == "production"]), "pilot": len([a for a in V2_AGENT_REGISTRY.list_agents() if a.get("status") == "pilot"]), "draft": len([a for a in V2_AGENT_REGISTRY.list_agents() if a.get("status") == "draft"])}}
-
-@app.post("/api/v2/agents")
-def v2_create_agent(request: V2AgentRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    return {"agent": V2_AGENT_REGISTRY.upsert_agent(request.model_dump(exclude_none=True))}
-
-@app.get("/api/v2/agents/{agent_id}")
-def v2_agent_detail(agent_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    agent = V2_AGENT_REGISTRY.get_agent(agent_id)
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    return {"agent": agent, "card": V2_AGENT_REGISTRY.agent_card(agent_id), "route_to_production": [r for r in v2_route_summary() if r["agent_id"] == agent_id]}
-
-@app.post("/api/v2/agents/{agent_id}/versions")
-def v2_create_agent_version(agent_id: str, request: V2AgentVersionRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    result = V2_AGENT_REGISTRY.create_version(agent_id, request.model_dump(exclude_none=True))
-    if not result:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    return {"version": result}
-
-@app.post("/api/v2/agents/{agent_id}/promote")
-def v2_promote_agent(agent_id: str, request: V2PromotionRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    result = V2_AGENT_REGISTRY.promote(agent_id, request.target_stage)
-    if result.get("status") == "rejected":
-        raise HTTPException(status_code=409, detail=result)
-    return result
-
-@app.post("/api/v2/agents/{agent_id}/retire")
-def v2_retire_agent(agent_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    result = V2_AGENT_REGISTRY.retire(agent_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    return {"agent": result}
-
-@app.get("/api/v2/agents/{agent_id}/card")
-def v2_agent_card(agent_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    card = V2_AGENT_REGISTRY.agent_card(agent_id)
-    if not card:
-        raise HTTPException(status_code=404, detail="Agent card not found")
-    return {"agent_card": card}
-
-@app.get("/api/v2/capabilities")
-def v2_capabilities(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    caps = V2_CAPABILITY_REGISTRY.list_capabilities()
-    return {"capabilities": caps, "summary": {"total": len(caps), "covered": len([c for c in caps if c.get("coverage_status") == "covered"]), "gaps": len([c for c in caps if c.get("coverage_status") == "gap"])}}
-
-@app.post("/api/v2/capabilities")
-def v2_create_capability(request: V2CapabilityRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    return {"capability": V2_CAPABILITY_REGISTRY.upsert(request.model_dump(exclude_none=True))}
-
-@app.get("/api/v2/capabilities/coverage")
-def v2_capability_coverage(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return V2_CAPABILITY_REGISTRY.coverage()
-
-@app.post("/api/v2/capabilities/{capability_id}/map-agent")
-def v2_map_capability(capability_id: str, request: V2CapabilityMapRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    agent = V2_AGENT_REGISTRY.get_agent(request.agent_id)
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    caps = list(agent.get("capabilities") or [])
-    if capability_id not in caps:
-        caps.append(capability_id)
-    agent["capabilities"] = caps
-    return {"agent": agent, "mapped_capability": capability_id}
-
-@app.get("/api/v2/a2a/agent-cards")
-def v2_a2a_cards(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"agent_cards": [V2_AGENT_REGISTRY.agent_card(a["agent_id"]) for a in V2_AGENT_REGISTRY.list_agents()]}
-
-@app.post("/api/v2/a2a/invoke")
-def v2_a2a_invoke(request: V2A2AInvokeRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    tenant_for_context(auth, request.tenant_id)
-    require_northstar_role(auth, "admin", "ops")
-    return {"trace": invoke_a2a(message=request.message, tenant_id=request.tenant_id, customer_id=request.customer_id, channel=request.channel, actor_type=request.actor_type, channel_mode=request.channel_mode, vendor_agent_id=request.vendor_agent_id)}
-
-@app.get("/api/v2/a2a/traces")
-def v2_a2a_traces(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"traces": list_a2a_traces(auth.tenant_id)}
-
-@app.get("/api/v2/a2a/traces/{trace_id}")
-def v2_a2a_trace_detail(trace_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    trace = get_a2a_trace(trace_id)
-    if not trace or ("admin" not in auth.roles and trace.get("tenant_id") != auth.tenant_id):
-        raise HTTPException(status_code=404, detail="A2A trace not found")
-    return {"trace": trace}
-
-@app.post("/api/v2/a2a/tasks")
-def v2_a2a_create_task(request: V2A2AInvokeRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    tenant_for_context(auth, request.tenant_id)
-    require_northstar_role(auth, "admin", "ops")
-    trace = invoke_a2a(message=request.message, tenant_id=request.tenant_id, customer_id=request.customer_id, channel=request.channel, actor_type=request.actor_type, channel_mode=request.channel_mode, vendor_agent_id=request.vendor_agent_id)
-    return {"trace_id": trace["trace_id"], "tasks": trace.get("tasks", []), "trace": trace}
-
-@app.get("/api/v2/a2a/tasks/{task_id}")
-def v2_a2a_task_detail(task_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    task = get_a2a_task(task_id, auth.tenant_id) or get_a2a_task(task_id, "default")
-    if not task:
-        raise HTTPException(status_code=404, detail="A2A task not found")
-    return {"task": task}
-
-@app.get("/api/v2/a2a/tasks")
-def v2_a2a_tasks(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"tasks": list_a2a_tasks(auth.tenant_id)}
-
-@app.get("/api/v2/channel-modes")
-def v2_channel_modes(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"channel_modes": [{"id": k, **v} for k, v in CHANNEL_MODES.items()]}
-
-@app.get("/api/v2/tone-profiles")
-def v2_tone_profiles(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"tone_profiles": TONE_PROFILES}
-
-@app.get("/api/v2/tools")
-def v2_tools(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"tools": V2_TOOLS.list_tools()}
-
-@app.post("/api/v2/tools")
-def v2_create_tool(request: V2ToolRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    return {"tool": V2_TOOLS.upsert_tool(request.model_dump(exclude_none=True))}
-
-@app.get("/api/v2/mcp/servers")
-def v2_mcp_servers(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"mcp_servers": V2_TOOLS.list_mcp_servers()}
-
-@app.post("/api/v2/mcp/servers")
-def v2_create_mcp_server(request: V2MCPServerRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    return {"mcp_server": V2_TOOLS.upsert_mcp_server(request.model_dump(exclude_none=True))}
-
-@app.get("/api/v2/memory/session/{session_id}")
-def v2_session_memory(session_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"memory": v2_get_session_memory(session_id, auth.tenant_id)}
-
-@app.get("/api/v2/memory/journey/{journey_id}")
-def v2_journey_memory(journey_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"memory": v2_get_journey_memory(journey_id, auth.tenant_id)}
-
-@app.get("/api/v2/memory/access-events")
-def v2_memory_events(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"access_events": v2_list_memory_events(auth.tenant_id)}
-
-@app.get("/api/v2/evaluations")
-def v2_evaluations(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"evaluations": list_v2_evaluations(), "split_recommendations": v2_split_recommendations()}
-
-@app.post("/api/v2/evaluations/run")
-def v2_run_evaluation(request: V2EvaluationRunRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "evaluator")
-    return {"evaluation_run": run_v2_evaluation(request.agent_id, auth.tenant_id)}
-
-@app.get("/api/v2/evaluations/{run_id}")
-def v2_evaluation_detail(run_id: str, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    run = get_v2_evaluation_run(run_id, auth.tenant_id)
-    if not run:
-        raise HTTPException(status_code=404, detail="Evaluation run not found")
-    return {"evaluation_run": run}
-
-@app.get("/api/v2/guardrails")
-def v2_guardrails(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return v2_guardrail_summary()
-
-@app.get("/api/v2/finops")
-def v2_finops(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return v2_finops_summary()
-
-@app.get("/api/v2/route-to-production")
-def v2_route_to_production(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"stages": V2_RTP_STAGES, "agents": v2_route_summary()}
-
-@app.get("/api/v2/estate-summary")
-def v2_estate_summary(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    agents = V2_AGENT_REGISTRY.list_agents(); caps = V2_CAPABILITY_REGISTRY.list_capabilities(); traces = list_a2a_traces(auth.tenant_id)
-    return {"summary": {"agents": len(agents), "capabilities": len(caps), "covered_capabilities": len([c for c in caps if c.get("coverage_status") == "covered"]), "a2a_traces": len(traces), "production_agents": len([a for a in agents if a.get("status") == "production"]), "shared_tools": len(V2_TOOLS.list_tools())}, "demo_message":"I’m buying a cot mattress for a newborn under £250, and I need to know if my previous nursery order can be returned."}
-
-
-
-@app.get("/api/v2/vendor-agents")
-def v2_vendor_agents(auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
-    return {"vendor_agents": VENDOR_REGISTRY.list()}
-
-@app.post("/api/v2/vendor-agents")
-def v2_register_vendor_agent(request: V2VendorAgentRequest, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    return {"vendor_agent": VENDOR_REGISTRY.register(request.model_dump(exclude_none=True))}
-
-@app.post("/api/v2/vendor-agents/{vendor_agent_id}/kill-switch")
-def v2_vendor_kill_switch(vendor_agent_id: str, enabled: bool = False, auth: NorthstarAuthContext = Depends(require_northstar_api_key)):
-    require_northstar_role(auth, "admin", "ops")
-    result = VENDOR_REGISTRY.kill(vendor_agent_id, enabled=enabled)
-    if not result:
-        raise HTTPException(status_code=404, detail="Vendor agent not found")
-    return {"vendor_agent": result}
-
-# --- UAT compatibility surface for legacy /api routes and GA-readiness harness ---
-_UAT_WORKFLOWS = [
-    {"id": "wf_discovery_v1", "name": "Product Discovery", "family": "discovery", "tenant_id": "tenant_uat_pilot_a", "version": "1.0.0", "status": "active", "environment": "stage", "active_version": "1.0.0", "validation_status": "pass"},
-    {"id": "wf_post_purchase_v1", "name": "Order Status Agent", "family": "post_purchase", "tenant_id": "tenant_uat_pilot_a", "version": "1.0.0", "status": "active", "environment": "stage", "active_version": "1.0.0", "validation_status": "pass"},
-    {"id": "wf_service_guidance_v1", "name": "Service Help Desk", "family": "service_guidance", "tenant_id": "tenant_uat_pilot_b", "version": "1.0.0", "status": "active", "environment": "stage", "active_version": "1.0.0", "validation_status": "pass"},
-    {"id": "wf_returns_v1", "name": "Returns Processor", "family": "returns", "tenant_id": "tenant_uat_pilot_b", "version": "1.0.0", "status": "active", "environment": "stage", "active_version": "1.0.0", "validation_status": "pass"},
-]
-_UAT_RUNS = [
-    {"id": "run_failure_001", "workflow_id": "wf_post_purchase_v1", "tenant_id": "tenant_uat_pilot_a", "status": "failed", "steps": [{"step": "validate_order_id", "status": "completed", "duration_ms": 85}, {"step": "lookup_order", "status": "failed", "duration_ms": 150, "error": "order_not_found"}], "policy_decisions": [{"policy": "order_lookup", "verdict": "allow"}]},
-    {"id": "run_success_001", "workflow_id": "wf_discovery_v1", "tenant_id": "tenant_uat_pilot_a", "status": "completed", "steps": [{"step": "classify_intent", "status": "completed", "duration_ms": 145}]},
-]
-_UAT_APPROVALS = [{"id": "approval_seed_001", "status": "pending", "tenant_id": "tenant_uat_pilot_a", "evidence": {"risk": "medium"}, "rollback_plan": "Rollback to previous active version"}]
-_UAT_AUDIT = []
-_UAT_PROMOTIONS = [{"id": "promotion_seed_001", "workflow_id": "wf_discovery_v1", "target_environment": "stage", "rollback_version": "0.9.5", "status": "completed"}]
-
-@app.get("/api/workflows")
-def uat_api_workflows(tenant_id: str | None = None, family: str | None = None, status: str | None = None):
-    workflows = list(_UAT_WORKFLOWS)
-    if tenant_id:
-        workflows = [w for w in workflows if w["tenant_id"] == tenant_id]
-    if family:
-        workflows = [w for w in workflows if w["family"] == family]
-    if status:
-        workflows = [w for w in workflows if w["status"] == status]
-    return {"workflows": workflows}
-
-@app.get("/api/workflows/{workflow_id}")
-def uat_api_workflow(workflow_id: str):
-    workflow = next((w for w in _UAT_WORKFLOWS if w["id"] == workflow_id), None)
-    if not workflow:
-        return JSONResponse(status_code=404, content={"error": "workflow_not_found"})
-    return workflow
-
-@app.get("/api/workflows/{workflow_id}/detail")
-def uat_api_workflow_detail(workflow_id: str):
-    workflow = next((w for w in _UAT_WORKFLOWS if w["id"] == workflow_id), None)
-    if not workflow:
-        return JSONResponse(status_code=404, content={"error": "workflow_not_found"})
-    return {**workflow, "last_promotion": _UAT_PROMOTIONS[0], "active_version": workflow["version"], "validation_status": "pass"}
-
-@app.get("/api/workflows/{workflow_id}/promote/diff")
-def uat_api_workflow_promote_diff(workflow_id: str, target_env: str = "prod"):
-    return {"workflow_id": workflow_id, "target_env": target_env, "changes": [{"field": "environment", "from": "stage", "to": target_env}], "affected_fields": ["environment", "active_version"]}
-
-@app.post("/api/workflows/{workflow_id}/promote")
-def uat_api_workflow_promote(workflow_id: str, body: dict[str, Any]):
-    target = body.get("target_environment", "stage")
-    promotion_id = f"promotion_{uuid4().hex[:8]}"
-    if target == "prod":
-        approval_id = f"approval_{uuid4().hex[:8]}"
-        _UAT_APPROVALS.insert(0, {"id": approval_id, "status": "pending", "tenant_id": "tenant_uat_pilot_a", "workflow_id": workflow_id, "target_environment": target, "promotion_id": promotion_id, "evidence": {"workflow_id": workflow_id}, "rollback_plan": "Rollback to stage active version"})
-        return JSONResponse(status_code=202, content={"approval_id": approval_id, "status": "pending_approval", "promotion_id": promotion_id})
-    promotion = {"id": promotion_id, "promotion_id": promotion_id, "workflow_id": workflow_id, "target_environment": target, "rollback_version": "0.9.5", "status": "completed"}
-    _UAT_PROMOTIONS.insert(0, promotion)
-    _UAT_AUDIT.insert(0, {"id": f"audit_{uuid4().hex[:8]}", "action": "workflow_promoted", "resource_id": workflow_id, "promotion_id": promotion_id})
-    return promotion
-
-@app.get("/api/workflows/{workflow_id}/promotions")
-def uat_api_workflow_promotions(workflow_id: str):
-    return [p for p in _UAT_PROMOTIONS if p.get("workflow_id") == workflow_id] or _UAT_PROMOTIONS
-
-@app.post("/api/workflows/{workflow_id}/pause")
-def uat_api_workflow_pause(workflow_id: str, body: dict[str, Any]):
-    incident_id = body.get("incident_id", "incident_123")
-    _UAT_AUDIT.insert(0, {"id": f"audit_{uuid4().hex[:8]}", "incident_id": incident_id, "action": "workflow_paused", "workflow_id": workflow_id})
-    return {"status": "paused", "workflow_id": workflow_id}
-
-@app.post("/api/workflows/{workflow_id}/failsafe/activate")
-def uat_api_workflow_failsafe(workflow_id: str, body: dict[str, Any]):
-    incident_id = body.get("incident_id", "incident_123")
-    _UAT_AUDIT.insert(0, {"id": f"audit_{uuid4().hex[:8]}", "incident_id": incident_id, "action": "failsafe_activated", "workflow_id": workflow_id})
-    return {"status": "active", "workflow_id": workflow_id}
-
-@app.get("/api/runs")
-def uat_api_runs(tenant_id: str | None = None, status: str | None = None, limit: int = 20):
-    runs = list(_UAT_RUNS)
-    if tenant_id:
-        runs = [r for r in runs if r["tenant_id"] == tenant_id]
-    if status:
-        runs = [r for r in runs if r["status"] == status]
-    return {"runs": runs[:limit]}
-
-@app.get("/api/runs/{run_id}/timeline")
-def uat_api_run_timeline(run_id: str, include_policy: bool = False):
-    run = next((r for r in _UAT_RUNS if r["id"] == run_id), _UAT_RUNS[0])
-    payload = {"run_id": run_id, "steps": run.get("steps", [])}
-    if include_policy:
-        payload["policy_decisions"] = run.get("policy_decisions", [])
-    return payload
-
-@app.post("/api/runs/{run_id}/replay")
-def uat_api_run_replay(run_id: str, body: dict[str, Any]):
-    return JSONResponse(status_code=202, content={"status": "replaying", "run_id": run_id, "replay_id": f"replay_{uuid4().hex[:8]}"})
-
-@app.post("/api/runs/{run_id}/escalate")
-def uat_api_run_escalate(run_id: str, body: dict[str, Any]):
-    return {"status": "escalated", "run_id": run_id, "assigned_to": body.get("assigned_to")}
-
-@app.get("/api/approvals")
-def uat_api_approvals(status: str | None = None, tenant_id: str | None = None, limit: int = 20):
-    approvals = list(_UAT_APPROVALS)
-    if status:
-        approvals = [a for a in approvals if a["status"] == status]
-    if tenant_id:
-        approvals = [a for a in approvals if a.get("tenant_id") == tenant_id]
-    return {"approvals": approvals[:limit]}
-
-@app.get("/api/approvals/{approval_id}")
-def uat_api_approval(approval_id: str):
-    approval = next((a for a in _UAT_APPROVALS if a["id"] == approval_id), None)
-    if not approval:
-        return JSONResponse(status_code=404, content={"error": "approval_not_found"})
-    return approval
-
-@app.post("/api/approvals/{approval_id}/approve")
-def uat_api_approval_approve(approval_id: str, body: dict[str, Any]):
-    approval = next((a for a in _UAT_APPROVALS if a["id"] == approval_id), None)
-    if approval:
-        approval["status"] = "approved"
-    return {"id": approval_id, "status": "approved"}
-
-@app.post("/api/approvals/{approval_id}/promote")
-def uat_api_approval_promote(approval_id: str):
-    approval = next((a for a in _UAT_APPROVALS if a["id"] == approval_id), {})
-    target = approval.get("target_environment", "prod")
-    promotion_id = approval.get("promotion_id", f"promotion_{uuid4().hex[:8]}")
-    _UAT_PROMOTIONS.insert(0, {"id": promotion_id, "workflow_id": approval.get("workflow_id", "wf_discovery_v1"), "target_environment": target, "rollback_version": "0.9.5", "status": "completed"})
-    return {"id": promotion_id, "status": "completed", "target_environment": target}
-
-@app.get("/api/audit")
-def uat_api_audit(resource_id: str | None = None, action: str | None = None, incident_id: str | None = None):
-    events = list(_UAT_AUDIT)
-    if incident_id and not events:
-        events = [{"id": "audit_incident_seed", "incident_id": incident_id, "action": "workflow_paused"}]
-    if resource_id:
-        events = [e for e in events if e.get("resource_id") == resource_id or e.get("workflow_id") == resource_id]
-    if action:
-        events = [e for e in events if e.get("action") == action]
-    if incident_id:
-        events = [e for e in events if e.get("incident_id") == incident_id]
-    return events
-
-@app.get("/api/analytics/kpi")
-def uat_api_kpi(tenant_id: str | None = None, segment_by: str | None = None):
-    if segment_by == "workflow":
-        return {"segments": [{"workflow_id": w["id"], "metrics": {"run_volume": 42, "success_rate": 0.96}} for w in _UAT_WORKFLOWS if not tenant_id or w["tenant_id"] == tenant_id]}
-    return {"run_volume": 1280, "success_rate": 0.97, "completion_rate": 0.96}
-
-@app.get("/api/analytics/export")
-def uat_api_analytics_export(tenant_id: str | None = None, format: str = "csv"):
-    return Response(content="workflow_id,run_volume,success_rate\nwf_discovery_v1,42,0.96\n", media_type="text/csv")
-
-@app.get("/api/health/workflows/{workflow_id}")
-def uat_api_workflow_health(workflow_id: str, window: str = "5m"):
-    return {"workflow_id": workflow_id, "window": window, "error_rate": 0.01, "p99_latency": 420, "throughput": 84}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MessageSquareText, PlayCircle, Route as RouteIcon, Send, ShieldCheck } from 'lucide-react';
+import { PlayCircle, Route as RouteIcon, Send, ShieldCheck } from 'lucide-react';
 import { listDemoRoutes, simulateDemoRoute } from '../api/demoRoutesAPI';
 import { getRuntimeProviders } from '../api/opsAPI';
 import { listChannels } from '../api/channelsAPI';
@@ -51,11 +51,12 @@ export default function DemoRoutes() {
     <div className="page-container list-view">
       <header className="page-header sticky-header">
         <div>
-          <div className="eyebrow">Workflow Validation</div>
-          <h1>Channel-Triggered Route Validation</h1>
+          <div className="eyebrow">Sandbox Rehearsal</div>
+          <h1>Channel-Triggered Route Rehearsal</h1>
           <p className="muted">
             Rehearse supported retail and service routes from WhatsApp or Telegram, inspect tool
-            traces, and verify the customer reply plus operator notification before live exposure.
+            traces, and verify the customer reply plus operator notification without sending live outbound
+            traffic from this screen.
           </p>
         </div>
       </header>
@@ -64,7 +65,7 @@ export default function DemoRoutes() {
         <div className="summary-card">
           <span className="summary-label">Available routes</span>
           <strong>{payload.routes?.length || 0}</strong>
-          <span className="summary-meta">Canonical operating scenarios exposed for safe validation runs.</span>
+          <span className="summary-meta">Canonical operating scenarios exposed for safe rehearsal runs.</span>
         </div>
         <div className="summary-card">
           <span className="summary-label">Linked channel bindings</span>
@@ -168,13 +169,18 @@ export default function DemoRoutes() {
                 <input className="search-input mt-3" value={dispatchForm.display_name} onChange={(e) => setDispatchForm((c) => ({ ...c, display_name: e.target.value }))} placeholder="Display name" />
                 <textarea className="search-input mt-3" rows="4" value={dispatchForm.message} onChange={(e) => setDispatchForm((c) => ({ ...c, message: e.target.value }))} />
                 {selectedBinding && (
-                  <div className="secondary-cell" style={{ marginTop: 10 }}>
-                    Dispatching via <strong>{selectedBinding.identity || selectedBinding.id}</strong> in {selectedBinding.mode} mode.
-                  </div>
+                  <>
+                    <div className="secondary-cell" style={{ marginTop: 10 }}>
+                      Dispatching via <strong>{selectedBinding.identity || selectedBinding.id}</strong> in {selectedBinding.mode} mode.
+                    </div>
+                    <div className="secondary-cell" style={{ marginTop: 6 }}>
+                      This page keeps outbound delivery in preview mode, even when the selected binding is live-capable.
+                    </div>
+                  </>
                 )}
                 <button className="primary-button mt-3" onClick={handleDispatch}>
                   <PlayCircle size={16} />
-                  Run Validation
+                  Run rehearsal
                 </button>
               </div>
 

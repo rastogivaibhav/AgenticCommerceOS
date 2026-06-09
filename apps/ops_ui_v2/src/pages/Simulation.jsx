@@ -1,15 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
-import ReactFlow, { 
-  MiniMap, 
-  Controls, 
-  Background, 
-  useNodesState, 
-  useEdgesState, 
+import ReactFlow, {
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
   addEdge,
-  MarkerType
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Activity, GitCommit, PlayCircle } from 'lucide-react';
+import { Activity, PlayCircle } from 'lucide-react';
 import Button from '../components/Button';
 import { getNorthstarRuns, runNorthstarMessage } from '../api/northstarAPI';
 import './Simulation.css';
@@ -30,10 +30,10 @@ const initialEdges = [
 ];
 
 export default function Simulation() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [runs, setRuns] = useState([]);
-  const [status, setStatus] = useState('Loading live run data…');
+  const [status, setStatus] = useState('Loading captured run data...');
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 
@@ -48,24 +48,24 @@ export default function Simulation() {
   }, []);
 
   const runGoldenJourney = useCallback(async () => {
-    setStatus('Running golden journey…');
+    setStatus('Creating sample run...');
     try {
       await runNorthstarMessage({
         tenant_id: 'default',
         channel: 'web',
         channel_user_id: 'simulation-user',
         customer_id: 'simulation-customer',
-        text: 'I need an outfit for a winter wedding under £200, available for pickup near Reading',
+        text: 'I need an outfit for a winter wedding under GBP200, available for pickup near Reading',
       });
       await loadRuns();
     } catch (error) {
-      setStatus(error.message || 'Golden journey failed');
+      setStatus(error.message || 'Sample run failed');
     }
   }, [loadRuns]);
 
-  // Handle live traffic mode animation constantly
+  // Animate the journey map to show active paths while recent runs are being observed.
   useEffect(() => {
-    setEdges((eds) => eds.map(e => ({ ...e, animated: true, style: { stroke: '#10b981', strokeWidth: 2 } })));
+    setEdges((eds) => eds.map((edge) => ({ ...edge, animated: true, style: { stroke: '#10b981', strokeWidth: 2 } })));
     loadRuns();
   }, [setEdges, loadRuns]);
 
@@ -73,27 +73,27 @@ export default function Simulation() {
     <div className="page-container simulation-view">
       <header className="page-header" style={{ paddingBottom: '16px', marginBottom: 0 }}>
         <div>
-          <div className="eyebrow">ACOS Runtime</div>
-          <h1>Journey Planner & Simulation</h1>
-          <p className="muted">Map out agent orchestration paths and observe live system traffic.</p>
+          <div className="eyebrow">Sandbox Mapping</div>
+          <h1>Journey Planner & Run Monitor</h1>
+          <p className="muted">Map orchestration paths and overlay recently captured run activity without implying live traffic.</p>
         </div>
         <div className="header-actions">
           <div className="mode-toggle">
-            <button className="toggle-btn active live-active">
-              <Activity size={16}/> Live Traffic
+            <button className="toggle-btn active live-active" type="button">
+              <Activity size={16} /> Captured Runs
             </button>
           </div>
           <Button variant="outline" onClick={runGoldenJourney}>
-            <PlayCircle size={16}/> Run golden journey
+            <PlayCircle size={16} /> Create sample run
           </Button>
         </div>
       </header>
 
       <div className="flow-container">
         <div className="live-overlay-banner">
-          <span className="live-dot"></span> {status} · latest runs: {runs.length}
+          <span className="live-dot"></span> {status} | latest runs: {runs.length}
         </div>
-        
+
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -106,10 +106,10 @@ export default function Simulation() {
           <Background color="#555" gap={16} />
           <Controls />
           <MiniMap
-            nodeColor={(n) => {
-              if (n.className === 'node-marketing') return '#ec4899';
-              if (n.className === 'node-payment') return '#f59e0b';
-              if (n.className === 'node-support') return '#6366f1';
+            nodeColor={(node) => {
+              if (node.className === 'node-marketing') return '#ec4899';
+              if (node.className === 'node-payment') return '#f59e0b';
+              if (node.className === 'node-support') return '#6366f1';
               return '#10b981';
             }}
             maskColor="rgba(0,0,0,0.6)"

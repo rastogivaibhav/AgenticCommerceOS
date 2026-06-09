@@ -28,6 +28,11 @@ def flag_enabled(name: str, default: str = "0") -> bool:
     return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _is_non_dev_environment() -> bool:
+    environment = os.environ.get("OPS_ENVIRONMENT", "dev").strip().lower()
+    return environment not in {"dev", "development", "local", "test", "testing"}
+
+
 def _parse_key_entry(entry: str) -> tuple[str, str, tuple[str, ...]] | None:
     """Parse `key[:tenant[:role|role2]]`, keeping comma compatibility."""
     entry = entry.strip()
@@ -59,7 +64,8 @@ def authenticate_api_key(
     key_env: str = "ACOS_NORTHSTAR_API_KEYS",
     default_tenant: str = "default",
 ) -> NorthstarAuthContext:
-    if not flag_enabled(require_auth_env, "0"):
+    default_flag = "1" if _is_non_dev_environment() else "0"
+    if not flag_enabled(require_auth_env, default_flag):
         return NorthstarAuthContext(subject="dev-open", tenant_id=default_tenant, roles=("admin", "ops", "analyst", "viewer"), raw_key=api_key)
     key_map = configured_key_map(key_env)
     if not api_key or api_key not in key_map:

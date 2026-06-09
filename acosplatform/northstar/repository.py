@@ -18,6 +18,7 @@ from typing import Any, Iterator
 from acosplatform.northstar import postgres_repository
 
 _DB_LOCK = RLock()
+_SCHEMA_INITIALIZED = False
 
 
 def _use_postgres() -> bool:
@@ -51,6 +52,9 @@ def _connect() -> Iterator[sqlite3.Connection]:
 
 
 def ensure_schema() -> None:
+    global _SCHEMA_INITIALIZED
+    if _SCHEMA_INITIALIZED:
+        return
     with _DB_LOCK, _connect() as conn:
         conn.executescript(
             """
@@ -132,6 +136,7 @@ def ensure_schema() -> None:
               ON replay_runs(correlation_id);
             """
         )
+    _SCHEMA_INITIALIZED = True
 
 
 def _decode_row(row: sqlite3.Row | None) -> dict[str, Any] | None:
@@ -312,9 +317,20 @@ def save_evidence_event(event: dict[str, Any]) -> None:
         )
 
 
-def list_evidence_events(correlation_id: str | None = None, journey_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+def list_evidence_events(
+    correlation_id: str | None = None,
+    journey_id: str | None = None,
+    tenant_id: str | None = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
     if _use_postgres():
-        return _try_postgres("list_evidence_events", correlation_id=correlation_id, journey_id=journey_id, limit=limit)
+        return _try_postgres(
+            "list_evidence_events",
+            correlation_id=correlation_id,
+            journey_id=journey_id,
+            tenant_id=tenant_id,
+            limit=limit,
+        )
     ensure_schema()
     params: list[Any] = []
     where: list[str] = []
@@ -324,6 +340,9 @@ def list_evidence_events(correlation_id: str | None = None, journey_id: str | No
     if journey_id:
         where.append("journey_id = ?")
         params.append(journey_id)
+    if tenant_id:
+        where.append("tenant_id = ?")
+        params.append(tenant_id)
     sql = "SELECT * FROM evidence_events"
     if where:
         sql += " WHERE " + " AND ".join(where)

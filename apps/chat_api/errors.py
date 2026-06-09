@@ -144,7 +144,8 @@ class SessionNotFoundFallback(FallbackStrategy):
             )
             session = self.session_store.create_session(
                 user_id=self.user_id,
-                channel_id=self.channel_id,
+                initial_context={"channel_id": self.channel_id},
+                session_id=f"{self.user_id}:{self.channel_id}",
             )
             return {
                 "status": "recovered",

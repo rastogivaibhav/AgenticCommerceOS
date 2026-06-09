@@ -49,9 +49,20 @@ def record_evidence(event: EvidenceEvent | dict[str, Any]) -> dict[str, Any]:
     return data
 
 
-def list_evidence(*, correlation_id: str | None = None, journey_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
+def list_evidence(
+    *,
+    correlation_id: str | None = None,
+    journey_id: str | None = None,
+    tenant_id: str | None = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
     try:
-        persisted = northstar_repository.list_evidence_events(correlation_id=correlation_id, journey_id=journey_id, limit=limit)
+        persisted = northstar_repository.list_evidence_events(
+            correlation_id=correlation_id,
+            journey_id=journey_id,
+            tenant_id=tenant_id,
+            limit=limit,
+        )
         if persisted:
             return persisted
     except Exception:
@@ -62,6 +73,8 @@ def list_evidence(*, correlation_id: str | None = None, journey_id: str | None =
         events = [item for item in events if item.correlation_id == correlation_id]
     if journey_id:
         events = [item for item in events if item.journey_id == journey_id]
+    if tenant_id:
+        events = [item for item in events if item.tenant_id == tenant_id]
     return [asdict(item) for item in events[-limit:]]
 
 

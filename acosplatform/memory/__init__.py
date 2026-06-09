@@ -1,4 +1,4 @@
-from acosplatform.memory.service import (
+from .service import (
     get_journey_memory,
     get_session_memory,
     list_access_events,

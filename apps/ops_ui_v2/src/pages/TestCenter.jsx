@@ -53,27 +53,27 @@ export default function TestCenter() {
     }
   }
 
-  if (!plan && !error) return <div className="studio-proof-page">Loading Test Center…</div>;
+  if (!plan && !error) return <div className="studio-proof-page">Loading Test Center...</div>;
 
   return (
     <div className="studio-proof-page">
       <div className="studio-proof-hero">
         <Card title="Test Center" icon={<FlaskConical size={18} />}>
-          <div className="studio-proof-title">Demo & QA Proof Hub</div>
+          <div className="studio-proof-title">Engineering Test Hub</div>
           <p className="studio-proof-muted">
             This screen explains exactly how to test ACOS locally, in CI, and in a Docker-enabled production runtime.
           </p>
           {error && <p style={{ color: 'var(--md-error)' }}>{error}</p>}
           <div className="pill-row">
             <span className="status-pill">{plan?.checks?.length || 0} checks</span>
-            <span className="status-pill">smoke runnable from UI</span>
+            <span className="status-pill">sample run from UI</span>
             <span className="status-pill">CI command map</span>
           </div>
         </Card>
 
-        <Card title="Run Golden Journey Smoke" icon={<PlayCircle size={18} />}>
-          <p className="studio-proof-muted">Runs the winter-wedding message through the live north-star API.</p>
-          <button className="primary-button" onClick={runSmoke} disabled={running}>{running ? 'Running…' : 'Run smoke test'}</button>
+        <Card title="Create Sample Smoke Run" icon={<PlayCircle size={18} />}>
+          <p className="studio-proof-muted">Creates a real sample execution through the north-star API so QA can inspect the returned evidence.</p>
+          <button className="primary-button" onClick={runSmoke} disabled={running}>{running ? 'Running...' : 'Create smoke sample'}</button>
           {result && (
             <div className="pill-row" style={{ marginTop: 10 }}>
               <span className="status-pill">{result.status}</span>
@@ -101,7 +101,7 @@ export default function TestCenter() {
           </Card>
         ))}
         <Card title="Acceptance Commands" icon={<TerminalSquare size={18} />}>
-          <p className="studio-proof-muted">Run these before every investor/CTO demo:</p>
+          <p className="studio-proof-muted">Run these before every production-readiness review:</p>
           <code>make test-northstar && make smoke-northstar && make runtime-check && make ui-build</code>
         </Card>
       </div>

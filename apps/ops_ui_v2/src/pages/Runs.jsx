@@ -17,7 +17,7 @@ function Card({ title, icon, children }) {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return '--';
   try {
     return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
   } catch {
@@ -25,7 +25,7 @@ function formatDate(value) {
   }
 }
 
-const DEMO_MESSAGE = 'I need an outfit for a winter wedding under £200, available for pickup near Reading';
+const DEMO_MESSAGE = 'I need an outfit for a winter wedding under GBP200, available for pickup near Reading';
 
 export default function Runs() {
   const [payload, setPayload] = useState(null);
@@ -42,7 +42,12 @@ export default function Runs() {
     try {
       const data = await getNorthstarRuns();
       setPayload(data);
-      try { const a2a = await getV2A2ATraces(); setA2ATraces(a2a.traces || []); } catch (_) { setA2ATraces([]); }
+      try {
+        const a2a = await getV2A2ATraces();
+        setA2ATraces(a2a.traces || []);
+      } catch (_) {
+        setA2ATraces([]);
+      }
       if (!selected && data.runs?.length) {
         const detail = await getNorthstarRun(data.runs[0].id);
         setSelected(detail);
@@ -54,7 +59,9 @@ export default function Runs() {
     }
   };
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+  }, []);
 
   const runs = payload?.runs || [];
   const filteredRuns = useMemo(() => {
@@ -116,15 +123,15 @@ export default function Runs() {
   const agents = detail.participating_agents || [];
   const summary = payload?.summary || {};
 
-  if (loading) return <div className="studio-proof-page">Loading runs…</div>;
+  if (loading) return <div className="studio-proof-page">Loading runs...</div>;
 
   return (
     <div className="studio-proof-page">
       <div className="studio-proof-hero">
         <Card title="Runs Command Centre" icon={<Activity size={18} />}>
-          <div className="studio-proof-title">Live Agent Runs</div>
+          <div className="studio-proof-title">Captured Agent Runs</div>
           <p className="studio-proof-muted">
-            Review every captured north-star orchestration run: session, journey, intent, agents, tool calls, evidence, handoff and replay.
+            Review captured north-star orchestration runs: session, journey, intent, agents, tool calls, evidence, handoff and replay.
           </p>
           {error && <p className="studio-proof-muted" style={{ color: 'var(--md-error)' }}>{error}</p>}
           <div className="pill-row">
@@ -135,9 +142,9 @@ export default function Runs() {
             <Pill>{summary.evidence_events || 0} evidence events</Pill>
           </div>
         </Card>
-        <Card title="Create Demo Run" icon={<GitBranch size={18} />}>
-          <p className="studio-proof-muted">Run the winter-wedding journey and immediately inspect it in the run timeline.</p>
-          <button className="primary-button" onClick={runDemoJourney} disabled={running}>{running ? 'Running…' : 'Run golden journey'}</button>
+        <Card title="Create Sample Run" icon={<GitBranch size={18} />}>
+          <p className="studio-proof-muted">Create a sample north-star execution for the winter-wedding journey and inspect it in the run timeline.</p>
+          <button className="primary-button" onClick={runDemoJourney} disabled={running}>{running ? 'Running...' : 'Create sample run'}</button>
           <button className="secondary-button" onClick={refresh} style={{ marginLeft: 8 }}><RefreshCw size={14} /> Refresh</button>
         </Card>
       </div>
@@ -145,7 +152,7 @@ export default function Runs() {
       <div className="studio-proof-grid" style={{ gridTemplateColumns: 'minmax(360px, 0.9fr) minmax(420px, 1.1fr)' }}>
         <Card title="Run List" icon={<Search size={18} />}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-            <input className="proof-input" placeholder="Search run, intent, agent, customer…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <input className="proof-input" placeholder="Search run, intent, agent, customer..." value={query} onChange={(e) => setQuery(e.target.value)} />
             <select className="proof-input" value={status} onChange={(e) => setStatus(e.target.value)} style={{ maxWidth: 140 }}>
               <option value="all">All</option>
               <option value="success">Success</option>
@@ -168,7 +175,7 @@ export default function Runs() {
                 </span>
               </button>
             ))}
-            {!filteredRuns.length && <p className="studio-proof-muted">No runs match the current filter. Create a demo run to populate this screen.</p>}
+            {!filteredRuns.length && <p className="studio-proof-muted">No runs match the current filter. Create a sample run to populate this screen.</p>}
           </div>
         </Card>
 
@@ -186,7 +193,7 @@ export default function Runs() {
               <p className="studio-proof-muted"><strong>Journey:</strong> {selected.run.journey_id}</p>
               <p className="studio-proof-muted"><strong>Correlation:</strong> {selected.run.correlation_id}</p>
               <p className="studio-proof-muted"><strong>Response:</strong> {detail.response_text}</p>
-              <button className="secondary-button" onClick={replaySelected} disabled={running}><RefreshCw size={14} /> Replay this run</button>
+              <button className="secondary-button" onClick={replaySelected} disabled={running}><RefreshCw size={14} /> Re-run from evidence</button>
             </>
           ) : <p className="studio-proof-muted">Select a run to inspect it.</p>}
         </Card>
@@ -197,7 +204,7 @@ export default function Runs() {
           {(agents || []).map((agent) => (
             <div className="agent-item" key={agent.id}>
               <strong>{agent.name}</strong>
-              <div className="studio-proof-muted">{agent.id} · {agent.role}</div>
+              <div className="studio-proof-muted">{agent.id} | {agent.role}</div>
             </div>
           ))}
         </Card>
@@ -206,7 +213,7 @@ export default function Runs() {
             {(tools || []).map((tool) => (
               <div className="tool-item" key={tool.tool_trace_id || `${tool.tool_name}-${tool.latency_ms}`}>
                 <strong>{tool.tool_name}</strong>
-                <div className="studio-proof-muted">{tool.protocol} · {tool.status} · {tool.latency_ms}ms · {tool.policy_verdict}</div>
+                <div className="studio-proof-muted">{tool.protocol} | {tool.status} | {tool.latency_ms}ms | {tool.policy_verdict}</div>
               </div>
             ))}
           </div>
@@ -216,7 +223,7 @@ export default function Runs() {
             {(evidence || []).map((event) => (
               <div className="timeline-item" key={event.id}>
                 <strong>{event.event_type}</strong>
-                <div className="studio-proof-muted">{event.agent_id || 'system'} · {event.tool_name || 'no tool'} · {formatDate(event.created_at)}</div>
+                <div className="studio-proof-muted">{event.agent_id || 'system'} | {event.tool_name || 'no tool'} | {formatDate(event.created_at)}</div>
               </div>
             ))}
           </div>
@@ -226,8 +233,8 @@ export default function Runs() {
           {(a2aTraces || []).slice(0, 4).map((trace) => (
             <div className="timeline-item" key={trace.trace_id}>
               <strong>{trace.trace_id}</strong>
-              <div className="studio-proof-muted">{(trace.agents || []).map((a) => a.name || a.agent_id).join(' → ')}</div>
-              <div className="studio-proof-muted">£{trace.cost_estimate} · {(trace.policy_decisions || []).length} policy decisions · {(trace.memory_access || []).length} memory reads</div>
+              <div className="studio-proof-muted">{(trace.agents || []).map((a) => a.name || a.agent_id).join(' -> ')}</div>
+              <div className="studio-proof-muted">GBP{trace.cost_estimate} | {(trace.policy_decisions || []).length} policy decisions | {(trace.memory_access || []).length} memory reads</div>
             </div>
           ))}
           {!a2aTraces.length && <p className="studio-proof-muted">No ACOS v2 A2A traces captured yet. Run the ACOS v2 demo from A2A Trace.</p>}

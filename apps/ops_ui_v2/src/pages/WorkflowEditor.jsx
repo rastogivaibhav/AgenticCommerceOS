@@ -62,7 +62,7 @@ export default function WorkflowEditor() {
   const [executionResult, setExecutionResult] = useState(null);
   const [executionForm, setExecutionForm] = useState({
     message: 'Where is my order ORD-1001?',
-    customer_id: 'cust_1001',
+    customer_id: 'ops-test-customer',
     tenant_id: 'default',
     order_id: 'ORD-1001',
     environment: 'dev',

@@ -5,18 +5,18 @@ clients can discover and call ACOS-backed retail tools during pilots.
 """
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from fastapi import FastAPI, Request, Header, HTTPException, Depends
 from fastapi.responses import JSONResponse
 
+from acosplatform.config.startup_validation import validate_auth_configuration
 from acosplatform.evidence.store import list_evidence
 from acosplatform.mcp.tool_router import list_local_mcp_tools
 from acosplatform.tools.executor import execute_tool
 from acosplatform.workflows.executor import execute_saved_workflow
 from acosplatform.auth.northstar import NorthstarAuthContext, authenticate_api_key, enforce_tenant, require_roles
-
-
 
 def require_mcp_api_key(x_api_key: str | None = Header(default=None)) -> NorthstarAuthContext:
     """Optional RBAC guard for hosted MCP access.
@@ -35,6 +35,11 @@ def require_mcp_api_key(x_api_key: str | None = Header(default=None)) -> Northst
 
 
 app = FastAPI(title="ACOS MCP Server", version="0.1.0")
+
+
+@app.on_event("startup")
+def startup() -> None:
+    validate_auth_configuration(service="mcp-server", environment=os.environ.get("OPS_ENVIRONMENT", "dev"))
 
 
 def _require_roles_http(auth: NorthstarAuthContext, *roles: str) -> None:
@@ -60,7 +65,7 @@ def _error(request_id: Any, code: int, message: str) -> dict[str, Any]:
 
 
 @app.post("/mcp")
-async def mcp_endpoint(request: Request, auth: NorthstarAuthContext = Depends(require_mcp_api_key)) :
+async def mcp_endpoint(request: Request, auth: NorthstarAuthContext = Depends(require_mcp_api_key)):
     payload = await request.json()
     request_id = payload.get("id")
     method = payload.get("method")
@@ -87,7 +92,13 @@ async def mcp_endpoint(request: Request, auth: NorthstarAuthContext = Depends(re
                 persist_run=arguments.get("persist_run", False),
             )
         elif name == "acos.evidence.get":
-            result = {"events": list_evidence(correlation_id=arguments.get("correlation_id"), journey_id=arguments.get("journey_id"))}
+            result = {
+                "events": list_evidence(
+                    correlation_id=arguments.get("correlation_id"),
+                    journey_id=arguments.get("journey_id"),
+                    tenant_id=_tenant_http(auth, arguments.get("tenant_id")),
+                )
+            }
         elif name and (name.startswith("catalog.") or name.startswith("inventory.") or name.startswith("orders.") or name.startswith("returns.") or name.startswith("loyalty.") or name == "case.create"):
             result = execute_tool(name, arguments, context=context)
         else:
