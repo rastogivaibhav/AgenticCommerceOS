@@ -163,7 +163,7 @@ async def graphql_rbac_middleware(request: Request, call_next):
             auth = authenticate_api_key(
                 request.headers.get("x-api-key"),
                 require_auth_env="ACOS_GRAPHQL_REQUIRE_AUTH",
-                key_env="ACOS_NORTHSTAR_API_KEYS",
+                key_env=os.environ.get("ACOS_GRAPHQL_KEY_ENV", "ACOS_GRAPHQL_API_KEYS"),
             )
             require_roles(auth, "admin", "ops", "analyst", "viewer")
             request.state.northstar_auth = auth

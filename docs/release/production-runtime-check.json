@@ -14,5 +14,368 @@
   "alembic_migration_present": true,
   "redis_fast_path_configurable": true,
   "docker_available": false,
+  "hardening": {
+    "status": "locally_verified_with_external_blockers",
+    "scope": "ACOS Phase 1-7 enterprise hardening",
+    "checks": [
+      {
+        "id": "smoke.golden_journey",
+        "phase": 7,
+        "title": "Golden retail journey smoke",
+        "command": "python scripts/northstar_smoke.py",
+        "expected": "Journey succeeds with multiple agents, tool calls, evidence, and replay capture.",
+        "local_verification": "automated"
+      },
+      {
+        "id": "ui.build",
+        "phase": 5,
+        "title": "Ops UI production build",
+        "command": "npm --prefix apps/ops_ui_v2 ci && npm --prefix apps/ops_ui_v2 run build",
+        "expected": "Vite build succeeds and emits static assets.",
+        "local_verification": "automated"
+      },
+      {
+        "id": "db.migration_sql",
+        "phase": 2,
+        "title": "Database migration SQL render",
+        "command": "alembic upgrade head --sql",
+        "expected": "Postgres migration SQL renders for north-star runtime tables.",
+        "local_verification": "automated"
+      },
+      {
+        "id": "compose.prod",
+        "phase": 6,
+        "title": "Production Compose runtime",
+        "command": "docker compose --env-file .env.production -f docker-compose.prod.yml up --build",
+        "expected": "Services boot healthy against production-like Postgres/Redis settings.",
+        "local_verification": "external_runtime"
+      },
+      {
+        "id": "mcp.client",
+        "phase": 3,
+        "title": "MCP client compatibility",
+        "command": "POST /mcp with tools/list and tools/call",
+        "expected": "ACOS exposes callable tools through MCP with auth and tenant scope.",
+        "local_verification": "automated"
+      },
+      {
+        "id": "graphql.studio",
+        "phase": 5,
+        "title": "GraphQL Studio plane",
+        "command": "POST /graphql",
+        "expected": "Studio graph data is returned with RBAC when auth is enabled.",
+        "local_verification": "automated"
+      }
+    ],
+    "phases": [
+      {
+        "phase": 1,
+        "title": "Enterprise Identity, RBAC, And Secure Defaults",
+        "status": "locally_verified_external_blockers",
+        "gates": [
+          {
+            "id": "auth.ops.jwt_required",
+            "title": "Ops JWT secret required in non-dev",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": ".env.production.example defines OPS_JWT_SECRET"
+          },
+          {
+            "id": "auth.shopper.keys_required",
+            "title": "Shopper API keys required in non-dev",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": ".env.production.example defines SHOPPER_API_KEYS"
+          },
+          {
+            "id": "auth.dev_bypass_blocked",
+            "title": "Dev auth bypass blocked outside dev/test",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "startup validation rejects insecure dev auth"
+          },
+          {
+            "id": "auth.northstar_configurable",
+            "title": "North-star API auth is configurable",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "north-star auth dependency supports env-gated API keys"
+          }
+        ],
+        "external_blockers": [
+          "Enterprise SSO/OIDC/SAML tenant integration must be wired to the buyer identity provider."
+        ],
+        "passed_gates": 4,
+        "total_gates": 4
+      },
+      {
+        "phase": 2,
+        "title": "Tenant Isolation And Data Boundaries",
+        "status": "locally_verified_external_blockers",
+        "gates": [
+          {
+            "id": "tenant.postgres_schema",
+            "title": "Postgres north-star schema exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "db/northstar_schema.sql includes north-star tables"
+          },
+          {
+            "id": "tenant.rls_reference",
+            "title": "RLS reference posture documented",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "north-star schema includes RLS policy templates"
+          },
+          {
+            "id": "tenant.repository_switch",
+            "title": "Repository can switch to Postgres",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "repository supports ACOS_NORTHSTAR_STORE=postgres"
+          },
+          {
+            "id": "tenant.api_guard",
+            "title": "Tenant guard is available for north-star auth",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "north-star auth has enforce_tenant"
+          }
+        ],
+        "external_blockers": [
+          "Run negative tenant-isolation tests against a real Postgres database with RLS enabled."
+        ],
+        "passed_gates": 4,
+        "total_gates": 4
+      },
+      {
+        "phase": 3,
+        "title": "Connector Certification",
+        "status": "partial",
+        "gates": [
+          {
+            "id": "connector.shopify_client",
+            "title": "Shopify client exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "Shopify integration client present"
+          },
+          {
+            "id": "connector.salesforce_client",
+            "title": "Salesforce client exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "Salesforce integration client present"
+          },
+          {
+            "id": "connector.webhook_signature",
+            "title": "Spree webhook signature tests exist",
+            "status": "fail",
+            "severity": "blocker",
+            "evidence": "Spree webhook signature unit test present"
+          },
+          {
+            "id": "connector.ecom_demo",
+            "title": "Real ecommerce demo verifier exists",
+            "status": "fail",
+            "severity": "blocker",
+            "evidence": "ecommerce demo verifier present"
+          },
+          {
+            "id": "connector.cert_contract",
+            "title": "Connector certification contract exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "connector certification contract present"
+          }
+        ],
+        "external_blockers": [
+          "Certify one live commerce connector with real credentials, webhook callbacks, idempotency, and failure drills."
+        ],
+        "passed_gates": 3,
+        "total_gates": 5
+      },
+      {
+        "phase": 4,
+        "title": "Policy, Risk, And Compliance Layer",
+        "status": "partial",
+        "gates": [
+          {
+            "id": "policy.sanitize",
+            "title": "Prompt/input sanitization exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "sanitize module present"
+          },
+          {
+            "id": "policy.evidence_verdicts",
+            "title": "Evidence supports policy verdicts",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "north-star evidence schema includes policy_verdict"
+          },
+          {
+            "id": "policy.approvals",
+            "title": "Approval routes exist",
+            "status": "fail",
+            "severity": "blocker",
+            "evidence": "approval router present"
+          },
+          {
+            "id": "policy.route_to_production",
+            "title": "Route-to-production stages exist",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "route-to-production service present"
+          },
+          {
+            "id": "policy.tool_policy",
+            "title": "Tool policy execution gate exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "tool policy module present"
+          }
+        ],
+        "external_blockers": [
+          "Map buyer compliance controls: PII retention, PCI boundary, DLP, legal holds, and model risk governance."
+        ],
+        "passed_gates": 4,
+        "total_gates": 5
+      },
+      {
+        "phase": 5,
+        "title": "Workflow Studio And Operator UX",
+        "status": "locally_verified_external_blockers",
+        "gates": [
+          {
+            "id": "studio.react_app",
+            "title": "React Ops UI exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "Ops UI package present"
+          },
+          {
+            "id": "studio.workflow_canvas",
+            "title": "Workflow canvas code exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "React Flow dependency present"
+          },
+          {
+            "id": "studio.runs_screen_api",
+            "title": "Runs and replay APIs exist",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "north-star runs and replay endpoints present"
+          },
+          {
+            "id": "studio.test_center_api",
+            "title": "Test Center plan exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "test-plan endpoint present"
+          }
+        ],
+        "external_blockers": [
+          "Run full operator UAT with real ops users for workflow promotion, pause, rollback, and incident controls."
+        ],
+        "passed_gates": 4,
+        "total_gates": 4
+      },
+      {
+        "phase": 6,
+        "title": "Production Runtime And Deployment Certification",
+        "status": "locally_verified_external_blockers",
+        "gates": [
+          {
+            "id": "runtime.compose",
+            "title": "Compose assets exist",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "compose assets present"
+          },
+          {
+            "id": "runtime.secrets",
+            "title": "Production env template requires secrets",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": ".env.production.example uses secret placeholders"
+          },
+          {
+            "id": "runtime.redis",
+            "title": "Redis is configurable",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "Redis appears in production/runtime config"
+          },
+          {
+            "id": "runtime.checker",
+            "title": "Production runtime checker exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "production_runtime_check.py present"
+          }
+        ],
+        "external_blockers": [
+          "Run Docker/Kubernetes/cloud deployment, backup/restore, load, and disaster recovery tests in target infrastructure."
+        ],
+        "passed_gates": 4,
+        "total_gates": 4
+      },
+      {
+        "phase": 7,
+        "title": "Business Outcome Proof",
+        "status": "locally_verified_external_blockers",
+        "gates": [
+          {
+            "id": "outcome.analytics",
+            "title": "Analytics APIs exist",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "analytics router present"
+          },
+          {
+            "id": "outcome.finops",
+            "title": "FinOps surfaces exist",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "FinOps route/surface present"
+          },
+          {
+            "id": "outcome.golden_smoke",
+            "title": "Golden smoke is automated",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "northstar_smoke.py present"
+          },
+          {
+            "id": "outcome.runtime_report",
+            "title": "Runtime report artifact is generated",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "runtime checker writes docs/release/production-runtime-check.json"
+          },
+          {
+            "id": "outcome.kpi_contract",
+            "title": "Pilot KPI contract exists",
+            "status": "pass",
+            "severity": "blocker",
+            "evidence": "business outcome KPI module present"
+          }
+        ],
+        "external_blockers": [
+          "Run a paid pilot and measure conversion, support deflection, handling time, cost per journey, approval rate, and fallback rate."
+        ],
+        "passed_gates": 5,
+        "total_gates": 5
+      }
+    ],
+    "summary": {
+      "phase_count": 7,
+      "locally_verified_phases": 5,
+      "partial_phases": 2,
+      "external_blockers": 7
+    }
+  },
   "note": "Docker runtime is only certified when this script is paired with docker compose up in a Docker-enabled runner."
 }

@@ -3,31 +3,54 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 from acosplatform.evidence.store import EvidenceEvent, record_evidence
+from acosplatform.policy.tool_policy import evaluate_tool_policy
 from acosplatform.retail import mock_store
-from acosplatform.retail_ops.tools import execute_retail_tool
 from acosplatform.integrations.spree.client import execute_spree_tool
 from acosplatform.integrations.stripe.client import execute_stripe_tool
 
 def execute_tool(tool_name: str, arguments: dict[str, Any] | None = None, *, context: dict[str, Any] | None = None) -> dict[str, Any]:
     arguments = arguments or {}; context = context or {}; started = datetime.now(UTC); status = "success"
+    policy = evaluate_tool_policy(tool_name, arguments, context=context)
     provider = os.environ.get("ACOS_RETAIL_PROVIDER", "mock")
     
     try:
         # Check for Stripe Tool
-        if tool_name.startswith("payments."):
+        if policy.verdict == "require_approval":
+            status = "blocked"
+            result = policy.to_dict()
+        elif policy.verdict == "block":
+            status = "blocked"
+            result = policy.to_dict()
+        elif tool_name.startswith("payments."):
             result = execute_stripe_tool(tool_name, arguments)
         # Check for Spree Override
         elif provider == "spree" and tool_name in {"catalog.search", "inventory.check_stock", "orders.get_order"}:
             result = execute_spree_tool(tool_name, arguments)
             if tool_name == "catalog.search" and isinstance(result, list):
                 result = {"products": result}
-        # Priority: New Real Retail Mock API Tools
-        elif tool_name in {"catalog.search", "inventory.check_stock", "loyalty.get_balance", "orders.create"}:
+        # Priority: Explicit real retail bridge, enabled only by runtime config.
+        elif provider in {"retail_ops", "erp", "live"} and tool_name in {"catalog.search", "inventory.check_stock", "loyalty.get_balance", "orders.create"}:
+            from acosplatform.retail_ops.tools import execute_retail_tool
+
             result = execute_retail_tool(tool_name, arguments)
             # Normalize result for ACOS runtime if needed
             if tool_name == "catalog.search" and isinstance(result, list):
                 result = {"products": result}
         # Fallback: Native Mock Store
+        elif tool_name == "catalog.search":
+            result = {
+                "products": mock_store.search_products(
+                    arguments.get("query", ""),
+                    budget=arguments.get("budget"),
+                    tags=arguments.get("tags"),
+                )
+            }
+        elif tool_name == "inventory.check_stock":
+            result = mock_store.check_stock(arguments.get("product_id", ""), arguments.get("location", "Reading"))
+        elif tool_name == "loyalty.get_balance":
+            result = mock_store.loyalty_balance(arguments.get("customer_id", "cust-1"))
+        elif tool_name == "orders.create":
+            result = {"order_id": f"ORD-{uuid4().hex[:6].upper()}", "status": "created", "items": arguments.get("items") or []}
         elif tool_name == "catalog.get_product":
             result = mock_store.get_product(arguments.get("product_id", ""))
         elif tool_name == "pricing.calculate":
@@ -48,6 +71,6 @@ def execute_tool(tool_name: str, arguments: dict[str, Any] | None = None, *, con
         status = "error"; result = {"error": exc.__class__.__name__, "message": str(exc)}
     
     latency_ms = int((datetime.now(UTC) - started).total_seconds() * 1000)
-    trace = {"tool_trace_id": f"tool_{uuid4().hex[:12]}", "tool_name": tool_name, "protocol": "native", "status": status, "latency_ms": latency_ms, "arguments": arguments, "result": result, "policy_verdict": "allow"}
-    record_evidence(EvidenceEvent(event_type="tool.called", tenant_id=context.get("tenant_id", "default"), correlation_id=context.get("correlation_id", "corr_local"), conversation_session_id=context.get("conversation_session_id"), journey_id=context.get("journey_id"), agent_id=context.get("agent_id"), tool_name=tool_name, policy_verdict="allow", payload=trace))
+    trace = {"tool_trace_id": f"tool_{uuid4().hex[:12]}", "tool_name": tool_name, "protocol": "native", "status": status, "latency_ms": latency_ms, "arguments": arguments, "result": result, "policy_verdict": policy.verdict, "risk_level": policy.risk_level}
+    record_evidence(EvidenceEvent(event_type="tool.called", tenant_id=context.get("tenant_id", "default"), correlation_id=context.get("correlation_id", "corr_local"), conversation_session_id=context.get("conversation_session_id"), journey_id=context.get("journey_id"), agent_id=context.get("agent_id"), tool_name=tool_name, policy_verdict=policy.verdict, payload=trace))
     return trace
