@@ -12,7 +12,7 @@ from urllib.parse import quote
 from uuid import uuid4
 
 import requests
-from fastapi import Depends, FastAPI, Query, Request
+from fastapi import Depends, FastAPI, Query, Request, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from slowapi.errors import RateLimitExceeded
 
 from acosplatform.audit.logger import audit
-from acosplatform.auth.api_key import require_ops_roles
+from acosplatform.auth.api_key import require_ops_roles, _decode_jwt, _extract_roles
 from acosplatform.config.startup_validation import validate_auth_configuration
 from acosplatform.billing.engine import get_cost_summary, get_usage
 from acosplatform.db.connection import ensure_schema, check_connection
@@ -97,17 +97,28 @@ from acosplatform.workflows.service import (
     rollback_workflow_version,
 )
 from acosplatform.workflows.executor import execute_saved_workflow
-from apps.ops_api.routers import experiments, analytics, promotions, runs, approvals, incidents
+from apps.ops_api.routers import analytics, experiments, northstar_api, uat_compat, v2_control_plane
+from apps.ops_api.graphql.schema import graphql_router
+from acosplatform.auth.northstar import authenticate_api_key, require_roles
+from apps.ops_api.dependencies import OPS_ENVIRONMENT
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 APP_VERSION = os.environ.get("APP_VERSION", "1.0.0")
-OPS_ENVIRONMENT = os.environ.get("OPS_ENVIRONMENT", "dev")
 EMBEDDED_UI_DIR = Path("apps/ops_api/ui")
 LOCAL_UI_DIR = Path("apps/ops_ui_v2/dist")
 UI_DIR = EMBEDDED_UI_DIR if (EMBEDDED_UI_DIR / "index.html").exists() else LOCAL_UI_DIR
 SUPPORTED_PLATFORM_MODES = ("normal", "demo")
+LEGACY_UAT_PATH_PREFIXES = (
+    "/api/workflows",
+    "/api/runs",
+    "/api/approvals",
+    "/api/audit",
+    "/api/analytics/kpi",
+    "/api/analytics/export",
+    "/api/health/workflows",
+)
 
 
 def _flag_enabled(name: str, default: str = "0") -> bool:
@@ -141,18 +152,54 @@ app.add_middleware(
     allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key"],
 )
+
+
+@app.middleware("http")
+async def graphql_rbac_middleware(request: Request, call_next):
+    if request.url.path.startswith("/graphql"):
+        try:
+            auth = authenticate_api_key(
+                request.headers.get("x-api-key"),
+                require_auth_env="ACOS_GRAPHQL_REQUIRE_AUTH",
+                key_env="ACOS_NORTHSTAR_API_KEYS",
+            )
+            require_roles(auth, "admin", "ops", "analyst", "viewer")
+            request.state.northstar_auth = auth
+        except PermissionError as exc:
+            return JSONResponse(status_code=403, content={"detail": str(exc)})
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def legacy_uat_surface_middleware(request: Request, call_next):
+    if any(request.url.path.startswith(prefix) for prefix in LEGACY_UAT_PATH_PREFIXES):
+        if not _flag_enabled("ACOS_ENABLE_UAT_COMPAT_API", "0"):
+            return JSONResponse(status_code=404, content={"detail": "Not found"})
+
+        auth_header = request.headers.get("authorization", "").strip()
+        if not auth_header.lower().startswith("bearer "):
+            return JSONResponse(status_code=401, content={"detail": "Bearer token required"})
+
+        try:
+            token = _decode_jwt(auth_header.split(" ", 1)[1])
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+        roles = _extract_roles(token)
+        if "admin" not in roles:
+            return JSONResponse(status_code=403, content={"detail": "Admin role required"})
+
+    return await call_next(request)
 
 # Include routers
 app.include_router(experiments.router)
 app.include_router(analytics.router)
-app.include_router(promotions.router)
-app.include_router(promotions.approvals_router)
-app.include_router(promotions.audit_router)
-app.include_router(runs.router)
-app.include_router(approvals.router)
-app.include_router(incidents.router)
+app.include_router(northstar_api.router)
+app.include_router(v2_control_plane.router)
+app.include_router(uat_compat.router)
+app.include_router(graphql_router, prefix="/graphql")
 
 
 @app.exception_handler(Exception)
@@ -227,7 +274,7 @@ class WorkflowTestRunRequest(BaseModel):
 
 class WorkflowExecuteRequest(BaseModel):
     tenant_id: str = "default"
-    customer_id: str = "cust_1001"
+    customer_id: str = "ops-test-customer"
     environment: str = OPS_ENVIRONMENT
     message: str = "Where is my order ORD-1001?"
     order_id: str | None = None
@@ -254,12 +301,11 @@ class ChannelTestRequest(BaseModel):
     text: str = "ACOS channel test"
     recipient: str = ""
     binding_id: str | None = None
+    confirm_live_send: bool = False
 
 
 class ChannelPairingRequest(BaseModel):
     route_id: str
-    expires_in_hours: int | None = 72
-
 
 class SenderApprovalRequest(BaseModel):
     customer_id: str | None = None
@@ -273,6 +319,7 @@ class DemoRouteDispatchRequest(BaseModel):
     display_name: str = "Demo Customer"
     tenant_id: str = "default"
     environment: str = OPS_ENVIRONMENT
+    allow_live_send: bool = False
 
 
 class CRMCaseCreateRequest(BaseModel):
@@ -1513,6 +1560,16 @@ def send_channel_test(binding_id: str, payload: ChannelTestRequest, _claims: dic
     if not binding:
         return JSONResponse(status_code=404, content={"error": "Channel not found"})
     metadata = binding.get("metadata") or {}
+    live_binding = binding.get("mode") == "live"
+    if live_binding and not payload.confirm_live_send:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error": "Live delivery requires explicit confirmation",
+                "binding_id": binding_id,
+                "recipient": payload.recipient or metadata.get("default_recipient") or metadata.get("default_chat_id") or metadata.get("start_chat_number"),
+            },
+        )
     if binding.get("type") == "telegram":
         result = send_telegram_message(
             payload.text,
@@ -1523,7 +1580,7 @@ def send_channel_test(binding_id: str, payload: ChannelTestRequest, _claims: dic
         result = execute_whatsapp_action(
             "send_message",
             {"to": payload.recipient or metadata.get("default_recipient") or metadata.get("start_chat_number"), "message": payload.text},
-            allow_live_send=True,
+            allow_live_send=bool(payload.confirm_live_send and live_binding),
             config_override=metadata,
         )
     else:
@@ -1568,22 +1625,17 @@ def list_demo_routes_endpoint(_claims: dict = Depends(READ_ACCESS)):
 @app.post("/api/v1/demo/routes/{route_id}/simulate")
 def simulate_demo_route(route_id: str, payload: DemoRouteDispatchRequest, _claims: dict = Depends(OPERATE_ACCESS)):
     existing_sender = get_channel_sender_by_external_id(payload.channel_binding_id, payload.sender_external_id)
-    sender = existing_sender or save_channel_sender(
-        {
-            "id": f"sender-{uuid4().hex[:10]}",
-            "channel_binding_id": payload.channel_binding_id,
-            "sender_external_id": payload.sender_external_id,
-            "display_name": payload.display_name,
-            "customer_id": "cust_1001" if payload.sender_external_id.endswith("0001") else None,
-            "approval_status": "approved",
-            "last_message": payload.message,
-            "last_seen_at": _utc_iso(),
-            "metadata": {"simulated": True},
-        }
-    )
-    if sender.get("approval_status") != "approved":
-        sender["approval_status"] = "approved"
-        sender = save_channel_sender(sender)
+    sender = dict(existing_sender) if existing_sender else {
+        "id": f"simulated-sender-{uuid4().hex[:10]}",
+        "channel_binding_id": payload.channel_binding_id,
+        "sender_external_id": payload.sender_external_id,
+        "display_name": payload.display_name,
+        "customer_id": None,
+        "approval_status": "simulation_only",
+        "last_message": payload.message,
+        "last_seen_at": _utc_iso(),
+        "metadata": {"simulated": True, "persisted": False},
+    }
     result = dispatch_demo_route(
         route_id=route_id,
         channel_binding_id=payload.channel_binding_id,
@@ -1591,6 +1643,7 @@ def simulate_demo_route(route_id: str, payload: DemoRouteDispatchRequest, _claim
         message=payload.message,
         tenant_id=payload.tenant_id,
         environment=payload.environment,
+        allow_live_send=payload.allow_live_send,
     )
     return result
 
@@ -2696,6 +2749,47 @@ def serve_ui_index():
     return _serve_ui_file()
 
 
+@app.head("/ui")
+@app.head("/ui/")
+def head_ui_index():
+    if not (UI_DIR / "index.html").exists():
+        return Response(status_code=503)
+    return Response(status_code=200, media_type="text/html")
+
+
+@app.get("/customer-chat", response_class=HTMLResponse)
+def serve_customer_chat():
+    path = Path("customer_chat.html")
+    if not path.exists():
+        # Try relative to the app root if needed
+        path = Path(__file__).parent.parent.parent / "customer_chat.html"
+    
+    if path.exists():
+        try:
+            return HTMLResponse(content=path.read_text(encoding="utf-8"), status_code=200)
+        except Exception as e:
+            logger.error(f"Error reading customer_chat.html: {e}")
+            return HTMLResponse(content=f"Error reading chat widget: {e}", status_code=500)
+    return HTMLResponse(content="Chat widget not found at root or parent", status_code=404)
+
+
 @app.get("/ui/{path:path}", response_class=HTMLResponse)
 def serve_ui_path(path: str):
     return _serve_ui_file(path)
+
+
+@app.head("/ui/{path:path}")
+def head_ui_path(path: str):
+    index_file = UI_DIR / "index.html"
+    if not index_file.exists():
+        return Response(status_code=503)
+    if not path or path == "/":
+        return Response(status_code=200, media_type="text/html")
+    requested = (UI_DIR / path.lstrip("/")).resolve()
+    try:
+        requested.relative_to(UI_DIR.resolve())
+    except ValueError:
+        return Response(status_code=404)
+    if requested.exists() and requested.is_file():
+        return Response(status_code=200)
+    return Response(status_code=200, media_type="text/html")

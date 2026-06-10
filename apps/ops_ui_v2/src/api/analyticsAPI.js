@@ -15,19 +15,19 @@ async function getAnalyticsJson(path) {
 }
 
 export async function getMetrics(timeRange = '7d') {
-  return getAnalyticsJson(`/analytics/metrics?range=${encodeURIComponent(timeRange)}`);
+  return getAnalyticsJson(`/api/analytics/metrics?range=${encodeURIComponent(timeRange)}`);
 }
 
 export async function getTimeSeries(timeRange = '7d') {
-  return getAnalyticsJson(`/analytics/timeseries?range=${encodeURIComponent(timeRange)}`);
+  return getAnalyticsJson(`/api/analytics/timeseries?range=${encodeURIComponent(timeRange)}`);
 }
 
 export async function getWorkflowMetrics() {
-  return getAnalyticsJson('/analytics/workflows');
+  return getAnalyticsJson('/api/analytics/workflows');
 }
 
 export async function exportAnalytics(format = 'csv') {
-  const response = await apiFetch(`/analytics/export?format=${encodeURIComponent(format)}`);
+  const response = await apiFetch(`/api/analytics/export?format=${encodeURIComponent(format)}`);
   if (!response.ok) throw new Error('Failed to export analytics');
   return response.blob();
 }

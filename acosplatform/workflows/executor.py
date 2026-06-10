@@ -23,6 +23,11 @@ from integrations.salesforce.client import execute_salesforce_action
 from integrations.shopify.client import execute_shopify_action
 from integrations.telegram.client import send_telegram_message
 from integrations.whatsapp.client import execute_whatsapp_action
+from acosplatform.mcp.tool_router import call_mcp_tool
+from acosplatform.channels.contracts import MessageEnvelope
+from acosplatform.orchestration.router import classify_intent
+from acosplatform.orchestration.agent_registry import get_agent as get_northstar_agent
+from acosplatform.evidence.store import EvidenceEvent, record_evidence
 
 ORDER_RE = re.compile(r"\b(ORD[-\s]?\d+)\b", re.IGNORECASE)
 TOKEN_RE = re.compile(r"\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}")
@@ -80,6 +85,8 @@ def execute_saved_workflow(
         "response_text": "",
         "channel_reply": None,
         "human_escalation": None,
+        "intent": None,
+        "handoffs": [],
         "outcome": None,
     }
 
@@ -240,8 +247,14 @@ def _execute_node(
         state["trigger"] = trigger
         return {"status": "ok", "result": trigger}
 
+    if node_type == "intentNode":
+        return _execute_intent_node(node, state)
+
     if node_type == "connectorNode":
         return _execute_connector_node(node, state, allow_live_send=allow_live_send)
+
+    if node_type == "mcpToolNode":
+        return _execute_mcp_tool_node(node, state)
 
     if node_type == "agentNode":
         return _execute_agent_node(node, state, requested_provider=requested_provider)
@@ -249,7 +262,7 @@ def _execute_node(
     if node_type == "decisionNode":
         return _execute_decision_node(node, state)
 
-    if node_type == "humanNode":
+    if node_type in {"humanNode", "humanHandoffNode"}:
         return _execute_human_node(node, state)
 
     if node_type == "endNode":
@@ -258,6 +271,25 @@ def _execute_node(
 
     return {"status": "warning", "result": {"message": f"Unsupported node type {node_type}"}}
 
+
+
+def _execute_intent_node(node: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+    """Classify retail intent inside a workflow graph and expose it downstream."""
+    data = node.get("data") or {}
+    envelope = MessageEnvelope(
+        tenant_id=state.get("tenant_id") or "default",
+        channel=(state.get("trigger") or {}).get("channel") or data.get("channel") or "workflow",
+        channel_user_id=state.get("sender_external_id") or state.get("customer_id") or "workflow-user",
+        text=state.get("message") or "",
+        customer_id=state.get("customer_id"),
+    )
+    envelope.conversation_session_id = state.get("conversation_session_id")
+    envelope.journey_id = state.get("journey_id")
+    envelope.correlation_id = state.get("correlation_id", f"corr_{state.get('workflow_id', 'workflow')}")
+    intent = classify_intent(envelope)
+    state["intent"] = intent.to_dict()
+    state["recommended_agent_id"] = intent.recommended_agent
+    return {"status": "ok", "result": state["intent"], "confidence": intent.confidence}
 
 def _execute_connector_node(node: dict[str, Any], state: dict[str, Any], *, allow_live_send: bool) -> dict[str, Any]:
     data = node.get("data") or {}
@@ -320,6 +352,16 @@ def _execute_connector_node(node: dict[str, Any], state: dict[str, Any], *, allo
         state["channel_reply"] = run
         return {"status": run.get("status", "ok"), "mode": run.get("mode", "sandbox"), "result": run.get("result") or {}, "note": run.get("note")}
 
+    if connector_type == "mcp":
+        server_id = config.get("server_id") or data.get("serverId") or "local-retail"
+        tool_name = config.get("tool_name") or data.get("toolName") or action
+        arguments = config.get("arguments") or {k: v for k, v in config.items() if k not in {"server_id", "tool_name", "timeout_seconds"}}
+        run = call_mcp_tool(server_id, tool_name, arguments, context={"tenant_id": state.get("tenant_id"), "customer_id": state.get("customer_id"), "correlation_id": state.get("correlation_id", "corr_workflow"), "journey_id": state.get("journey_id"), "message": state.get("message")}, timeout_seconds=float(config.get("timeout_seconds") or 5.0))
+        record = _tool_record(node.get("id"), "mcp", tool_name, binding_id, {"status": run.get("status", "success"), "mode": "mcp", "result": run.get("result") or run, "note": run.get("error")})
+        state["tool_trace"].append(record)
+        state.setdefault("mcp_results", {})[node.get("id") or tool_name] = record.get("result") or {}
+        return {"status": record.get("status", "success"), "mode": "mcp", "result": record.get("result") or {}, "note": record.get("note")}
+
     if connector_type == "telegram":
         run = send_telegram_message(
             config.get("message") or state.get("response_text") or _compose_response_text(state),
@@ -339,6 +381,45 @@ def _execute_connector_node(node: dict[str, Any], state: dict[str, Any], *, allo
         return {"status": run.get("status", "ok"), "mode": run.get("mode", "sandbox"), "result": run.get("result") or {}, "note": run.get("note")}
 
     return {"status": "warning", "mode": "sandbox", "result": {}, "note": f"unsupported_connector:{connector_type}"}
+
+
+
+def _execute_mcp_tool_node(node: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+    data = node.get("data") or {}
+    config = _render_value(data.get("config") or {}, state)
+    server_id = data.get("serverId") or data.get("server_id") or config.get("server_id") or "local-retail"
+    tool_name = data.get("toolName") or data.get("tool_name") or config.get("tool_name") or data.get("action")
+    arguments = config.get("arguments") or {k: v for k, v in config.items() if k not in {"server_id", "tool_name", "timeout_seconds", "failClosed"}}
+    timeout_seconds = float(config.get("timeout_seconds") or data.get("timeoutSeconds") or 5.0)
+    context = {
+        "tenant_id": state.get("tenant_id"),
+        "customer_id": state.get("customer_id"),
+        "workflow_id": state.get("workflow_id"),
+        "journey_id": state.get("journey_id"),
+        "correlation_id": state.get("correlation_id", state.get("run_id", "corr_workflow")),
+        "conversation_session_id": state.get("conversation_session_id"),
+        "agent_id": (state.get("agent_result") or {}).get("agent_id"),
+        "message": state.get("message"),
+    }
+    if not tool_name:
+        return {"status": "warning", "mode": "mcp", "result": {}, "note": "missing_mcp_tool_name"}
+    run = call_mcp_tool(server_id, tool_name, arguments, context=context, timeout_seconds=timeout_seconds)
+    record = {
+        "node_id": node.get("id"),
+        "system": "mcp",
+        "tool": tool_name,
+        "server_id": server_id,
+        "mode": "mcp",
+        "status": run.get("status", "success"),
+        "result": run.get("result") or run,
+        "note": run.get("error"),
+    }
+    state.setdefault("tool_trace", []).append(record)
+    state.setdefault("mcp_results", {})[node.get("id") or tool_name] = record["result"]
+    if record["status"] == "error" and config.get("failClosed"):
+        state["outcome"] = "failed"
+        return {"status": "error", "mode": "mcp", "result": record["result"], "note": record.get("note")}
+    return {"status": record["status"], "mode": "mcp", "result": record["result"], "note": record.get("note")}
 
 
 def _execute_agent_node(node: dict[str, Any], state: dict[str, Any], *, requested_provider: str | None) -> dict[str, Any]:
@@ -423,36 +504,31 @@ def _execute_decision_node(node: dict[str, Any], state: dict[str, Any]) -> dict[
 
 def _execute_human_node(node: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
     data = node.get("data") or {}
-    action = data.get("action") or "create_case"
-    customer = state.get("customer") or {}
-    payload = {
-        "subject": f"Escalation for {customer.get('name') or state.get('customer_id')}",
-        "description": state.get("message"),
-        "status": "New",
-        "origin": (state.get("channel_binding") or {}).get("type") or "Workflow",
+    summary = data.get("summary") or data.get("label") or _compose_response_text(state)
+    handoff = {
+        "handoff_id": f"handoff-{uuid4().hex[:10]}",
+        "queue": data.get("queue") or data.get("handoffQueue") or "retail_ops",
+        "summary": summary,
+        "customer_id": state.get("customer_id"),
+        "workflow_id": state.get("workflow_id"),
+        "reason": data.get("reason") or "workflow_handoff",
+        "status": "open",
     }
-    run = execute_salesforce_action(action, payload, timeout_seconds=2.0)
-    record = _tool_record(node.get("id"), "salesforce", action, data.get("bindingId") or "", run)
-    state["tool_trace"].append(record)
-    if customer:
-        case = save_crm_case(
-            {
-                "id": f"case_{uuid4().hex[:8]}",
-                "customer_id": customer["id"],
-                "tenant_id": state.get("tenant_id") or "default",
-                "subject": payload["subject"],
-                "status": "open",
-                "priority": "high",
-                "channel": (state.get("channel_binding") or {}).get("type") or "workflow",
-                "summary": state.get("message") or "",
-                "metadata": {"source": "workflow_graph", "queue": data.get("queue") or ""},
-            }
-        )
-        state["crm_cases"] = [case, *(state.get("crm_cases") or [])]
-        state["human_escalation"] = case
-    else:
-        state["human_escalation"] = run.get("result") or {}
-    return {"status": run.get("status", "ok"), "mode": run.get("mode", "sandbox"), "result": state["human_escalation"], "note": run.get("note")}
+    state["human_escalation"] = handoff
+    state.setdefault("handoffs", []).append(handoff)
+    try:
+        record_evidence(EvidenceEvent(
+            event_type="human.handoff.created",
+            tenant_id=state.get("tenant_id") or "default",
+            correlation_id=state.get("correlation_id", f"corr_{state.get('workflow_id', 'workflow')}"),
+            conversation_session_id=state.get("conversation_session_id"),
+            journey_id=state.get("journey_id"),
+            workflow_id=state.get("workflow_id"),
+            payload=handoff,
+        ))
+    except Exception:
+        pass
+    return {"status": "ok", "result": handoff}
 
 
 def _tool_record(node_id: str, system: str, action: str, binding_id: str, run: dict[str, Any]) -> dict[str, Any]:

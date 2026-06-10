@@ -27,8 +27,8 @@ def test_checker_default_repo_root_is_not_cwd(monkeypatch, tmp_path):
 def test_checker_reports_full_pass_for_expected_contracts(tmp_path):
     _write(
         tmp_path,
-        "apps/ops_api/models/workflow.py",
-        "class X:\n    version: str\n    active_version: str\n",
+        "acosplatform/workflows/service.py",
+        "def create_workflow_version():\n    pass\nactive_version = 'v1'\nvalidation_status = 'approved'\n",
     )
     _write(
         tmp_path,
@@ -48,15 +48,9 @@ def test_checker_reports_full_pass_for_expected_contracts(tmp_path):
     _write(tmp_path, "apps/ops_ui_v2/src/pages/WorkflowRegistry.jsx", "export default {};\n")
     _write(tmp_path, "apps/ops_ui_v2/src/pages/WorkflowEditor.jsx", "export default {};\n")
     _write(tmp_path, "apps/ops_ui_v2/src/pages/Simulation.jsx", "export default {};\n")
-    _write(tmp_path, "apps/ops_api/routers/runs.py", "x=1\n")
-    _write(tmp_path, "apps/ops_api/routers/promotions.py", "x=1\n")
-    _write(
-        tmp_path,
-        "apps/ops_api/routers/approvals.py",
-        "from fastapi import Depends\n"
-        "from acosplatform.auth.api_key import require_ops_roles\n"
-        "Depends(require_ops_roles('admin'))\n",
-    )
+    _write(tmp_path, "apps/ops_api/routers/northstar_api.py", "x=1\n")
+    _write(tmp_path, "apps/ops_api/routers/uat_compat.py", "x=1\n")
+    _write(tmp_path, "apps/ops_api/routers/v2_control_plane.py", "from fastapi import Depends\nfrom acosplatform.auth.api_key import require_ops_roles\nDepends(require_ops_roles('admin'))\n")
     _write(tmp_path, "acosplatform/auth/api_key.py", "def require_ops_roles(*args):\n    return args\n")
     _write(
         tmp_path,

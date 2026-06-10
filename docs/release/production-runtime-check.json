@@ -1,0 +1,18 @@
+{
+  "status": "pass",
+  "missing_files": [],
+  "missing_tools": [],
+  "golden_journey_status": "success",
+  "participating_agents": [
+    "stylist_agent",
+    "discovery_agent",
+    "inventory_agent",
+    "service_agent"
+  ],
+  "tool_count": 7,
+  "evidence_count": 15,
+  "alembic_migration_present": true,
+  "redis_fast_path_configurable": true,
+  "docker_available": false,
+  "note": "Docker runtime is only certified when this script is paired with docker compose up in a Docker-enabled runner."
+}

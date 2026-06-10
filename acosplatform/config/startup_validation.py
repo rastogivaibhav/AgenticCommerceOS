@@ -29,6 +29,8 @@ def validate_auth_configuration(service: str, environment: str) -> None:
     elif service == "ops-api":
         if not os.environ.get("OPS_JWT_SECRET", "").strip():
             issues.append("OPS_JWT_SECRET is required for ops-api in non-dev environments")
+        if not os.environ.get("ACOS_NORTHSTAR_API_KEYS", "").strip():
+            issues.append("ACOS_NORTHSTAR_API_KEYS is required for ops-api in non-dev environments")
     elif service == "chat-api":
         chat_secret = (
             os.environ.get("CHAT_JWT_SECRET", "").strip()
@@ -38,6 +40,9 @@ def validate_auth_configuration(service: str, environment: str) -> None:
             issues.append("CHAT_JWT_SECRET or OPS_JWT_SECRET is required for chat-api in non-dev environments")
         if not os.environ.get("SLACK_SIGNING_SECRET", "").strip():
             issues.append("SLACK_SIGNING_SECRET is required for chat-api in non-dev environments")
+    elif service == "mcp-server":
+        if not os.environ.get("ACOS_MCP_API_KEYS", "").strip():
+            issues.append("ACOS_MCP_API_KEYS is required for mcp-server in non-dev environments")
 
     if issues:
         joined = "; ".join(issues)

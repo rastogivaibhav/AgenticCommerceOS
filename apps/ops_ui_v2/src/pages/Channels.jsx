@@ -132,15 +132,42 @@ export default function Channels() {
     const recipient = bindingId === 'telegram-ops'
       ? (telegramForm.default_chat_id || metadata.default_chat_id || '')
       : (whatsAppForm.default_recipient || metadata.default_recipient || metadata.start_chat_number || '');
-    const delivery = await sendChannelTest(bindingId, {
-      text: `ACOS test message sent at ${new Date().toISOString()}`,
-      recipient,
-    });
-    setChannelTestResults((current) => ({ ...current, [bindingId]: delivery.delivery }));
+    try {
+      const delivery = await sendChannelTest(bindingId, {
+        text: `ACOS test message sent at ${new Date().toISOString()}`,
+        recipient,
+      });
+      setChannelTestResults((current) => ({ ...current, [bindingId]: delivery.delivery }));
+    } catch (error) {
+      if (error.status === 409) {
+        const liveRecipient = error.payload?.recipient || recipient || 'the configured recipient';
+        const confirmed = window.confirm(
+          `This binding is live and will send a real message to ${liveRecipient}. Continue?`,
+        );
+        if (!confirmed) {
+          setChannelTestResults((current) => ({
+            ...current,
+            [bindingId]: {
+              mode: 'cancelled',
+              note: 'Live send cancelled before any outbound message was sent.',
+            },
+          }));
+          return;
+        }
+        const delivery = await sendChannelTest(bindingId, {
+          text: `ACOS test message sent at ${new Date().toISOString()}`,
+          recipient,
+          confirm_live_send: true,
+        });
+        setChannelTestResults((current) => ({ ...current, [bindingId]: delivery.delivery }));
+        return;
+      }
+      throw error;
+    }
   };
 
-  const handleApprove = async (senderId) => {
-    await approveChannelSender(senderId, { customer_id: 'cust_1001' });
+  const handleApprove = async (sender) => {
+    await approveChannelSender(sender.id, { display_name: sender.display_name });
     await refresh();
   };
 
@@ -157,7 +184,8 @@ export default function Channels() {
           <h1>WhatsApp and Telegram</h1>
           <p className="muted">
             Connect customer-facing messaging channels to governed workflows, verify health honestly,
-            approve unknown senders, and test outbound delivery before routing real traffic.
+            approve unknown senders without auto-linking them to a customer, and confirm live delivery
+            before any outbound test is sent.
           </p>
         </div>
       </header>
@@ -229,6 +257,9 @@ export default function Channels() {
                       <Send size={14} />
                       Send test message
                     </button>
+                    <div className="secondary-cell" style={{ marginTop: 8 }}>
+                      Sandbox bindings stay preview-only. Live bindings require explicit confirmation with the real recipient shown before the message is sent.
+                    </div>
                     {channelTestResults[channel.id] && (
                       <div className="lint-panel" style={{ marginTop: 12 }}>
                         <div className="lint-header">Delivery mode: {channelTestResults[channel.id].mode || 'sandbox'}</div>
@@ -299,13 +330,16 @@ export default function Channels() {
                           <div className="secondary-cell">{sender.last_message}</div>
                         </div>
                       </div>
-                      <button className="primary-button compact" onClick={() => handleApprove(sender.id)}>
+                      <button className="primary-button compact" onClick={() => handleApprove(sender)}>
                         <CheckCircle2 size={14} />
                         Approve
                       </button>
                     </div>
                   ))
                 )}
+              </div>
+              <div className="secondary-cell" style={{ marginTop: 12 }}>
+                Approval only marks a sender as trusted. Customer matching must be done deliberately later instead of silently binding every new sender to the same profile.
               </div>
             </div>
           </section>

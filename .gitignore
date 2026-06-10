@@ -1,31 +1,15 @@
-# Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.Python
-*.egg-info/
+*.log
+.env
+var/
+graphify-out/
+test_output*
+.superpowers/
+.claude/
+coverage.*
+node_modules/
 dist/
 build/
-
-# Environment / secrets
-.env
-*.env.local
-*.env.production
-*.env.staging
-
-# Test artifacts
-.pytest_cache/
-htmlcov/
-.coverage
-
-# IDE
-.vscode/
-.idea/
-
-# Git Worktrees
-.worktrees/
-
-# OS
-.DS_Store
-Thumbs.db
+.vite/
+*.env*

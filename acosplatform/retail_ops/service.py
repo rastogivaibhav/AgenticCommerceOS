@@ -119,12 +119,14 @@ def dispatch_demo_route(
     message: str,
     tenant_id: str = "default",
     environment: str = "dev",
+    allow_live_send: bool | None = None,
 ) -> dict:
     route = get_demo_route(route_id)
     if not route:
         return {"status": "error", "error": "Demo route not found", "route_id": route_id}
 
     binding = get_channel_binding(channel_binding_id) or {}
+    live_send_allowed = bool(binding.get("mode") == "live") if allow_live_send is None else bool(allow_live_send and binding.get("mode") == "live")
     customer = _resolve_customer(sender)
     workflow_result = execute_saved_workflow(
         workflow_id=route.get("workflow_id") or "",
@@ -136,7 +138,7 @@ def dispatch_demo_route(
         channel_binding_id=channel_binding_id,
         sender_external_id=sender.get("sender_external_id", ""),
         requested_provider=route.get("preferred_runtime") or "local_fallback",
-        allow_live_send=True,
+        allow_live_send=live_send_allowed,
         persist_run=True,
     )
 
@@ -146,7 +148,7 @@ def dispatch_demo_route(
     customer = workflow_result.get("customer") or customer
     crm_cases = workflow_result.get("crm_cases") or []
     notification_text = _build_notification_text(route, customer, response_text, tool_trace)
-    notifications = _send_notifications(binding, notification_text)
+    notifications = _send_notifications(binding, notification_text, allow_live_send=live_send_allowed)
 
     return {
         "status": "dispatched",
@@ -228,10 +230,18 @@ def _compose_customer_response(*, route_id: str, customer: dict | None, order_tr
     return f"Hi {customer_name}, I have escalated this issue with priority handling. Open case count is now {open_case_count}."
 
 
-def _send_channel_reply(binding: dict, sender_external_id: str, response_text: str) -> dict:
+def _send_channel_reply(binding: dict, sender_external_id: str, response_text: str, *, allow_live_send: bool = False) -> dict:
     channel_type = (binding.get("type") or "").strip().lower()
     metadata = binding.get("metadata") or {}
     if channel_type == "telegram":
+        if not allow_live_send:
+            return {
+                "status": "ok",
+                "mode": "configured_preview",
+                "connector_source": "telegram_bot_api",
+                "note": "live_send_disabled",
+                "result": {"chat_id": _strip_channel_prefix(sender_external_id), "text": response_text},
+            }
         return send_telegram_message(
             response_text,
             chat_id=_strip_channel_prefix(sender_external_id),
@@ -240,12 +250,12 @@ def _send_channel_reply(binding: dict, sender_external_id: str, response_text: s
     return execute_whatsapp_action(
         "send_message",
         {"to": _strip_channel_prefix(sender_external_id), "message": response_text},
-        allow_live_send=True,
+        allow_live_send=allow_live_send,
         config_override=metadata,
     )
 
 
-def _send_notifications(binding: dict, text: str) -> list[dict]:
+def _send_notifications(binding: dict, text: str, *, allow_live_send: bool = False) -> list[dict]:
     notifications = []
     for target_id in binding.get("notification_targets") or []:
         target = get_channel_binding(target_id)
@@ -256,10 +266,23 @@ def _send_notifications(binding: dict, text: str) -> list[dict]:
             notifications.append(
                 {
                     "target": target_id,
-                    "delivery": send_telegram_message(
-                        text,
-                        chat_id=target_metadata.get("default_chat_id"),
-                        config_override=target_metadata,
+                    "delivery": (
+                        send_telegram_message(
+                            text,
+                            chat_id=target_metadata.get("default_chat_id"),
+                            config_override=target_metadata,
+                        )
+                        if allow_live_send
+                        else {
+                            "status": "ok",
+                            "mode": "configured_preview",
+                            "connector_source": "telegram_bot_api",
+                            "note": "live_send_disabled",
+                            "result": {
+                                "chat_id": target_metadata.get("default_chat_id"),
+                                "text": text,
+                            },
+                        }
                     ),
                 }
             )
@@ -273,7 +296,7 @@ def _send_notifications(binding: dict, text: str) -> list[dict]:
                             "to": target_metadata.get("default_recipient") or "",
                             "message": text,
                         },
-                        allow_live_send=True,
+                        allow_live_send=allow_live_send,
                         config_override=target_metadata,
                     ),
                 }

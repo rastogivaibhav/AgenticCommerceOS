@@ -1,4 +1,11 @@
 import os
+
+# Set environment variables BEFORE importing apps
+os.environ["OPS_JWT_SECRET"] = "dev-secret-key-not-secure"
+os.environ["ALLOW_INSECURE_DEV_AUTH"] = "1"
+os.environ["SHOPPER_API_KEYS"] = "dev-key-insecure"
+os.environ["ACOS_PLATFORM_MODE"] = "demo"
+
 import uvicorn
 from fastapi.testclient import TestClient
 from apps.shopper_api.main import app as shopper_app
@@ -23,10 +30,6 @@ def generate_traffic():
     print("Traffic generation complete.")
 
 if __name__ == "__main__":
-    # Ensure bypass auth for test client is not confused with JWT
-    os.environ["OPS_JWT_SECRET"] = ""
-    os.environ["SHOPPER_API_KEYS"] = "dev-key-insecure"
-    
     generate_traffic()
     
     print("Starting Ops API on port 9004 with populated in-memory data...")
