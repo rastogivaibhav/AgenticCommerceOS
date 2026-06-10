@@ -1,0 +1,110 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - navigation "Main navigation" [ref=e5]:
+      - link "Workflows" [ref=e6] [cursor=pointer]:
+        - /url: /ui/workflows
+        - img [ref=e8]
+        - generic [ref=e12]: Workflows
+      - link "Channels" [ref=e13] [cursor=pointer]:
+        - /url: /ui/channels
+        - img [ref=e15]
+        - generic [ref=e17]: Channels
+      - link "Routes" [ref=e18] [cursor=pointer]:
+        - /url: /ui/demo-routes
+        - img [ref=e20]
+        - generic [ref=e24]: Routes
+      - link "Agents" [ref=e25] [cursor=pointer]:
+        - /url: /ui/agents
+        - img [ref=e27]
+        - generic [ref=e32]: Agents
+      - link "Skills" [ref=e33] [cursor=pointer]:
+        - /url: /ui/skills
+        - img [ref=e35]
+        - generic [ref=e37]: Skills
+      - link "Analytics" [ref=e38] [cursor=pointer]:
+        - /url: /ui/analytics
+        - img [ref=e40]
+        - generic [ref=e41]: Analytics
+      - link "Tenants" [ref=e42] [cursor=pointer]:
+        - /url: /ui/tenants
+        - img [ref=e44]
+        - generic [ref=e48]: Tenants
+  - generic [ref=e49]:
+    - banner [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e53]: ACOS
+        - generic [ref=e54]:
+          - heading "Workflow Operations" [level=1] [ref=e55]
+          - paragraph [ref=e56]: Governed retail and customer-service operations across workflows, channels, agents, and runtime controls.
+        - button "Switch to dark mode" [ref=e57]:
+          - img [ref=e58]
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - generic [ref=e63]: User
+          - strong [ref=e64]: Loading
+        - generic [ref=e65]:
+          - generic [ref=e66]: Role
+          - strong [ref=e67]: ...
+        - generic [ref=e68]:
+          - generic [ref=e69]: Tenant
+          - strong [ref=e70]: default
+        - generic [ref=e71]:
+          - generic [ref=e72]: Env
+          - strong [ref=e73]: ...
+        - generic [ref=e74]:
+          - generic [ref=e75]: Run Mode
+          - strong [ref=e76]: ...
+        - generic [ref=e77]:
+          - generic [ref=e78]: Data
+          - strong [ref=e79]: ...
+        - generic [ref=e80]:
+          - generic [ref=e81]: LLM
+          - strong [ref=e82]: ...
+    - main [ref=e83]:
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - generic [ref=e87]: Governed Workflow Control
+            - heading "Workflow Operations" [level=1] [ref=e88]
+            - paragraph [ref=e89]: Manage the customer-service and commerce workflows that power live channel interactions, operator approvals, and promotion into real environments.
+            - generic [ref=e90]:
+              - generic [ref=e91]: Fallback data
+              - generic [ref=e92]: "Environment: dev"
+          - generic [ref=e93]:
+            - textbox "Search workflows..." [ref=e94]
+            - button "Create Workflow" [disabled] [ref=e95]
+        - generic [ref=e96]:
+          - generic [ref=e97]:
+            - generic [ref=e98]: Workflow inventory
+            - strong [ref=e99]: "0"
+            - generic [ref=e100]: Governed workflow records available in this environment.
+          - generic [ref=e101]:
+            - generic [ref=e102]: Active versions
+            - strong [ref=e103]: "0"
+            - generic [ref=e104]: Workflows currently serving an active promoted version.
+          - generic [ref=e105]:
+            - generic [ref=e106]: Draft only
+            - strong [ref=e107]: "0"
+            - generic [ref=e108]: Records that still need approval and promotion before live use.
+          - generic [ref=e109]:
+            - generic [ref=e110]: Demo entrypoints
+            - strong [ref=e111]: "0"
+            - generic [ref=e112]: Demo flows kept visible for operator training and safe validation.
+        - table [ref=e117]:
+          - rowgroup [ref=e118]:
+            - row "Workflow Family Status Active Version Last Promotion" [ref=e119]:
+              - columnheader "Workflow" [ref=e120]
+              - columnheader "Family" [ref=e121]
+              - columnheader "Status" [ref=e122]
+              - columnheader "Active Version" [ref=e123]
+              - columnheader "Last Promotion" [ref=e124]
+              - columnheader [ref=e125]
+          - rowgroup [ref=e126]:
+            - row [ref=e127] [cursor=pointer]:
+              - cell [ref=e128]
+            - row [ref=e130] [cursor=pointer]:
+              - cell [ref=e131]
+            - row [ref=e133] [cursor=pointer]:
+              - cell [ref=e134]
+            - row [ref=e136] [cursor=pointer]:
+              - cell [ref=e137]

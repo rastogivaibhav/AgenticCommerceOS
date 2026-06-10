@@ -34,3 +34,37 @@ class WorkflowListResponse(BaseModel):
     workflows: List[WorkflowListItem]
     total: int
     filtered_by: Optional[dict]
+
+class CreateWorkflowRequest(BaseModel):
+    name: str
+    family: str
+    status: Optional[str] = "draft"
+    environment: Optional[str] = "dev"
+
+class UpdateWorkflowRequest(BaseModel):
+    name: Optional[str] = None
+    family: Optional[str] = None
+    status: Optional[str] = None
+    environment: Optional[str] = None
+    step_definitions: Optional[dict] = None
+    edges: Optional[list] = None
+
+class TestRunRequest(BaseModel):
+    input_data: Optional[dict] = None
+    step_definitions: Optional[dict] = None
+    edges: Optional[list] = None
+
+class ExecuteRequest(BaseModel):
+    input_data: Optional[dict] = None
+
+class TestRunResponse(BaseModel):
+    run_id: str
+    status: str
+    output_data: Optional[dict] = None
+    error: Optional[str] = None
+
+class ExecuteResponse(BaseModel):
+    run_id: str
+    status: str
+    output_data: Optional[dict] = None
+    error: Optional[str] = None

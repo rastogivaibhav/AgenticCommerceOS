@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import TokenExpiryWarning from './TokenExpiryWarning';
+import useAuth from '../hooks/useAuth';
 import { getOpsContext, updateRuntimePreferences } from '../api/opsAPI';
 import { canOperate } from '../lib/rbac';
 import './Layout.css';
@@ -11,6 +13,9 @@ export default function Layout() {
   const [context, setContext] = useState(null);
   const [contextError, setContextError] = useState(null);
   const [isUpdatingPreferences, setIsUpdatingPreferences] = useState(false);
+
+  // DEF-016: Token expiry monitoring
+  const { isExpired, timeUntilExpiry, showWarning, dismissWarning, refreshToken } = useAuth();
 
   const refreshContext = async () => {
     const payload = await getOpsContext();
@@ -52,6 +57,29 @@ export default function Layout() {
 
   const authRequired = !context && contextError?.status === 401;
 
+  // DEF-016: Handle token expiry
+  if (isExpired) {
+    return (
+      <div className="login-shell">
+        <div className="login-card">
+          <div className="eyebrow">Session Expired</div>
+          <h1>Your session has expired</h1>
+          <p className="muted">
+            Your authentication token has expired. Please sign in again to continue.
+          </p>
+          <div className="form-actions" style={{ justifyContent: 'flex-start', gap: 12, marginTop: 24 }}>
+            <a className="primary-button" href="/dev/auth/bootstrap/admin?redirect=%2Fui%2Fworkflows">
+              Sign in as admin
+            </a>
+            <a className="secondary-button" href="/dev/auth/bootstrap/ops?redirect=%2Fui%2Fworkflows">
+              Sign in as ops
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (authRequired) {
     return (
       <div className="login-shell">
@@ -81,6 +109,15 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-surface">
+      {/* DEF-016: Token expiry warning modal */}
+      <TokenExpiryWarning
+        showWarning={showWarning && !isExpired}
+        timeUntilExpiry={timeUntilExpiry}
+        onDismiss={dismissWarning}
+        onRefresh={refreshToken}
+        onLogout={() => setContext(null)}
+      />
+
       <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header

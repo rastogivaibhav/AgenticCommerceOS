@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, ExternalLink, MessageCircleMore, QrCode, Send, ShieldCheck, Smartphone, RadioTower, Link2 } from 'lucide-react';
+import OAuthModal from '../components/OAuthModal';
 import {
   approveChannelSender,
   linkTelegramChannel,
@@ -25,6 +26,9 @@ export default function Channels() {
   const [pairingsByChannel, setPairingsByChannel] = useState({});
   const [channelTestResults, setChannelTestResults] = useState({});
   const [linkFeedback, setLinkFeedback] = useState(null);
+  // DEF-005: OAuth modal state for timeout handling
+  const [oauthModalOpen, setOauthModalOpen] = useState(false);
+  const [oauthChannel, setOauthChannel] = useState(null);
   const [whatsAppForm, setWhatsAppForm] = useState({
     identity: 'WhatsApp Support',
     verify_token: '',
@@ -61,45 +65,64 @@ export default function Channels() {
     refresh().catch(console.error);
   }, []);
 
+  // DEF-005: Show OAuth modal for WhatsApp
   const handleWhatsAppLink = async (event) => {
     event.preventDefault();
     setLinkFeedback(null);
-    try {
-      const result = await linkWhatsAppChannel({
-        type: 'whatsapp',
-        identity: whatsAppForm.identity,
-        metadata: {
-          verify_token: whatsAppForm.verify_token,
-          access_token: whatsAppForm.access_token,
-          phone_number_id: whatsAppForm.phone_number_id,
-          start_chat_number: whatsAppForm.start_chat_number,
-          default_recipient: whatsAppForm.default_recipient,
-        },
-      });
-      setLinkFeedback({ channel: 'whatsapp', result });
-      await refresh();
-    } catch (error) {
-      setLinkFeedback({ channel: 'whatsapp', error: error.message });
-    }
+    setOauthChannel('whatsapp');
+    setOauthModalOpen(true);
   };
 
+  // DEF-005: Show OAuth modal for Telegram
   const handleTelegramLink = async (event) => {
     event.preventDefault();
     setLinkFeedback(null);
+    setOauthChannel('telegram');
+    setOauthModalOpen(true);
+  };
+
+  // DEF-005: Handle OAuth modal close
+  const handleOAuthClose = () => {
+    setOauthModalOpen(false);
+    setOauthChannel(null);
+  };
+
+  // DEF-005: Handle OAuth success
+  const handleOAuthSuccess = async () => {
+    setLinkFeedback(null);
     try {
-      const result = await linkTelegramChannel({
-        type: 'telegram',
-        identity: telegramForm.identity,
-        metadata: {
-          bot_token: telegramForm.bot_token,
-          default_chat_id: telegramForm.default_chat_id,
-          bot_username: telegramForm.bot_username,
-        },
-      });
-      setLinkFeedback({ channel: 'telegram', result });
+      if (oauthChannel === 'whatsapp') {
+        const result = await linkWhatsAppChannel({
+          type: 'whatsapp',
+          identity: whatsAppForm.identity,
+          metadata: {
+            verify_token: whatsAppForm.verify_token,
+            access_token: whatsAppForm.access_token,
+            phone_number_id: whatsAppForm.phone_number_id,
+            start_chat_number: whatsAppForm.start_chat_number,
+            default_recipient: whatsAppForm.default_recipient,
+          },
+        });
+        setLinkFeedback({ channel: 'whatsapp', result });
+      } else if (oauthChannel === 'telegram') {
+        const result = await linkTelegramChannel({
+          type: 'telegram',
+          identity: telegramForm.identity,
+          metadata: {
+            bot_token: telegramForm.bot_token,
+            default_chat_id: telegramForm.default_chat_id,
+            bot_username: telegramForm.bot_username,
+          },
+        });
+        setLinkFeedback({ channel: 'telegram', result });
+      }
       await refresh();
+      handleOAuthClose();
     } catch (error) {
-      setLinkFeedback({ channel: 'telegram', error: error.message });
+      setLinkFeedback({
+        channel: oauthChannel,
+        error: `OAuth failed: ${error.message}`,
+      });
     }
   };
 
@@ -366,6 +389,14 @@ export default function Channels() {
           </div>
         </div>
       </div>
+
+      {/* DEF-005: OAuth modal with timeout handling */}
+      <OAuthModal
+        isOpen={oauthModalOpen}
+        channel={oauthChannel}
+        onClose={handleOAuthClose}
+        onSuccess={handleOAuthSuccess}
+      />
     </div>
   );
 }

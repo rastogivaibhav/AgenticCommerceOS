@@ -2522,14 +2522,46 @@ def health():
     }
 
 
+def _validate_redirect_url(redirect_url: str) -> str:
+    """
+    DEF-017: Validate redirect URL against whitelist.
+    Only allow specific UI paths, reject external URLs and protocol-relative URLs.
+    """
+    # Allowed redirect destinations within the UI
+    ALLOWED_REDIRECTS = {
+        "/ui/workflows",
+        "/ui/agents",
+        "/ui/skills",
+        "/ui/channels",
+        "/ui/analytics",
+        "/ui/tenants",
+        "/ui/demo-routes",
+    }
+
+    url = redirect_url.strip()
+
+    # Reject protocol-relative URLs (//evil.com) and full URLs
+    if url.startswith("//") or url.startswith("http://") or url.startswith("https://"):
+        logger.warning(f"Invalid redirect attempt: external URL detected: {url}")
+        return "/ui/workflows"  # Safe default
+
+    # Validate against whitelist
+    if url in ALLOWED_REDIRECTS:
+        return url
+
+    logger.warning(f"Invalid redirect attempt: {url} not in whitelist")
+    return "/ui/workflows"  # Safe default
+
+
 @app.get("/dev/auth/bootstrap", response_class=HTMLResponse)
-def dev_auth_bootstrap(token: str, redirect: str = "/ui/agents"):
+def dev_auth_bootstrap(token: str, redirect: str = "/ui/workflows"):
     """Dev-only helper: writes ops token into browser localStorage and redirects."""
     env = OPS_ENVIRONMENT.strip().lower()
     if env not in {"dev", "development", "local", "test", "testing"}:
         return JSONResponse(status_code=404, content={"error": "Not found"})
 
-    safe_redirect = redirect if redirect.startswith("/ui/") else "/ui/"
+    # DEF-017: Validate redirect URL
+    safe_redirect = _validate_redirect_url(redirect)
     token_json = json.dumps(token)
     redirect_json = json.dumps(safe_redirect)
 

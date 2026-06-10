@@ -1,0 +1,216 @@
+Test_ID,Screen,Feature,Scenario,User_Role,Precondition,Test_Steps,Expected_Result,Test_Type,Priority
+WF-001,Workflows,Page Load,Load empty workflows,Any,DB has 0 workflows,"1. Login as admin
+2. Navigate to /ui/workflows","Page loads, metrics show 0, empty state displays",Smoke,P1
+WF-002,Workflows,Page Load,Load with 10 workflows,Admin,DB has 10 workflows,"1. Login as admin
+2. Navigate to /ui/workflows","All 10 rows display, metrics updated to 10",Functional,P1
+WF-003,Workflows,Page Load,Loading animation,Admin,Page loading data,"1. Navigate to /ui/workflows
+2. Observe page before data loads","Skeleton rows visible, spinners on metrics",Smoke,P2
+WF-004,Workflows,Search,Search by name,Admin,List loaded with 20+ workflows,"1. Type 'test' in search box
+2. Wait 500ms
+3. Observe results","Table filters to workflows containing 'test'",Functional,P2
+WF-005,Workflows,Search,Search with special chars,Admin,List loaded,"1. Search for 'test@#$%'
+2. Observe results","No error, results return (escaped properly)",Edge Case,P3
+WF-006,Workflows,Search,Clear search,Admin,Search active with results,"1. Click 'Clear filters' button
+2. Observe","All workflows show again, search cleared",Functional,P2
+WF-007,Workflows,Sorting,Sort by name A-Z,Admin,List loaded,"1. Click 'Workflow' column header
+2. Observe sort order","Table sorted A-Z by name, ▲ indicator visible",Functional,P2
+WF-008,Workflows,Sorting,Sort by name Z-A,Admin,Already sorted A-Z,"1. Click 'Workflow' header again
+2. Observe","Table sorted Z-A, ▼ indicator shown",Functional,P2
+WF-009,Workflows,Sorting,Clear sort,Admin,Sorted by name,"1. Click 'Workflow' header third time
+2. Observe","Sort cleared, original order restored",Functional,P2
+WF-010,Workflows,Pagination,Navigate to page 2,Admin,20+ workflows loaded,"1. Click 'Next' button
+2. Observe table","Page 2 displays, new 20 workflows shown",Functional,P2
+WF-011,Workflows,Pagination,Previous button disabled on page 1,Admin,Page 1 displayed,"1. Observe 'Previous' button
+2. Try clicking","Button is disabled (grayed out)",Functional,P3
+WF-012,Workflows,Pagination,Next button disabled on last page,Admin,Last page displayed,"1. Observe 'Next' button
+2. Try clicking","Button is disabled",Functional,P3
+WF-013,Workflows,Row Selection,Select single row,Admin,List loaded,"1. Click checkbox on workflow row
+2. Observe","Row highlighted, checkbox checked, toolbar appears",Functional,P2
+WF-014,Workflows,Row Selection,Select all rows,Admin,List loaded with 10 rows,"1. Click header checkbox
+2. Observe","All 10 checkboxes checked, toolbar shows 'Delete 10'",Functional,P2
+WF-015,Workflows,Row Selection,Deselect all,Admin,All rows selected,"1. Click header checkbox again
+2. Observe","All checkboxes unchecked, toolbar hidden",Functional,P2
+WF-016,Workflows,Create,Open create modal,Admin,On Workflows screen,"1. Click 'Create Workflow' button
+2. Observe","Modal opens with form fields (name, family, etc.)",Functional,P1
+WF-017,Workflows,Create,Name validation - required,Admin,Create modal open,"1. Leave name empty
+2. Try to submit","Error: 'Name is required', submit button disabled",Validation,P1
+WF-018,Workflows,Create,Name validation - max length,Admin,Create modal open,"1. Enter name with 51+ characters
+2. Try to submit","Error: 'Max 50 characters', field shows red border",Validation,P1
+WF-019,Workflows,Create,Name validation - unique,Admin,Workflow named 'Prod' exists,"1. Enter 'Prod'
+2. Submit","Error: 'Name already exists'",Validation,P1
+WF-020,Workflows,Create,Family selection,Admin,Create modal open,"1. Click Family dropdown
+2. Select 'Support'","'Support' selected, field shows selected value",Functional,P2
+WF-021,Workflows,Create,Successful creation,Admin,Valid form filled,"1. Fill name, family
+2. Click Save
+3. Wait for response","Modal closes, workflow added to list, success toast shown",Functional,P1
+WF-022,Workflows,Create,Creation error handling,Admin,Valid form filled,"1. API returns 500 error
+2. Observe modal","Error banner shows, form stays open for retry",Functional,P2
+WF-023,Workflows,Edit,Edit button in row,Admin,Workflow row visible,"1. Click Edit or ... menu
+2. Click Edit","Navigates to workflow editor",Functional,P2
+WF-024,Workflows,Delete,Delete single,Admin,Workflow selected,"1. Click Delete button
+2. Confirm in modal","Workflow removed from list, success toast",Functional,P1
+WF-025,Workflows,Delete,Delete confirmation,Admin,Delete button clicked,"1. Modal asks 'Are you sure?'
+2. Options: Cancel, Delete","Modal visible, can cancel or confirm",Functional,P2
+WF-026,Workflows,Permissions,Create disabled for analyst,Analyst,On Workflows screen,"1. Observe 'Create Workflow' button
+2. Try clicking","Button disabled, tooltip: 'Requires admin or ops role'",Functional,P1
+WF-027,Workflows,Permissions,Edit disabled for analyst,Analyst,Workflow row visible,"1. Observe Edit button
+2. Try clicking","Button disabled or hidden",Functional,P1
+WF-028,Workflows,Permissions,Delete hidden for analyst,Analyst,Workflow row visible,"1. Observe Delete button
+2. Check row menu","Delete option missing or disabled",Functional,P1
+WF-029,Workflows,Empty State,Message displayed,Any,No workflows in DB,"1. Navigate to /ui/workflows","'No workflows available' message shows",Functional,P2
+WF-030,Workflows,Empty State,Create button enabled,Admin,No workflows in DB,"1. Navigate to /ui/workflows
+2. Observe Create button","'Create Workflow' button is enabled and clickable",Functional,P2
+AG-001,Agents,Page Load,Load empty agents,Admin,DB has 0 agents,"1. Navigate to /ui/agents","Page loads, metrics show 0, empty state",Functional,P1
+AG-002,Agents,Page Load,Load with 5 agents,Admin,DB has 5 agents,"1. Navigate to /ui/agents","All 5 agent rows display",Functional,P1
+AG-003,Agents,Create,Open create modal,Admin,On Agents screen,"1. Click 'Create Agent'","Modal opens with form fields",Functional,P1
+AG-004,Agents,Create,Name validation,Admin,Modal open,"1. Leave name empty
+2. Submit","Error: 'Name required'",Validation,P1
+AG-005,Agents,Create,Type selection,Admin,Modal open,"1. Select agent type: 'AI' or 'Human'","Type selected correctly",Functional,P2
+AG-006,Agents,Create,Successful creation,Admin,Valid form filled,"1. Fill form
+2. Click Save","Agent added to list, success toast",Functional,P1
+AG-007,Agents,Edit,Edit agent,Admin,Agent visible,"1. Click Edit
+2. Modify fields
+3. Save","Changes saved, agent updated",Functional,P2
+AG-008,Agents,Delete,Delete agent,Admin,Agent visible,"1. Click Delete
+2. Confirm","Agent removed from list",Functional,P1
+AG-009,Agents,Filter,Filter by type,Admin,5+ agents loaded,"1. Click Filter dropdown
+2. Select 'AI'","Table shows only AI agents",Functional,P2
+AG-010,Agents,Permissions,Create disabled for analyst,Analyst,On Agents screen,"1. Observe Create button","Create button disabled",Functional,P1
+SK-001,Skills,Page Load,Load empty skills,Admin,DB has 0 skills,"1. Navigate to /ui/skills","Page loads, empty state displays",Functional,P1
+SK-002,Skills,Page Load,Load with 10 skills,Admin,DB has 10 skills,"1. Navigate to /ui/skills","All 10 skills display",Functional,P1
+SK-003,Skills,Create,Open create modal,Admin,On Skills screen,"1. Click 'Create Skill'","Modal opens with form",Functional,P1
+SK-004,Skills,Create,Name validation,Admin,Modal open,"1. Leave name empty
+2. Submit","Error: 'Name required'",Validation,P1
+SK-005,Skills,Create,Category selection,Admin,Modal open,"1. Select category: 'Communication'","Category selected",Functional,P2
+SK-006,Skills,Create,Successful creation,Admin,Valid form,"1. Fill form
+2. Save","Skill created, success toast",Functional,P1
+SK-007,Skills,Edit,Edit skill,Admin,Skill visible,"1. Click Edit
+2. Modify
+3. Save","Changes saved",Functional,P2
+SK-008,Skills,Delete,Delete skill,Admin,Skill visible,"1. Click Delete
+2. Confirm","Skill removed",Functional,P1
+SK-009,Skills,Filter,Filter by category,Admin,10+ skills,"1. Select 'Data' category","Shows only Data category skills",Functional,P2
+SK-010,Skills,Search,Search skills,Admin,10+ skills,"1. Type 'email' in search","Results show matching skills",Functional,P2
+CH-001,Channels,Page Load,Load channels,Admin,On /ui/channels,"1. Navigate to /ui/channels","Channel cards display (WhatsApp, Telegram)",Functional,P1
+CH-002,Channels,Link WhatsApp,Button visible,Admin,On Channels,"1. Look for WhatsApp card","'Link WhatsApp' button visible and enabled",Functional,P1
+CH-003,Channels,Link WhatsApp,Click link button,Admin,On Channels,"1. Click 'Link WhatsApp'","OAuth modal appears or redirect to WhatsApp",Functional,P1
+CH-004,Channels,Link WhatsApp,OAuth success,Admin,OAuth completed,"1. Complete OAuth flow","Token stored, card shows 'Active'",Functional,P1
+CH-005,Channels,Link WhatsApp,OAuth error,Admin,OAuth fails,"1. Deny permission or error occurs","Error message shown, retry available",Functional,P2
+CH-006,Channels,Link Telegram,Button visible,Admin,On Channels,"1. Look for Telegram card","'Link Telegram' button visible",Functional,P1
+CH-007,Channels,Link Telegram,Token entry,Admin,Telegram button clicked,"1. Modal asks for bot token
+2. Enter token","Token stored, card shows linked",Functional,P1
+CH-008,Channels,Unlink,Unlink WhatsApp,Admin,WhatsApp linked,"1. Click 'Unlink'
+2. Confirm","Channel unlinked, back to 'Link' button",Functional,P1
+CH-009,Channels,Unlink,Unlink confirmation,Admin,Unlink clicked,"1. Modal asks 'Unlink [Channel]?'","User can confirm or cancel",Functional,P2
+CH-010,Channels,Permissions,Link disabled for analyst,Analyst,On Channels,"1. Observe Link buttons","Link buttons disabled or hidden",Functional,P1
+AN-001,Analytics,Page Load,Load analytics,Admin,On /ui/analytics,"1. Navigate to /ui/analytics","Analytics page loads with charts",Functional,P1
+AN-002,Analytics,Charts,Charts visible,Admin,Analytics loaded,"1. Observe page","4-6 chart cards visible (executions, errors, latency, etc.)",Functional,P1
+AN-003,Analytics,Metrics,Metrics display,Admin,Analytics loaded,"1. Look at metric cards","Metric values show (total runs, success %, avg duration)",Functional,P2
+AN-004,Analytics,Time Range,Select last 24h,Admin,Analytics loaded,"1. Click '24h' button","Charts update to show 24h data",Functional,P2
+AN-005,Analytics,Time Range,Select last 7d,Admin,Analytics loaded,"1. Click '7d' button","Charts update to show 7d data",Functional,P2
+AN-006,Analytics,Refresh,Click refresh,Admin,Analytics loaded,"1. Click 'Refresh' button
+2. Wait","Charts update with latest data, spinner shows during load",Functional,P2
+AN-007,Analytics,Export,Click export,Admin,Analytics loaded,"1. Click 'Export'
+2. Select format","Format options appear (CSV, JSON, PDF)",Functional,P2
+AN-008,Analytics,Export,Export CSV,Admin,Export menu open,"1. Click 'CSV'
+2. Wait","CSV file downloads",Functional,P2
+AN-009,Analytics,Export,Export error,Admin,Export clicked,"1. API returns error","Error toast shown, can retry",Functional,P2
+AN-010,Analytics,Fallback Mode,Fallback message,Admin,Data unavailable,"1. APIs fail
+2. Navigate to Analytics","'Fallback mode' message shows",Functional,P2
+TN-001,Tenants,Page Load,Load tenants,Admin,On /ui/tenants,"1. Navigate to /ui/tenants","Tenant list loads (admin only)",Functional,P1
+TN-002,Tenants,Page Load,Access denied for ops,Ops,On /ui/tenants,"1. Navigate to /ui/tenants","Access denied or empty/403",Functional,P1
+TN-003,Tenants,Create,Open create modal,Admin,On Tenants,"1. Click 'Create Tenant'","Modal opens with form",Functional,P1
+TN-004,Tenants,Create,Name validation,Admin,Modal open,"1. Leave name empty
+2. Submit","Error: 'Name required'",Validation,P1
+TN-005,Tenants,Create,Successful creation,Admin,Valid form,"1. Fill form
+2. Save","Tenant created, success toast",Functional,P1
+TN-006,Tenants,Edit,Edit tenant,Admin,Tenant visible,"1. Click Edit
+2. Modify
+3. Save","Changes saved",Functional,P2
+TN-007,Tenants,Delete,Delete tenant,Admin,Tenant visible,"1. Click Delete
+2. Confirm","Tenant removed",Functional,P1
+TN-008,Tenants,View Users,Click manage users,Admin,Tenant selected,"1. Click 'Manage Users'","Users for tenant listed",Functional,P2
+TN-009,Tenants,Permissions,Create disabled for ops,Ops,On Tenants,"1. Observe Create button","Button disabled or hidden",Functional,P1
+DR-001,Demo Routes,Page Load,Load demo routes,Admin,On /ui/demo-routes,"1. Navigate to /ui/demo-routes","Demo routes page loads with info",Functional,P1
+DR-002,Demo Routes,Validate,Run validation,Admin,On Demo Routes,"1. Click 'Run Validation'","Spinner shows, validation starts",Functional,P2
+DR-003,Demo Routes,Validation,All pass,Admin,Validation complete,"1. All 5 routes pass","Results show all green with checkmarks",Functional,P2
+DR-004,Demo Routes,Validation,Some fail,Admin,Validation complete,"1. 3 pass, 2 fail","Failed routes highlighted red with error details",Functional,P2
+DR-005,Demo Routes,Validation,Timeout,Admin,Validation running >30s,"1. Wait for timeout","'Validation timed out' message shown",Functional,P2
+DR-006,Demo Routes,Retry,Retry validation,Admin,Validation complete,"1. Click 'Retry'","Validation runs again",Functional,P2
+DR-007,Demo Routes,Details,Expand result,Admin,Results shown,"1. Click result row to expand","Details show: route name, duration, response",Functional,P2
+EDITOR-001,Workflow Editor,Page Load,Load editor for new,Admin,On create workflow,"1. Start new workflow","Blank canvas, node palette visible",Functional,P1
+EDITOR-002,Workflow Editor,Page Load,Load editor for existing,Admin,Open existing workflow,"1. Edit workflow
+2. Navigate to editor","Nodes rendered on canvas",Functional,P1
+EDITOR-003,Workflow Editor,Nodes,Add node,Admin,In editor,"1. Drag node from palette to canvas","New node appears, unconnected",Functional,P2
+EDITOR-004,Workflow Editor,Connections,Connect nodes,Admin,2+ nodes exist,"1. Drag line from output to input","Connection created between nodes",Functional,P2
+EDITOR-005,Workflow Editor,Nodes,Select node,Admin,Nodes exist,"1. Click node","Node highlighted, properties panel shows",Functional,P2
+EDITOR-006,Workflow Editor,Properties,Edit node properties,Admin,Node selected,"1. Change node name/config
+2. Observe changes","Properties update in sidebar",Functional,P2
+EDITOR-007,Workflow Editor,Save,Save workflow,Admin,Changes made,"1. Click Save button","Spinner shows, workflow saved, toast confirmation",Functional,P1
+EDITOR-008,Workflow Editor,Save,Unsaved changes,Admin,Workflow edited,"1. Make change, don't save
+2. Try to leave","Warning modal: 'Save changes?'",Functional,P2
+EDITOR-009,Workflow Editor,Validation,Validation error,Admin,Invalid workflow created,"1. Create workflow with missing connections
+2. Try to save","Error message shows which nodes need connection",Validation,P1
+EDITOR-010,Workflow Editor,Delete,Delete node,Admin,Node selected,"1. Right-click and Delete
+2. Confirm","Node removed from canvas",Functional,P2
+FORM-001,Forms,Submit,Submit with valid data,Admin,Form filled correctly,"1. Fill all required fields
+2. Click Submit","Form submits, success response, modal closes",Functional,P1
+FORM-002,Forms,Validation,Field errors,Admin,Required field empty,"1. Leave field empty
+2. Try submit","Field shows red border, error message",Validation,P1
+FORM-003,Forms,Validation,Multiple errors,Admin,Multiple fields empty,"1. Leave multiple required fields empty
+2. Submit","All invalid fields highlighted, error summary shown",Validation,P1
+FORM-004,Forms,Reset,Reset form,Admin,Form filled,"1. Click Reset button
+2. Observe","All fields cleared to defaults",Functional,P2
+FORM-005,Forms,Loading,Submitting state,Admin,Valid form ready,"1. Click Submit
+2. Observe immediately","Submit button shows spinner, fields disabled",Functional,P2
+PERM-001,Permissions,Admin,Admin can create,Admin,Any screen,"1. Try to create item","Create button enabled, can create successfully",Functional,P1
+PERM-002,Permissions,Ops,Ops can create,Ops,Any screen,"1. Try to create item","Create button enabled (if allowed for ops)",Functional,P1
+PERM-003,Permissions,Analyst,Analyst cannot create,Analyst,Any screen,"1. Try to create item","Create button disabled or hidden",Functional,P1
+PERM-004,Permissions,Analyst,Analyst cannot delete,Analyst,Any screen,"1. Try to delete item","Delete button disabled or hidden",Functional,P1
+PERM-005,Permissions,Analyst,Analyst can view,Analyst,Any screen,"1. View data on screen","Data visible, read-only",Functional,P1
+AUTH-001,Authentication,Login,Login as admin,Any,Home page,"1. Click 'Sign in as admin'
+2. Complete bootstrap","Token stored, redirected to /ui/workflows",Functional,P1
+AUTH-002,Authentication,Login,Login as ops,Any,Home page,"1. Click 'Sign in as ops'
+2. Complete bootstrap","Token stored, ops role set",Functional,P1
+AUTH-003,Authentication,Login,Login as analyst,Any,Home page,"1. Click 'Sign in as analyst'
+2. Complete bootstrap","Token stored, analyst role set",Functional,P1
+AUTH-004,Authentication,Token,Token in localStorage,Any,Logged in,"1. Open DevTools → Application → LocalStorage
+2. Check ops_token","Token present, not empty",Functional,P2
+AUTH-005,Authentication,Logout,Logout,Any,Logged in,"1. Click logout
+2. Observe","Token removed, session ends, redirected to login",Functional,P2
+RESPONSE-001,API Responses,Status Code,Success 200,Admin,API called,"1. Create item successfully","API returns 200 OK",Functional,P1
+RESPONSE-002,API Responses,Status Code,Created 201,Admin,Item created,"1. POST successful","API returns 201 Created",Functional,P1
+RESPONSE-003,API Responses,Status Code,Bad Request 400,Admin,Invalid data,"1. Submit invalid form","API returns 400 Bad Request with error details",Functional,P1
+RESPONSE-004,API Responses,Status Code,Forbidden 403,Admin,Insufficient permission,"1. Try unauthorized action","API returns 403 Forbidden",Functional,P1
+RESPONSE-005,API Responses,Status Code,Not Found 404,Admin,Resource doesn't exist,"1. Try to get non-existent resource","API returns 404 Not Found",Functional,P1
+RESPONSE-006,API Responses,Status Code,Server Error 500,Admin,API fails,"1. Trigger server error","API returns 500 Internal Server Error",Functional,P1
+ACCESSIBILITY-001,Accessibility,Keyboard,Navigate with Tab,Admin,On any screen,"1. Use Tab key to navigate
+2. Check order is logical","All interactive elements reachable, focus visible",Accessibility,P2
+ACCESSIBILITY-002,Accessibility,Keyboard,Submit with Enter,Admin,Form focused,"1. Press Enter on submit button","Form submits successfully",Accessibility,P2
+ACCESSIBILITY-003,Accessibility,Keyboard,Close modal with Escape,Admin,Modal open,"1. Press Escape key","Modal closes",Accessibility,P2
+ACCESSIBILITY-004,Accessibility,Screen Reader,Button text announced,Admin,Button on page,"1. Use screen reader
+2. Tab to button","Button text read aloud ('Create Workflow')",Accessibility,P2
+ACCESSIBILITY-005,Accessibility,Focus,Focus indicator visible,Admin,Any screen,"1. Use keyboard to navigate
+2. Check focus indicator","Clear focus outline/highlight visible on each element",Accessibility,P2
+ACCESSIBILITY-006,Accessibility,Color Contrast,Text contrast,Admin,Any screen,"1. Check color contrast
+2. Use Axe DevTools","All text meets WCAG AA standard (4.5:1 ratio)",Accessibility,P2
+ACCESSIBILITY-007,Accessibility,Form Labels,Labels present,Admin,Any form,"1. Use DevTools Inspector
+2. Check form labels","Each input has associated label or aria-label",Accessibility,P2
+ACCESSIBILITY-008,Accessibility,Alt Text,Images have alt,Admin,Any page with images,"1. Use DevTools
+2. Check img alt attributes","All meaningful images have descriptive alt text",Accessibility,P2
+RESPONSIVE-001,Responsive,Mobile,Mobile layout,Admin,375px viewport,"1. Resize to 375px
+2. View page","Layout is single column, readable, no horizontal scroll",Responsive,P2
+RESPONSIVE-002,Responsive,Mobile,Touch targets,Admin,Mobile view,"1. Check button/link sizes
+2. Measure pixels","All interactive elements ≥ 44×44px",Responsive,P2
+RESPONSIVE-003,Responsive,Tablet,Tablet layout,Admin,768px viewport,"1. Resize to 768px
+2. View page","Layout is 2-column or adaptive, readable",Responsive,P2
+RESPONSIVE-004,Responsive,Desktop,Desktop layout,Admin,1280px+ viewport,"1. Resize to 1280px+
+2. View page","Full layout with sidebar, all elements visible",Responsive,P2
+RESPONSIVE-005,Responsive,Orientation,Portrait to landscape,Admin,Mobile,"1. Rotate device
+2. Check layout","Layout adapts, no loss of content",Responsive,P2
+PERFORMANCE-001,Performance,Page Load,Load time < 3s,Admin,Fresh load,"1. Open page
+2. Measure load time","Page fully loaded in < 3 seconds",Performance,P3
+PERFORMANCE-002,Performance,Search,Search debounce,Admin,List loaded,"1. Type in search
+2. Observe requests","Requests debounced (not every keystroke)",Performance,P3
+PERFORMANCE-003,Performance,Pagination,Page switch < 1s,Admin,Pagination loaded,"1. Click Next
+2. Measure","New page loads in < 1 second",Performance,P3

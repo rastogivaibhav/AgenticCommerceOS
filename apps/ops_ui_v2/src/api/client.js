@@ -65,35 +65,82 @@ export async function apiFetch(path, options = {}) {
     body,
     method = 'GET',
     notifyErrorToast = true,
+    maxRetries = 2,
+    retryDelay = 1000,
   } = options;
 
-  const requestHeaders = {
-    ...(auth ? getAuthHeaders() : {}),
-    ...headers,
-  };
+  let lastError;
 
-  const init = {
-    method,
-    headers: requestHeaders,
-  };
+  // DEF-027: Retry logic with exponential backoff
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const requestHeaders = {
+        ...(auth ? getAuthHeaders() : {}),
+        ...headers,
+      };
 
-  if (body !== undefined) {
-    init.body = body;
+      const init = {
+        method,
+        headers: requestHeaders,
+      };
+
+      if (body !== undefined) {
+        init.body = body;
+      }
+
+      const response = await fetch(buildApiUrl(path), init);
+
+      // Only retry on network-related errors, not on 4xx/5xx responses
+      if (response.ok) {
+        return response;
+      }
+
+      // Don't retry on client errors (4xx)
+      if (response.status >= 400 && response.status < 500) {
+        if (notifyErrorToast) {
+          const toastMsg = toastMessageForStatus(response.status);
+          if (toastMsg) emitApiToast(toastMsg, 'error');
+        }
+        return response;
+      }
+
+      // Retry on server errors (5xx)
+      if (response.status >= 500 && attempt < maxRetries) {
+        lastError = response;
+        const delay = retryDelay * Math.pow(2, attempt); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      if (notifyErrorToast) {
+        const toastMsg = toastMessageForStatus(response.status);
+        if (toastMsg) emitApiToast(toastMsg, response.status >= 500 ? 'warning' : 'error');
+      }
+
+      return response;
+    } catch (error) {
+      lastError = error;
+
+      // Retry on network errors
+      if (attempt < maxRetries) {
+        const delay = retryDelay * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      if (notifyErrorToast) {
+        emitApiToast('Network error. Check API connectivity and try again.', 'warning');
+      }
+
+      throw error;
+    }
   }
 
-  try {
-    const response = await fetch(buildApiUrl(path), init);
-    if (!response.ok && notifyErrorToast) {
-      const toastMsg = toastMessageForStatus(response.status);
-      if (toastMsg) emitApiToast(toastMsg, response.status >= 500 ? 'warning' : 'error');
-    }
-    return response;
-  } catch (error) {
-    if (notifyErrorToast) {
-      emitApiToast('Network error. Check API connectivity and try again.', 'warning');
-    }
-    throw error;
+  // All retries exhausted
+  if (lastError instanceof Response) {
+    return lastError;
   }
+  throw lastError;
 }
 
 export async function apiJson(path, options = {}) {

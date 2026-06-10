@@ -60,6 +60,10 @@ export default function WorkflowEditor() {
   const [saveMsg, setSaveMsg] = useState(null);
   const [testResult, setTestResult] = useState(null);
   const [executionResult, setExecutionResult] = useState(null);
+  // DEF-008: Save error retry with backoff
+  const [saveError, setSaveError] = useState(null);
+  const [saveRetryCount, setSaveRetryCount] = useState(0);
+  const [saveRetryDelay, setSaveRetryDelay] = useState(0);
   const [executionForm, setExecutionForm] = useState({
     message: 'Where is my order ORD-1001?',
     customer_id: 'cust_1001',
@@ -84,21 +88,76 @@ export default function WorkflowEditor() {
     return workflow?.active_version || versions[versions.length - 1]?.version || 'draft';
   }, [workflow]);
 
-  const handleSave = useCallback(async () => {
-    if (!allowSave || !draftGraph) return;
-    setSaving(true);
-    setSaveMsg(null);
-    try {
-      await updateWorkflow(id, { step_definitions: draftGraph });
-      setSaveMsg('Saved');
-      setTimeout(() => setSaveMsg(null), 2500);
-    } catch (error) {
-      console.error(error);
-      setSaveMsg('Save failed');
-    } finally {
-      setSaving(false);
-    }
-  }, [allowSave, draftGraph, id]);
+  // DEF-008: Handle save with exponential backoff retry
+  const handleSave = useCallback(
+    async (isRetry = false) => {
+      if (!allowSave || !draftGraph) return;
+
+      if (!isRetry) {
+        setSaving(true);
+        setSaveMsg(null);
+        setSaveError(null);
+        setSaveRetryCount(0);
+        setSaveRetryDelay(0);
+      }
+
+      try {
+        await updateWorkflow(id, { step_definitions: draftGraph });
+        setSaveMsg('Saved');
+        setSaveError(null);
+        setSaveRetryCount(0);
+        setTimeout(() => setSaveMsg(null), 2500);
+        setSaving(false);
+      } catch (error) {
+        console.error('Save error:', error);
+
+        // Implement exponential backoff retry
+        const maxRetries = 5;
+        const newRetryCount = saveRetryCount + 1;
+
+        if (newRetryCount < maxRetries) {
+          // Calculate exponential backoff: 1s, 2s, 4s, 8s, 16s (max)
+          const delayMs = Math.min(1000 * Math.pow(2, newRetryCount - 1), 16000);
+
+          setSaveError({
+            message: `Save failed. Retrying in ${Math.round(delayMs / 1000)}s...`,
+            fullError: error.message,
+            isRetrying: true,
+            retryCount: newRetryCount,
+            maxRetries,
+          });
+
+          setSaveRetryCount(newRetryCount);
+          setSaveRetryDelay(delayMs);
+
+          // Auto-retry after backoff delay
+          setTimeout(() => {
+            handleSave(true);
+          }, delayMs);
+        } else {
+          // Max retries exceeded
+          setSaveError({
+            message: `Save failed after ${maxRetries} attempts. Check your network connection and try again.`,
+            fullError: error.message,
+            isRetrying: false,
+            retryCount: newRetryCount,
+            maxRetries,
+          });
+
+          setSaveMsg('Save failed');
+          setSaving(false);
+        }
+      }
+    },
+    [allowSave, draftGraph, id, saveRetryCount]
+  );
+
+  // DEF-008: Manual retry handler
+  const handleSaveRetry = useCallback(() => {
+    setSaveRetryDelay(0);
+    setSaveRetryCount(0);
+    handleSave(false);
+  }, [handleSave]);
 
   const handleTestRun = useCallback(async () => {
     if (!allowSave) return;
@@ -210,19 +269,60 @@ export default function WorkflowEditor() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* DEF-008: Save status and error messages */}
           {saveMsg && (
             <span
               style={{
                 fontSize: 12,
-                color: saveMsg === 'Saved' ? '#166534' : 'var(--md-on-error-container)',
+                color: saveMsg === '✅ Saved' ? '#166534' : 'var(--md-on-error-container)',
                 padding: '4px 10px',
                 borderRadius: 999,
-                background: saveMsg === 'Saved' ? '#dcfce7' : 'var(--md-error-container)',
+                background: saveMsg === '✅ Saved' ? '#dcfce7' : 'var(--md-error-container)',
               }}
             >
               {saveMsg}
             </span>
           )}
+
+          {/* Error banner with retry button */}
+          {saveError && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  color: '#991b1b',
+                  padding: '4px 10px',
+                  borderRadius: 999,
+                  background: '#fee2e2',
+                  border: '1px solid #fca5a5',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {saveError.isRetrying ? '🔄 ' : '❌ '}
+                {saveError.message}
+              </span>
+              {!saveError.isRetrying && (
+                <button
+                  onClick={handleSaveRetry}
+                  disabled={saving}
+                  style={{
+                    fontSize: 11,
+                    padding: '4px 8px',
+                    background: '#2563eb',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    opacity: saving ? 0.6 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {saving ? 'Retrying...' : 'Retry Now'}
+                </button>
+              )}
+            </div>
+          )}
+
           <button
             onClick={handleTestRun}
             disabled={testing || !allowSave}

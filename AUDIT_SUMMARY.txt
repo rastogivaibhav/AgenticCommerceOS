@@ -1,0 +1,152 @@
+================================================================================
+ACOS QA/UX AUDIT - PHASE 1 EXECUTION PLAN
+================================================================================
+
+PROJECT: ACOS Control Plane
+DATE: 2026-04-15
+STATUS: ✅ PHASE 1 PLAN COMPLETE - READY FOR EXECUTION
+
+================================================================================
+WHAT WAS DELIVERED
+================================================================================
+
+1. ✅ COMPLETE PHASE 1 EXECUTION PLAN
+   File: docs/PHASE_1_QA_AUDIT_ACOS.md
+   
+   Content:
+   - Detailed discovery of all 7 screens
+   - 8 detailed state matrices (Workflows, Agents, Skills, Channels, etc.)
+   - Component state documentation (Buttons, Tables, Forms, Modals, etc.)
+   - 30+ example test cases with full template
+   - Baseline defect audit methodology
+   - Test infrastructure setup guide
+   
+   Size: Comprehensive guide (2,000+ lines of structured documentation)
+
+2. ✅ NEXT STEPS & UNBLOCKING GUIDE
+   File: docs/PHASE_1_NEXT_STEPS.md
+   
+   Content:
+   - What's blocking Phase 2 (authentication issues)
+   - How to unblock auth (3 options provided)
+   - Immediate action items (this week)
+   - Docker commands for reference
+   - FAQ and support
+
+3. ✅ DISCOVERY FINDINGS (Initial Audit)
+   
+   App Structure:
+   - 7 main screens (Workflows, Agents, Skills, Channels, Analytics, Tenants, Demo Routes)
+   - React + Vite frontend at localhost:5173/ui/
+   - Python backend (Ops API, Shopper API, Chat API)
+   - PostgreSQL database
+   
+   Current Issues:
+   - 🔴 Authentication blocked (403 on /api/v1/ops/context)
+   - 🔴 Workflows endpoint returns 404
+   - 🔴 "Not authenticated" displayed in header
+   - 🟡 Create buttons disabled without explanation
+   - 🟡 Missing error messages and tooltips
+
+================================================================================
+PHASE 1 TASKS (6 Tasks × ~2-3 days each)
+================================================================================
+
+TASK 1: Authentication & Role Mapping
+  - Discover how auth works in ACOS
+  - Map roles → screens → permissions
+  - Create test accounts for testing
+  Status: 🔴 BLOCKED (need auth working first)
+  
+TASK 2: Screen State Documentation
+  - Document all states for each screen (empty, loading, error, success, etc.)
+  - Capture states with screenshots
+  - 8 screens × 5+ states = 40+ documented states
+  Status: ⏳ PENDING (waiting on auth)
+  
+TASK 3: Component State Documentation
+  - Document all reusable UI components
+  - Variants, states, accessibility requirements
+  Status: ⏳ PENDING
+  
+TASK 4: Test Case Matrix (200+ Tests)
+  - Design comprehensive test cases
+  - For each screen × feature × scenario
+  - Include preconditions, steps, expected results
+  Status: ⏳ PENDING
+  
+TASK 5: Baseline Defect Audit
+  - Log all issues found during discovery
+  - Prioritize by severity (High, Medium, Low)
+  Status: ⏳ PENDING
+  
+TASK 6: Test Infrastructure Setup
+  - Create test accounts and credentials
+  - Seed test data in database
+  - Setup Playwright fixtures for automation
+  Status: ⏳ PENDING
+
+================================================================================
+CRITICAL BLOCKER
+================================================================================
+
+Auth System Not Working in Dev
+- Header shows "Not authenticated"
+- Cannot test logged-in screens
+- All Create buttons disabled
+- API endpoints return 403/404
+
+UNBLOCK ACTION:
+Option A: Enable insecure dev auth (fastest)
+  → Set ALLOW_INSECURE_DEV_AUTH=1 in .env
+  → Restart Docker: docker-compose down && docker-compose up -d
+  
+Option B: Create JWT tokens manually
+  → Check Ops API docs at http://localhost:8081/docs
+  → Generate test tokens for admin/operator/read-only roles
+  
+Option C: Get help from backend team
+  → Ask: "How do we authenticate in dev environment?"
+  → Request test user credentials
+
+================================================================================
+TIMELINE
+================================================================================
+
+Phase 1 (2 weeks):
+- Week 1: Unblock auth + Complete Tasks 1-3
+- Week 2: Complete Tasks 4-6 + Approve deliverables
+
+Phase 2 (4-6 weeks):
+- Execute 200+ test cases
+- Accessibility audit (WCAG 2.1 AA)
+- Design system specification
+- Automated test creation
+
+Phase 3+ (ongoing):
+- Governance & continuous improvement
+- Monthly test execution
+- Design system updates
+
+================================================================================
+WHAT TO DO NEXT
+================================================================================
+
+1. READ: docs/PHASE_1_QA_AUDIT_ACOS.md (full plan)
+2. READ: docs/PHASE_1_NEXT_STEPS.md (immediate actions)
+3. UNBLOCK: Get authentication working (see CRITICAL BLOCKER above)
+4. EXECUTE: Tasks 1-6 following the plan
+5. DELIVER: Upload completed deliverables to docs/ directory
+6. REVIEW: Schedule Phase 1 approval review
+
+================================================================================
+FILES CREATED
+================================================================================
+
+✅ docs/PHASE_1_QA_AUDIT_ACOS.md (main plan, 2000+ lines)
+✅ docs/PHASE_1_NEXT_STEPS.md (implementation guide)
+✅ docs/qa-audit-discovery.md (initial findings)
+
+Ready for Phase 1 execution? Unblock authentication first.
+
+================================================================================

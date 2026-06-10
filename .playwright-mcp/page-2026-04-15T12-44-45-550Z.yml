@@ -1,0 +1,120 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - navigation "Main navigation" [ref=e5]:
+      - link "Workflows" [ref=e6] [cursor=pointer]:
+        - /url: /ui/workflows
+        - img [ref=e8]
+        - generic [ref=e12]: Workflows
+      - link "Channels" [ref=e13] [cursor=pointer]:
+        - /url: /ui/channels
+        - img [ref=e15]
+        - generic [ref=e17]: Channels
+      - link "Routes" [ref=e18] [cursor=pointer]:
+        - /url: /ui/demo-routes
+        - img [ref=e20]
+        - generic [ref=e24]: Routes
+      - link "Agents" [ref=e25] [cursor=pointer]:
+        - /url: /ui/agents
+        - img [ref=e27]
+        - generic [ref=e32]: Agents
+      - link "Skills" [ref=e33] [cursor=pointer]:
+        - /url: /ui/skills
+        - img [ref=e35]
+        - generic [ref=e37]: Skills
+      - link "Analytics" [ref=e38] [cursor=pointer]:
+        - /url: /ui/analytics
+        - img [ref=e40]
+        - generic [ref=e41]: Analytics
+      - link "Tenants" [ref=e42] [cursor=pointer]:
+        - /url: /ui/tenants
+        - img [ref=e44]
+        - generic [ref=e48]: Tenants
+  - generic [ref=e49]:
+    - banner [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e53]: ACOS
+        - generic [ref=e54]:
+          - heading "Channel Onboarding" [level=1] [ref=e55]
+          - paragraph [ref=e56]: Governed retail and customer-service operations across workflows, channels, agents, and runtime controls.
+        - button "Switch to dark mode" [ref=e57]:
+          - img [ref=e58]
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - generic [ref=e63]: User
+          - strong [ref=e64]: Loading
+        - generic [ref=e65]:
+          - generic [ref=e66]: Role
+          - strong [ref=e67]: ...
+        - generic [ref=e68]:
+          - generic [ref=e69]: Tenant
+          - strong [ref=e70]: default
+        - generic [ref=e71]:
+          - generic [ref=e72]: Env
+          - strong [ref=e73]: ...
+        - generic [ref=e74]:
+          - generic [ref=e75]: Run Mode
+          - strong [ref=e76]: ...
+        - generic [ref=e77]:
+          - generic [ref=e78]: Data
+          - strong [ref=e79]: ...
+        - generic [ref=e80]:
+          - generic [ref=e81]: LLM
+          - strong [ref=e82]: ...
+    - main [ref=e83]:
+      - generic [ref=e84]:
+        - generic [ref=e86]:
+          - generic [ref=e87]: Channel Operations
+          - heading "WhatsApp and Telegram" [level=1] [ref=e88]
+          - paragraph [ref=e89]: Connect customer-facing messaging channels to governed workflows, verify health honestly, approve unknown senders, and test outbound delivery before routing real traffic.
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - generic [ref=e92]: Linked channels
+            - strong [ref=e93]: "0"
+            - generic [ref=e94]: Bindings saved in the control plane for operator use.
+          - generic [ref=e95]:
+            - generic [ref=e96]: Live probes
+            - strong [ref=e97]: "0"
+            - generic [ref=e98]: Channels whose latest connector probe returned healthy live status.
+          - generic [ref=e99]:
+            - generic [ref=e100]: Pending approvals
+            - strong [ref=e101]: "0"
+            - generic [ref=e102]: Unknown senders waiting for explicit operator approval.
+          - generic [ref=e103]:
+            - generic [ref=e104]: Pairing entrypoints
+            - strong [ref=e105]: "0"
+            - generic [ref=e106]: Scan-to-start or deep-link entrypoints currently exposed.
+        - generic [ref=e107]:
+          - generic [ref=e109]:
+            - generic [ref=e110]:
+              - generic [ref=e111]: Linked Channels
+              - heading "Current State" [level=2] [ref=e112]
+            - generic [ref=e113]:
+              - generic [ref=e114]: Approval Queue
+              - heading "Unknown Senders" [level=2] [ref=e115]
+              - generic [ref=e117]: No pending approvals.
+          - generic [ref=e119]:
+            - generic [ref=e121]:
+              - generic [ref=e122]: Onboarding
+              - heading "Link Channels" [level=2] [ref=e123]
+            - generic [ref=e124]:
+              - generic [ref=e125]:
+                - heading "WhatsApp" [level=3] [ref=e126]
+                - textbox "Identity" [ref=e127]: WhatsApp Support
+                - textbox "Verify token" [ref=e128]
+                - textbox "Access token" [ref=e129]
+                - textbox "Phone number ID" [ref=e130]
+                - textbox "Start chat number (+447...)" [ref=e131]
+                - textbox "Default test recipient (+447...)" [ref=e132]
+                - generic [ref=e133]: "Webhook verify URL: http://localhost:5173/api/v1/connectors/whatsapp/webhook"
+                - generic [ref=e134]: Meta must call the URL above with your verify token. The channel only becomes live when the probe succeeds.
+                - generic [ref=e135]: Add a start chat number if you want scan-to-start QR links before live probe metadata is available.
+                - generic [ref=e136]: Add a default test recipient to make outbound validation predictable before a real customer sender is paired.
+                - button "Link WhatsApp" [ref=e137] [cursor=pointer]
+              - generic [ref=e138]:
+                - heading "Telegram" [level=3] [ref=e139]
+                - textbox "Identity" [ref=e140]: ACOS Ops Bot
+                - textbox "Bot token" [ref=e141]
+                - textbox "Default chat ID" [ref=e142]
+                - textbox "Bot username" [ref=e143]
+                - generic [ref=e144]: Add the bot username if you want scan-to-start QR links for Telegram deep links.
+                - button "Link Telegram" [ref=e145] [cursor=pointer]

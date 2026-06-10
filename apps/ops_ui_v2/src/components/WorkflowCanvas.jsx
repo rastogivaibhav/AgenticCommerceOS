@@ -309,6 +309,10 @@ function FlowEngine({ initialGraph, onGraphChange }) {
   const reactFlowWrapper = useRef(null);
   const { screenToFlowPosition, toObject } = useReactFlow();
 
+  // DEF-007: Simpler approach - just call onNodesChange normally
+  // The useEffect dependency on 'nodes' already triggers onGraphChange
+  // No need for custom event emission
+
   const onConnect = useCallback(
     (params) => {
       setEdges((existing) =>
