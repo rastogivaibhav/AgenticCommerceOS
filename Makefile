@@ -1,9 +1,9 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup test test-northstar ui-build compose-up compose-prod-up compose-down smoke smoke-northstar runtime-check evidence-pack db-migrate db-migrate-sql
+.PHONY: help setup test test-northstar ui-build compose-up compose-prod-up compose-down ecom-demo-up ecom-demo-down ecom-demo-verify ecom-demo-playwright smoke smoke-northstar runtime-check evidence-pack db-migrate db-migrate-sql
 
 help:
-	@echo "ACOS commands: setup | test | test-northstar | ui-build | compose-up | compose-prod-up | compose-down | smoke | smoke-northstar | runtime-check | evidence-pack | db-migrate | db-migrate-sql"
+	@echo "ACOS commands: setup | test | test-northstar | ui-build | compose-up | compose-prod-up | compose-down | ecom-demo-up | ecom-demo-verify | ecom-demo-playwright | ecom-demo-down | smoke | smoke-northstar | runtime-check | evidence-pack | db-migrate | db-migrate-sql"
 
 setup:
 	python -m pip install -r requirements-dev.txt
@@ -29,6 +29,22 @@ compose-prod-up:
 compose-down:
 	docker compose down || true
 	docker compose -f docker-compose.prod.yml down || true
+	docker compose --env-file .env.ecom-demo -f docker-compose.yml -f docker-compose.ecom-demo.yml down || true
+
+ecom-demo-up:
+	@test -f .env.ecom-demo || cp .env.ecom-demo.example .env.ecom-demo
+	docker compose --env-file .env.ecom-demo -f docker-compose.yml -f docker-compose.ecom-demo.yml up --build -d
+
+ecom-demo-down:
+	docker compose --env-file .env.ecom-demo -f docker-compose.yml -f docker-compose.ecom-demo.yml down
+
+ecom-demo-verify:
+	@test -f .env.ecom-demo || cp .env.ecom-demo.example .env.ecom-demo
+	python scripts/ecom_demo_verify.py --env-file .env.ecom-demo
+
+ecom-demo-playwright:
+	npm --prefix harness/playwright install
+	npm --prefix harness/playwright run test:ecom-demo
 
 smoke:
 	python scripts/northstar_smoke.py
