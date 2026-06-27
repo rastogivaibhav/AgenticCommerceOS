@@ -18,7 +18,6 @@ from typing import Any, Iterator
 from acosplatform.northstar import postgres_repository
 
 _DB_LOCK = RLock()
-_SCHEMA_INITIALIZED = False
 
 
 def _use_postgres() -> bool:
@@ -52,9 +51,6 @@ def _connect() -> Iterator[sqlite3.Connection]:
 
 
 def ensure_schema() -> None:
-    global _SCHEMA_INITIALIZED
-    if _SCHEMA_INITIALIZED:
-        return
     with _DB_LOCK, _connect() as conn:
         conn.executescript(
             """
@@ -136,7 +132,6 @@ def ensure_schema() -> None:
               ON replay_runs(correlation_id);
             """
         )
-    _SCHEMA_INITIALIZED = True
 
 
 def _decode_row(row: sqlite3.Row | None) -> dict[str, Any] | None:

@@ -10,10 +10,13 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-def _database_url() -> str:
+def _database_url(*, allow_offline_placeholder: bool = False) -> str:
     url = os.environ.get("ACOS_NORTHSTAR_DATABASE_URL") or os.environ.get("DATABASE_URL")
     if not url:
-        raise RuntimeError("DATABASE_URL or ACOS_NORTHSTAR_DATABASE_URL is required for Alembic migrations")
+        if allow_offline_placeholder:
+            url = "postgresql://acos:acos@localhost:5432/acos"
+        else:
+            raise RuntimeError("DATABASE_URL or ACOS_NORTHSTAR_DATABASE_URL is required for Alembic migrations")
     if url.startswith("postgresql+psycopg://"):
         return url
     if url.startswith("postgres://"):
@@ -24,7 +27,7 @@ def _database_url() -> str:
 
 
 def run_migrations_offline() -> None:
-    context.configure(url=_database_url(), literal_binds=True, dialect_opts={"paramstyle": "named"})
+    context.configure(url=_database_url(allow_offline_placeholder=True), literal_binds=True, dialect_opts={"paramstyle": "named"})
     with context.begin_transaction():
         context.run_migrations()
 

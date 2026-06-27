@@ -19,6 +19,24 @@ def test_test_plan_endpoint_lists_runtime_ui_db_and_mcp_checks():
     client = TestClient(app)
     response = client.get('/api/northstar/test-plan')
     assert response.status_code == 200
-    checks = response.json()['checks']
+    payload = response.json()
+    checks = payload['checks']
     ids = {check['id'] for check in checks}
     assert {'smoke.golden_journey', 'ui.build', 'db.migration_sql', 'compose.prod', 'mcp.client', 'graphql.studio'}.issubset(ids)
+    assert payload['hardening']['summary']['phase_count'] == 7
+
+
+def test_hardening_gates_endpoint_lists_all_enterprise_phases():
+    client = TestClient(app)
+    response = client.get('/api/northstar/hardening-gates')
+    assert response.status_code == 200
+    payload = response.json()
+    phases = payload['phases']
+    assert len(phases) == 7
+    titles = {phase['title'] for phase in phases}
+    assert 'Enterprise Identity, RBAC, And Secure Defaults' in titles
+    assert 'Tenant Isolation And Data Boundaries' in titles
+    assert 'Connector Certification' in titles
+    assert 'Business Outcome Proof' in titles
+    assert all(phase['total_gates'] >= 4 for phase in phases)
+    assert payload['summary']['external_blockers'] >= 1
