@@ -1,119 +1,83 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/rastogivaibhav/AgenticCommerceOS/main/docs/assets/acos_logo.png" alt="ACOS Logo" width="200" />
-  <h1>Agentic Commerce OS (ACOS)</h1>
-  <p><b>The Federated Control Plane for Governed AI Retail & Service Operations</b></p>
+# Agentic Commerce OS
 
-  [![GitHub Repo](https://img.shields.io/badge/GitHub-AgenticCommerceOS-181717?logo=github)](https://github.com/rastogivaibhav/AgenticCommerceOS)
-  [![License](https://img.shields.io/badge/license-Apache%202.0-green)](./LICENSE)
-  [![Release](https://img.shields.io/badge/GA-v1.0.0-blue)](./CHANGELOG.md)
-  [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB)](https://www.python.org/)
-  [![Docker](https://img.shields.io/badge/docker-ready-2496ED)](./docker-compose.yml)
+Agentic Commerce OS (ACOS) is a governed control plane for agentic retail and service operations. It is designed to let commerce teams orchestrate AI-assisted journeys while keeping money movement, inventory changes, customer commitments, approvals, audit, and rollback deterministic.
 
-  <p>
-    <a href="#-the-mission">Mission</a> •
-    <a href="#-architecture">Architecture</a> •
-    <a href="#-federated-agents">Federated Agents</a> •
-    <a href="#-quick-start">Quick Start</a> •
-    <a href="#-governance">Governance</a>
-  </p>
-</div>
+The current repository is organized around the production-shaped platform under `apps/`, `acosplatform/`, `integrations/`, `harness/`, `deploy/`, and `docs/`. Historical demos and optional live-provider checks are retained, but they are now marked separately so contributors can tell what is current.
 
----
+## Current System
 
-## 🎯 The Mission
+- `apps/ops_api/` - canonical FastAPI control plane for operators.
+- `apps/ops_ui_v2/` - canonical React/Vite operator UI.
+- `apps/shopper_api/` - shopper-facing journey API.
+- `apps/chat_api/` - chat workflow API and adapters.
+- `apps/retail_mock_api/` - local mock retail backend for demos and integration checks.
+- `apps/mcp_server/` - MCP entry point for tool-facing workflows.
+- `acosplatform/` - shared platform modules for workflows, tools, governance, tenancy, auth, observability, hardening, replay, and integrations.
+- `integrations/` - connector clients and adapter runtimes.
+- `harness/` - Python and Playwright tests.
+- `deploy/` - Kubernetes, observability, multi-tenant, and evidence assets.
 
-**ACOS** is not a chatbot. It is the **Operating System** for the future of commerce. 
+For a fuller folder-by-folder guide, see [docs/dev/repo-map.md](docs/dev/repo-map.md).
 
-In an era where customer journeys are fragmented across WhatsApp, Slack, Web, and Voice, and intelligence is scattered across Salesforce, CrewAI, and custom LLMs, ACOS provides the **Unified Control Plane**. It allows enterprise operations teams to design, approve, and orchestrate agentic workflows with the same rigour as traditional software.
+## Architecture
 
-> *"ACOS bridges the gap between 'Experimental AI' and 'Production Commerce'."*
+ACOS uses a hub-and-spoke operating model:
 
----
+1. Customer channels such as web, WhatsApp, Slack, or partner apps call shopper and chat APIs.
+2. ACOS routes journeys through governed workflow and orchestration services.
+3. Tool execution is policy-checked, auditable, and deterministic for high-risk actions.
+4. Operators use the control plane to inspect runs, approve workflows, replay traces, and monitor outcomes.
+5. External commerce systems such as OMS, ERP, CRM, payment, and catalog providers are reached through connectors or MCP-style tools.
 
-## 🏛️ Architecture: The Hub-and-Spoke Model
+## Why It Matters
 
-ACOS sits at the intersection of customer channels, AI runtimes, and enterprise ERPs.
+- Deterministic execution around orders, payments, inventory, refunds, and customer promises.
+- Human approval and policy gates for high-risk workflow promotion.
+- Replayable audit traces for incidents, compliance, and enterprise review.
+- Extensible connector/runtime model for existing APIs, MCP tools, and agent providers.
+- Operator-first UI for governance, evaluation, routing, FinOps, and production readiness.
 
-```mermaid
-graph TD
-    A[Customer Channels: WhatsApp/Web/Slack] --> B[ACOS Shopper API]
-    B --> C{ACOS Orchestrator}
-    C --> D[Agent Pool: SF/CrewAI/Vertex]
-    C --> E[Toolbox: Shopify/Stripe/OMS]
-    C --> F[Ops Console: Governance & Audit]
-    F --> G[Human-in-the-Loop Approval]
-```
-
-### Core Components
-- **Shopper API**: High-throughput runtime for journey execution.
-- **Ops API & UI**: The Governed Control Plane for workflow promotion and replay.
-- **ADK Runtime**: A unified provider abstraction for NVIDIA NIM, Google GenAI, and Local LLMs.
-- **MemoryV2**: A semantic state-management layer for cross-agent context sharing.
-
----
-
-## 🤖 Federated Agents: Unified Interoperability
-
-ACOS is the first platform designed to orchestrate **Foreign Agents** as first-class citizens. One registry to rule them all.
-
-| Agent Type | Platform | Role |
-| :--- | :--- | :--- |
-| **Agentforce** | Salesforce | CRM Deep-Dive & Case Resolution |
-| **CrewAI Swarms** | Custom | Strategic Multi-Agent Reasoning |
-| **Stripe Agent** | Stripe | Transactional Integrity & Fraud Logic |
-| **Vertex Agents** | Google Cloud | Native A2A Protocol Interop |
-
----
-
-## ⚡ Quick Start: Zero-Touch Deployment
-
-Experience the power of ACOS in under 2 minutes.
+## Quick Start
 
 ```bash
-# 1. Clone the Federated Backbone
 git clone https://github.com/rastogivaibhav/AgenticCommerceOS.git
 cd AgenticCommerceOS
-
-# 2. Configure Environment
 cp .env.example .env
-
-# 3. Launch the Stack
 docker compose up --build -d
-
-# 4. Bootstrap the Estate
 python bootstrap.py
 ```
 
-Visit the Ops Console at `http://localhost:8000/ui/` to see your agents in action.
+The main local operator entry point is `http://localhost:8000/ui/`.
 
----
+For the high-fidelity local demo stack:
 
-## 🛡️ Governance & Enterprise Readiness
+```bash
+python run_demo_suite.py
+```
 
-ACOS was built for the Enterprise Review Board (ARB). Every action is guarded by three pillars:
+## Development Checks
 
-1. **The Fast-Path/Slow-Path Model**: Reasoning is agentic; execution is deterministic. No hallucinations in your checkout flow.
-2. **JWT-Scoped Tool Access**: Agents only get permissions for the tools they need, for the duration of the trace.
-3. **Kill-Switch Thresholds**: Automated monitoring of cost and latency. If an agent (like CrewAI) exceeds its budget, ACOS automatically reverts to the **Deterministic Fallback**.
+```bash
+python -m pytest harness/python/tests/northstar -q
+python -m pytest harness/python/tests -q
+npm --prefix apps/ops_ui_v2 install
+npm --prefix apps/ops_ui_v2 run build
+```
 
----
+Some live checks under `scripts/live_checks/` require external credentials or running provider services and are not part of the default local path.
 
-## 🗺️ Roadmap: The Journey to Autonomous Commerce
+## Repository Hygiene
 
-- [x] **v1.0 (GA)**: Federated Agent Registry, MemoryV2, and NVIDIA NIM Integration.
-- [ ] **v1.1**: Native MCP (Model Context Protocol) Support for all retail connectors.
-- [ ] **v1.2**: Advanced Data Lineage Tracking for Inter-Agent Memory.
-- [ ] **v1.5**: Autonomous Workflow Optimization based on Quality Scores.
+Generated coverage files, Playwright reports, Vite logs, local vendor drops, and ad hoc output files should not be committed. Legacy or exploratory assets belong under `legacy/`, `scripts/legacy/`, or `docs/archive/`.
 
----
+## Documentation
 
-## 🤝 Contributing
+- [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) - documentation map.
+- [API.md](API.md) - API contracts and examples.
+- [TESTING.md](TESTING.md) - test strategy and commands.
+- [SECURITY.md](SECURITY.md) - security posture and vulnerability reporting.
+- [CONTRIBUTING.md](CONTRIBUTING.md) - contribution guidance.
 
-We are building the future of commerce. Join us.
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our development process and standards.
+## License
 
----
-
-<div align="center">
-  <sub>Built with ❤️ by the ACOS Engineering Team. Licensed under Apache 2.0.</sub>
-</div>
+Apache 2.0. See [LICENSE](LICENSE).

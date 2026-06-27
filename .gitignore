@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 *.log
 .env
+.venv/
 var/
 graphify-out/
 test_output*
@@ -13,3 +14,18 @@ dist/
 build/
 .vite/
 *.env*
+!.env.example
+!.env.production.example
+
+# Generated frontend and Playwright outputs
+apps/ops_ui_v2/*_out*.txt
+apps/ops_ui_v2/error.txt
+apps/ops_ui_v2/FINAL_TEST_REPORT.txt
+apps/ops_ui_v2/playwright-report*/
+**/playwright-report/
+**/test-results/
+
+# Local vendor/demo drops
+spree-main/
+spree-main.zip
+output/
