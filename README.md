@@ -51,17 +51,18 @@ API structure in `main`.
 
 ## Architecture
 
-```mermaid
-graph TD
-    Channels["Customer channels: Web, WhatsApp, Slack, Voice"] --> Shopper["Shopper API"]
-    Shopper --> Runtime["ACOS orchestration runtime"]
-    Runtime --> Agents["Agent registry and specialist agents"]
-    Runtime --> Tools["Deterministic tools and MCP/API connectors"]
-    Runtime --> Evidence["Evidence, replay, and audit store"]
-    Ops["Ops API and UI"] --> Runtime
-    Ops --> Governance["RBAC, policy, approvals, hardening gates"]
-    Governance --> Reports["Runtime and procurement readiness reports"]
-```
+ACOS is organized around a governed runtime loop:
+
+1. Customer channels send requests to the Shopper API.
+2. The ACOS orchestration runtime routes the journey across specialist agents.
+3. Agents call deterministic tools through the tool registry, MCP, or existing
+   commerce/service APIs.
+4. Evidence, replay records, policy verdicts, and tenant context are captured
+   for audit and incident response.
+5. The Ops API and Ops UI expose governance, readiness, replay, GraphQL, and
+   control-plane views.
+6. Hardening reports summarize what is locally verified and what still requires
+   external buyer-environment evidence.
 
 ## Core Components
 
