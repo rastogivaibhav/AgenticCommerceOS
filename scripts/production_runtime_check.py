@@ -52,7 +52,7 @@ def main() -> int:
             channel="web",
             channel_user_id="runtime-user",
             customer_id="runtime-customer",
-            text="I need an outfit for a winter wedding under £200, available for pickup near Reading",
+            text="I need an outfit for a winter wedding under GBP 200, available for pickup near Reading",
         )
     )
     report = {
