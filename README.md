@@ -1,119 +1,175 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/rastogivaibhav/AgenticCommerceOS/main/docs/assets/acos_logo.png" alt="ACOS Logo" width="200" />
-  <h1>Agentic Commerce OS (ACOS)</h1>
-  <p><b>The Federated Control Plane for Governed AI Retail & Service Operations</b></p>
+# Agentic Commerce OS (ACOS)
 
-  [![GitHub Repo](https://img.shields.io/badge/GitHub-AgenticCommerceOS-181717?logo=github)](https://github.com/rastogivaibhav/AgenticCommerceOS)
-  [![License](https://img.shields.io/badge/license-Apache%202.0-green)](./LICENSE)
-  [![Release](https://img.shields.io/badge/GA-v1.0.0-blue)](./CHANGELOG.md)
-  [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB)](https://www.python.org/)
-  [![Docker](https://img.shields.io/badge/docker-ready-2496ED)](./docker-compose.yml)
+ACOS is a governed control plane for agentic retail and service operations. It
+coordinates customer-facing channels, agent runtimes, deterministic tools,
+operator workflows, evidence capture, and production-readiness reporting.
 
-  <p>
-    <a href="#-the-mission">Mission</a> •
-    <a href="#-architecture">Architecture</a> •
-    <a href="#-federated-agents">Federated Agents</a> •
-    <a href="#-quick-start">Quick Start</a> •
-    <a href="#-governance">Governance</a>
-  </p>
-</div>
+This repository's `main` branch is the canonical codebase. Older local snapshots
+may contain additional demos and experimental routers; those are being ported
+back as focused review branches instead of being copied wholesale over `main`.
 
----
+## Current Status
 
-## 🎯 The Mission
+As of June 27, 2026:
 
-**ACOS** is not a chatbot. It is the **Operating System** for the future of commerce. 
+- Phase 1-7 hardening gates are merged into `main` through PR #9.
+- The production runtime check passes locally and writes
+  `docs/release/production-runtime-check.json`.
+- The north-star Python test suite passed before merge: `40 passed`.
+- Ops UI production build passed before merge.
+- Spree ecommerce demo assets are staged separately in draft PR #10.
+- Ops approval/workflow/run/promotion/incident assets are staged separately in
+  draft PR #11.
 
-In an era where customer journeys are fragmented across WhatsApp, Slack, Web, and Voice, and intelligence is scattered across Salesforce, CrewAI, and custom LLMs, ACOS provides the **Unified Control Plane**. It allows enterprise operations teams to design, approve, and orchestrate agentic workflows with the same rigour as traditional software.
+The platform is locally verified with external blockers. It is not yet
+procurement-certified for a specific buyer environment until live connector,
+identity-provider, compliance, operator-UAT, deployment, and paid-pilot evidence
+is supplied.
 
-> *"ACOS bridges the gap between 'Experimental AI' and 'Production Commerce'."*
+## What Is In `main`
 
----
+- Shopper, Ops, Chat, MCP, and north-star API surfaces.
+- A modular Ops API with north-star and v2 control-plane routers.
+- Deterministic golden retail journey execution for local validation.
+- Evidence, replay, tenant, RBAC, GraphQL, MCP, and runtime-readiness surfaces.
+- Phase 1-7 hardening gate reporting.
+- Tool policy evaluation for high-risk tool calls.
+- Connector certification and business outcome KPI contracts.
+- Docker Compose assets for local and production-like runtime checks.
 
-## 🏛️ Architecture: The Hub-and-Spoke Model
+## What Is Not Yet In `main`
 
-ACOS sits at the intersection of customer channels, AI runtimes, and enterprise ERPs.
+The following local-only assets are intentionally staged as separate draft PRs:
+
+- PR #10: Spree ecommerce demo, enhanced Spree Store API client, webhook ingress,
+  demo compose/env/scripts/docs, Playwright demo, and Spree tests.
+- PR #11: Ops approval, workflow, run, promotion, and incident-response routers
+  plus their UAT fixture package.
+
+Those PRs are additive and deliberately do not overwrite the newer modular Ops
+API structure in `main`.
+
+## Architecture
 
 ```mermaid
 graph TD
-    A[Customer Channels: WhatsApp/Web/Slack] --> B[ACOS Shopper API]
-    B --> C{ACOS Orchestrator}
-    C --> D[Agent Pool: SF/CrewAI/Vertex]
-    C --> E[Toolbox: Shopify/Stripe/OMS]
-    C --> F[Ops Console: Governance & Audit]
-    F --> G[Human-in-the-Loop Approval]
+    Channels["Customer channels: Web, WhatsApp, Slack, Voice"] --> Shopper["Shopper API"]
+    Shopper --> Runtime["ACOS orchestration runtime"]
+    Runtime --> Agents["Agent registry and specialist agents"]
+    Runtime --> Tools["Deterministic tools and MCP/API connectors"]
+    Runtime --> Evidence["Evidence, replay, and audit store"]
+    Ops["Ops API and UI"] --> Runtime
+    Ops --> Governance["RBAC, policy, approvals, hardening gates"]
+    Governance --> Reports["Runtime and procurement readiness reports"]
 ```
 
-### Core Components
-- **Shopper API**: High-throughput runtime for journey execution.
-- **Ops API & UI**: The Governed Control Plane for workflow promotion and replay.
-- **ADK Runtime**: A unified provider abstraction for NVIDIA NIM, Google GenAI, and Local LLMs.
-- **MemoryV2**: A semantic state-management layer for cross-agent context sharing.
+## Core Components
 
----
+- `apps/ops_api`: governed control-plane API, north-star APIs, GraphQL, RBAC,
+  readiness, replay, and v2 surfaces.
+- `apps/ops_ui_v2`: React-based Ops UI.
+- `apps/shopper_api`: shopper-facing runtime entrypoint.
+- `apps/chat_api`: chat/channel API.
+- `apps/mcp_server`: MCP tool surface.
+- `acosplatform/orchestration`: deterministic multi-agent journey runtime.
+- `acosplatform/tools`: tool registry, execution, and policy enforcement.
+- `acosplatform/hardening`: Phase 1-7 readiness gate reporting.
+- `acosplatform/connectors`: connector certification contracts.
+- `acosplatform/outcomes`: pilot KPI and business outcome contracts.
+- `db`, `migrations`: schema and Alembic migration support.
+- `harness`: Python and Playwright validation assets.
 
-## 🤖 Federated Agents: Unified Interoperability
-
-ACOS is the first platform designed to orchestrate **Foreign Agents** as first-class citizens. One registry to rule them all.
-
-| Agent Type | Platform | Role |
-| :--- | :--- | :--- |
-| **Agentforce** | Salesforce | CRM Deep-Dive & Case Resolution |
-| **CrewAI Swarms** | Custom | Strategic Multi-Agent Reasoning |
-| **Stripe Agent** | Stripe | Transactional Integrity & Fraud Logic |
-| **Vertex Agents** | Google Cloud | Native A2A Protocol Interop |
-
----
-
-## ⚡ Quick Start: Zero-Touch Deployment
-
-Experience the power of ACOS in under 2 minutes.
+## Quick Start
 
 ```bash
-# 1. Clone the Federated Backbone
 git clone https://github.com/rastogivaibhav/AgenticCommerceOS.git
 cd AgenticCommerceOS
-
-# 2. Configure Environment
 cp .env.example .env
-
-# 3. Launch the Stack
-docker compose up --build -d
-
-# 4. Bootstrap the Estate
-python bootstrap.py
+docker compose up --build
 ```
 
-Visit the Ops Console at `http://localhost:8000/ui/` to see your agents in action.
+Default local endpoints from `docker-compose.yml`:
 
----
+- Shopper API: `http://localhost:8080`
+- Ops API: `http://localhost:8081`
+- Chat API: `http://localhost:8001`
+- Postgres: `127.0.0.1:5432`
 
-## 🛡️ Governance & Enterprise Readiness
+The production-like compose file uses different ports:
 
-ACOS was built for the Enterprise Review Board (ARB). Every action is guarded by three pillars:
+- Ops API: `http://localhost:8000`
+- Ops UI: `http://localhost:3001`
+- Shopper API: `http://localhost:9005`
+- Retail mock API: `http://localhost:9006`
 
-1. **The Fast-Path/Slow-Path Model**: Reasoning is agentic; execution is deterministic. No hallucinations in your checkout flow.
-2. **JWT-Scoped Tool Access**: Agents only get permissions for the tools they need, for the duration of the trace.
-3. **Kill-Switch Thresholds**: Automated monitoring of cost and latency. If an agent (like CrewAI) exceeds its budget, ACOS automatically reverts to the **Deterministic Fallback**.
+## Local Verification
 
----
+Useful verification commands:
 
-## 🗺️ Roadmap: The Journey to Autonomous Commerce
+```bash
+python -m pytest harness/python/tests/northstar -q
+python scripts/production_runtime_check.py
+alembic upgrade head --sql
+npm --prefix apps/ops_ui_v2 ci
+npm --prefix apps/ops_ui_v2 run build
+```
 
-- [x] **v1.0 (GA)**: Federated Agent Registry, MemoryV2, and NVIDIA NIM Integration.
-- [ ] **v1.1**: Native MCP (Model Context Protocol) Support for all retail connectors.
-- [ ] **v1.2**: Advanced Data Lineage Tracking for Inter-Agent Memory.
-- [ ] **v1.5**: Autonomous Workflow Optimization based on Quality Scores.
+The runtime checker reports:
 
----
+- Golden journey status.
+- Participating agents.
+- Tool and evidence counts.
+- Alembic migration availability.
+- Redis/runtime configuration posture.
+- Phase 1-7 hardening gate status.
 
-## 🤝 Contributing
+## Hardening Reality
 
-We are building the future of commerce. Join us.
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for details on our development process and standards.
+Locally verified phases in the merged hardening report:
 
----
+- Phase 1: Enterprise identity, RBAC, and secure defaults.
+- Phase 2: Tenant isolation and data boundaries.
+- Phase 5: Workflow Studio and operator UX API surface.
+- Phase 6: Production runtime and deployment certification assets.
+- Phase 7: Business outcome proof contract.
 
-<div align="center">
-  <sub>Built with ❤️ by the ACOS Engineering Team. Licensed under Apache 2.0.</sub>
-</div>
+Partial phases requiring external evidence:
+
+- Phase 3: Connector certification. A live commerce connector must be certified
+  with credentials, webhooks, idempotency, and failure drills.
+- Phase 4: Policy, risk, and compliance. Buyer-specific PII, PCI, DLP, retention,
+  legal-hold, and model-risk controls must be mapped and tested.
+
+External blockers still required for procurement-grade certification:
+
+- Buyer SSO/OIDC/SAML integration.
+- Negative tenant-isolation tests against real Postgres/RLS.
+- Live connector certification.
+- Compliance-control mapping.
+- Operator UAT for promotion, pause, rollback, and incident handling.
+- Target-infrastructure deployment, backup/restore, load, and DR testing.
+- Paid-pilot KPI measurement.
+
+## Known Residuals
+
+- `npm --prefix apps/ops_ui_v2 test -- --run` has test drift against current UI
+  copy and API assumptions.
+- `npm --prefix apps/ops_ui_v2 audit --audit-level=moderate` still reports
+  Monaco -> DOMPurify moderate advisories that `npm audit fix` cannot resolve
+  under the current dependency range.
+- Spree demo and Ops workflow assets are not mounted in `main` yet; they are in
+  draft PRs for focused review.
+
+## Development Notes
+
+- Keep `main` canonical.
+- Port local-only work in focused branches.
+- Avoid copying the local monolithic `apps/ops_api/main.py` over the remote
+  modular API.
+- Distinguish local verification from live buyer certification.
+- Prefer deterministic tool execution for money, inventory, and customer
+  commitments.
+
+## License
+
+Licensed under Apache 2.0. See [LICENSE](./LICENSE).
