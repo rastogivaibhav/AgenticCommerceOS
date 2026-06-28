@@ -28,6 +28,7 @@ jobs:
     env:
       OPS_ENVIRONMENT: dev
       ALLOW_INSECURE_DEV_AUTH: '1'
+      ACOS_ENABLE_UAT_COMPAT_API: '1'
       DATABASE_URL: postgresql://acos:acos@localhost:5432/acos
       ACOS_NORTHSTAR_STORE: postgres
       ACOS_V2_STORE: sqlite
