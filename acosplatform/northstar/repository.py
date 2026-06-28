@@ -11,13 +11,30 @@ import json
 import os
 import sqlite3
 from contextlib import contextmanager
+from datetime import date, datetime
+from decimal import Decimal
 from pathlib import Path
 from threading import RLock
 from typing import Any, Iterator
+from uuid import UUID
 
 from acosplatform.northstar import postgres_repository
 
 _DB_LOCK = RLock()
+
+
+def _json_default(value: Any) -> Any:
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, UUID):
+        return str(value)
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
+def _json_dumps(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, default=_json_default)
 
 
 def _use_postgres() -> bool:
@@ -26,6 +43,7 @@ def _use_postgres() -> bool:
 def _try_postgres(function_name: str, *args: Any, **kwargs: Any) -> Any:
     if not _use_postgres():
         raise RuntimeError("postgres backend not enabled")
+    postgres_repository.ensure_schema()
     fn = getattr(postgres_repository, function_name)
     return fn(*args, **kwargs)
 
@@ -149,6 +167,8 @@ def _decode_row(row: sqlite3.Row | None) -> dict[str, Any] | None:
 
 
 def reset_all() -> None:
+    if _use_postgres():
+        return _try_postgres("reset_all")
     ensure_schema()
     with _DB_LOCK, _connect() as conn:
         for table in ("replay_runs", "evidence_events", "messages", "journeys", "channel_identity_index", "conversation_sessions"):
@@ -312,20 +332,9 @@ def save_evidence_event(event: dict[str, Any]) -> None:
         )
 
 
-def list_evidence_events(
-    correlation_id: str | None = None,
-    journey_id: str | None = None,
-    tenant_id: str | None = None,
-    limit: int = 100,
-) -> list[dict[str, Any]]:
+def list_evidence_events(correlation_id: str | None = None, journey_id: str | None = None, limit: int = 100) -> list[dict[str, Any]]:
     if _use_postgres():
-        return _try_postgres(
-            "list_evidence_events",
-            correlation_id=correlation_id,
-            journey_id=journey_id,
-            tenant_id=tenant_id,
-            limit=limit,
-        )
+        return _try_postgres("list_evidence_events", correlation_id=correlation_id, journey_id=journey_id, limit=limit)
     ensure_schema()
     params: list[Any] = []
     where: list[str] = []
@@ -335,9 +344,6 @@ def list_evidence_events(
     if journey_id:
         where.append("journey_id = ?")
         params.append(journey_id)
-    if tenant_id:
-        where.append("tenant_id = ?")
-        params.append(tenant_id)
     sql = "SELECT * FROM evidence_events"
     if where:
         sql += " WHERE " + " AND ".join(where)
@@ -402,8 +408,8 @@ def save_replay_run(replay: dict[str, Any]) -> None:
             """,
             (
                 replay["id"], replay["tenant_id"], replay.get("conversation_session_id"), replay.get("journey_id"),
-                replay["correlation_id"], json.dumps(replay.get("request") or {}, sort_keys=True),
-                json.dumps(replay.get("result") or {}, sort_keys=True), replay.get("status", "captured"), replay["created_at"],
+                replay["correlation_id"], _json_dumps(replay.get("request") or {}),
+                _json_dumps(replay.get("result") or {}), replay.get("status", "captured"), replay["created_at"],
             ),
         )
 

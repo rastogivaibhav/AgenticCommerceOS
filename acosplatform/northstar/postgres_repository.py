@@ -10,35 +10,100 @@ from __future__ import annotations
 import json
 import os
 from contextlib import contextmanager
+from datetime import date, datetime
+from decimal import Decimal
+from pathlib import Path
+from threading import RLock
 from typing import Any, Iterator
+from uuid import UUID
 
 try:  # psycopg v3 preferred
     import psycopg  # type: ignore
 except Exception:  # pragma: no cover - optional runtime dependency
     psycopg = None  # type: ignore
 
+try:  # psycopg2 remains widely available in existing ACOS runtimes
+    import psycopg2  # type: ignore
+except Exception:  # pragma: no cover - optional runtime dependency
+    psycopg2 = None  # type: ignore
+
 
 class PostgresNorthstarUnavailable(RuntimeError):
     pass
+
+
+_SCHEMA_LOCK = RLock()
+_SCHEMA_READY = False
+
+
+def _json_default(value: Any) -> Any:
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, UUID):
+        return str(value)
+    raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+
+def _json_dumps(value: Any) -> str:
+    return json.dumps(value, default=_json_default)
 
 
 def _dsn() -> str:
     dsn = os.environ.get("ACOS_NORTHSTAR_DATABASE_URL") or os.environ.get("DATABASE_URL")
     if not dsn:
         raise PostgresNorthstarUnavailable("DATABASE_URL or ACOS_NORTHSTAR_DATABASE_URL is required")
-    if psycopg is None:
-        raise PostgresNorthstarUnavailable("psycopg is not installed")
+    if psycopg is None and psycopg2 is None:
+        raise PostgresNorthstarUnavailable("Neither psycopg nor psycopg2 is installed")
     return dsn
 
 
 @contextmanager
 def _connect() -> Iterator[Any]:
-    conn = psycopg.connect(_dsn())  # type: ignore[union-attr]
+    if psycopg is not None:
+        conn = psycopg.connect(_dsn())  # type: ignore[union-attr]
+    elif psycopg2 is not None:
+        conn = psycopg2.connect(_dsn())  # type: ignore[union-attr]
+    else:  # pragma: no cover - guarded by _dsn
+        raise PostgresNorthstarUnavailable("Neither psycopg nor psycopg2 is installed")
     try:
         yield conn
         conn.commit()
     finally:
         conn.close()
+
+
+def ensure_schema() -> None:
+    global _SCHEMA_READY
+    if _SCHEMA_READY:
+        return
+    schema_path = Path(__file__).resolve().parents[2] / "db" / "northstar_schema.sql"
+    schema_sql = schema_path.read_text(encoding="utf-8")
+    with _SCHEMA_LOCK:
+        if _SCHEMA_READY:
+            return
+        with _connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(schema_sql)
+        _SCHEMA_READY = True
+
+
+def reset_all() -> None:
+    global _SCHEMA_READY
+    ensure_schema()
+    with _connect() as conn:
+        with conn.cursor() as cur:
+            for table in (
+                "northstar_replay_runs",
+                "northstar_evidence_events",
+                "northstar_messages",
+                "northstar_journeys",
+                "northstar_channel_identity_index",
+                "northstar_conversation_sessions",
+            ):
+                cur.execute(f"DELETE FROM {table}")
+    _SCHEMA_READY = True
 
 
 def upsert_session(session: dict[str, Any]) -> None:
@@ -255,7 +320,7 @@ def save_replay_run(replay: dict[str, Any]) -> None:
                 VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s)
                 ON CONFLICT(id) DO UPDATE SET result_json=EXCLUDED.result_json, status=EXCLUDED.status
                 """,
-                (replay["id"], replay["tenant_id"], replay.get("conversation_session_id"), replay.get("journey_id"), replay["correlation_id"], json.dumps(replay.get("request") or {}), json.dumps(replay.get("result") or {}), replay.get("status", "captured"), replay["created_at"]),
+                (replay["id"], replay["tenant_id"], replay.get("conversation_session_id"), replay.get("journey_id"), replay["correlation_id"], _json_dumps(replay.get("request") or {}), _json_dumps(replay.get("result") or {}), replay.get("status", "captured"), replay["created_at"]),
             )
 
 

@@ -174,6 +174,23 @@ def uat_api_workflow_failsafe(workflow_id: str, body: dict[str, Any]):
     return {"status": "active", "workflow_id": workflow_id}
 
 
+@router.post("/workflows/{workflow_id}/rollback")
+def uat_api_workflow_rollback(workflow_id: str, body: dict[str, Any]):
+    incident_id = body.get("incident_id", "incident_123")
+    target_version = body.get("target_version", "0.9.5")
+    _UAT_AUDIT.insert(
+        0,
+        {
+            "id": f"audit_{uuid4().hex[:8]}",
+            "incident_id": incident_id,
+            "action": "workflow_rollback",
+            "workflow_id": workflow_id,
+            "target_version": target_version,
+        },
+    )
+    return {"status": "rolling_back", "workflow_id": workflow_id, "target_version": target_version}
+
+
 @router.get("/runs")
 def uat_api_runs(
     tenant_id: str | None = None,
