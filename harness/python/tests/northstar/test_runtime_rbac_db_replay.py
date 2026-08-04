@@ -44,7 +44,7 @@ def test_northstar_rbac_tenant_guard(monkeypatch):
 
 def test_graphql_rbac_middleware_blocks_when_enabled(monkeypatch):
     monkeypatch.setenv("ACOS_GRAPHQL_REQUIRE_AUTH", "1")
-    monkeypatch.setenv("ACOS_NORTHSTAR_API_KEYS", "viewer-key:tenant-a:viewer")
+    monkeypatch.setenv("ACOS_GRAPHQL_API_KEYS", "viewer-key:tenant-a:viewer")
     client = TestClient(app)
     blocked = client.post("/graphql", json={"query": "{ tools { name } }"})
     assert blocked.status_code == 403

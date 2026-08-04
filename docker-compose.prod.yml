@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   # --- PERSISTENCE ---
   db:
@@ -25,7 +23,7 @@ services:
   ops-api:
     build: .
     command: uvicorn apps.ops_api.main:app --host 0.0.0.0 --port 8000
-    ports: ["8000:8000"]
+    ports: ["${OPS_API_PORT:-8000}:8000"]
     depends_on:
       db: { condition: service_healthy }
       cache: { condition: service_healthy }
@@ -34,19 +32,11 @@ services:
       - DATABASE_URL=postgresql://acos:${DB_PASSWORD}@db:5432/acos
       - REDIS_URL=redis://cache:6379/0
 
-  ops-ui:
-    build: 
-      context: ./apps/ops_ui_v2
-      dockerfile: Dockerfile
-    ports: ["3001:80"]
-    depends_on:
-      - ops-api
-
   # --- DATA PLANE ---
   shopper-api:
     build: .
     command: uvicorn apps.shopper_api.main:app --host 0.0.0.0 --port 9005
-    ports: ["9005:9005"]
+    ports: ["${SHOPPER_API_PORT:-9005}:9005"]
     depends_on:
       db: { condition: service_healthy }
     env_file: .env
@@ -54,7 +44,7 @@ services:
   retail-mock:
     build: .
     command: uvicorn apps.retail_mock_api.main:app --host 0.0.0.0 --port 9006
-    ports: ["9006:9006"]
+    ports: ["${RETAIL_MOCK_PORT:-9006}:9006"]
     env_file: .env
 
 volumes:

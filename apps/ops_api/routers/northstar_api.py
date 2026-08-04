@@ -5,9 +5,12 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 
 from acosplatform.channels.contracts import MessageEnvelope
+from acosplatform.connectors.certification import list_connector_certifications
 from acosplatform.evidence.store import list_evidence
 from acosplatform.events.outbox import list_pending as list_outbox_pending
+from acosplatform.hardening.gates import build_hardening_gate_report, platform_validation_checks
 from acosplatform.northstar.repository import (
+    ensure_schema,
     get_replay_run,
     get_session as get_northstar_session,
     list_journeys as list_northstar_journeys,
@@ -16,6 +19,7 @@ from acosplatform.northstar.repository import (
     list_sessions as list_northstar_sessions,
 )
 from acosplatform.orchestration.runtime import run_omnichannel_turn
+from acosplatform.outcomes.kpi import summarize_runs_for_outcomes
 from acosplatform.tools.registry import list_tools as list_northstar_tools
 from apps.ops_api.dependencies import (
     DEFAULT_NORTHSTAR_MESSAGE,
@@ -196,6 +200,7 @@ def northstar_outbox(auth=Depends(require_northstar_api_key)):
 @router.get("/readiness")
 def northstar_readiness(auth=Depends(require_northstar_api_key)):
     require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
+    hardening = build_hardening_gate_report()
     checks = {
         "production_compose_present": Path("docker-compose.prod.yml").exists(),
         "production_env_example_present": Path(".env.production.example").exists(),
@@ -203,8 +208,33 @@ def northstar_readiness(auth=Depends(require_northstar_api_key)):
         "mcp_server_available": True,
         "graphql_available": True,
         "northstar_auth_configurable": True,
+        "hardening_gate_report_available": True,
     }
-    return {"status": "ready" if all(checks.values()) else "warning", "checks": checks}
+    return {
+        "status": "ready" if all(checks.values()) else "warning",
+        "checks": checks,
+        "hardening": hardening,
+    }
+
+
+@router.get("/hardening-gates")
+def northstar_hardening_gates(auth=Depends(require_northstar_api_key)):
+    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
+    return build_hardening_gate_report()
+
+
+@router.get("/connector-certifications")
+def northstar_connector_certifications(auth=Depends(require_northstar_api_key)):
+    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
+    return list_connector_certifications()
+
+
+@router.get("/business-outcomes")
+def northstar_business_outcomes(auth=Depends(require_northstar_api_key)):
+    require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
+    ensure_schema()
+    runs = [_northstar_run_summary(replay) for replay in list_replay_runs(tenant_id=auth.tenant_id, limit=250)]
+    return summarize_runs_for_outcomes(runs)
 
 
 @router.get("/api-plane")
@@ -300,21 +330,19 @@ def northstar_demo_script(auth=Depends(require_northstar_api_key)):
 @router.get("/test-plan")
 def northstar_test_plan(auth=Depends(require_northstar_api_key)):
     require_northstar_role(auth, "admin", "ops", "analyst", "viewer")
+    hardening = build_hardening_gate_report()
+    validation_checks = platform_validation_checks()
     checks = [
-        {"id": "smoke.golden_journey", "area": "Functional", "command": "python scripts/northstar_smoke.py", "expected": "success with >=3 agents, >=3 tools, evidence timeline"},
+        *validation_checks,
         {"id": "tests.northstar", "area": "Backend", "command": "pytest -q harness/python/tests/northstar", "expected": "all tests pass"},
         {"id": "tests.uat", "area": "UAT", "command": "pytest -q harness/python/tests/test_week11_uat_and_production_gate.py", "expected": "all tests pass"},
         {"id": "runtime.static", "area": "Runtime", "command": "python scripts/production_runtime_check.py", "expected": "static runtime proof passes"},
-        {"id": "ui.build", "area": "Frontend", "command": "cd apps/ops_ui_v2 && npm ci && npm run build", "expected": "Vite build succeeds"},
-        {"id": "db.migration_sql", "area": "Database", "command": "alembic upgrade head --sql", "expected": "Alembic SQL renders"},
-        {"id": "compose.prod", "area": "Deployment", "command": "docker compose -f docker-compose.prod.yml up --build", "expected": "all services healthy on Docker-enabled runner"},
-        {"id": "mcp.client", "area": "MCP", "command": "POST /mcp with tools/list and tools/call", "expected": "ACOS exposes core MCP tools"},
-        {"id": "graphql.studio", "area": "GraphQL", "command": "POST /graphql with workflows/agents/evidence query", "expected": "Studio graph data returned"},
         {"id": "runs.screen", "area": "Ops UI", "command": "Open /ui/runs after a golden journey", "expected": "run list, detail, tool calls, evidence timeline and replay are visible"},
     ]
     return {
         "title": "ACOS Demo and Test Plan",
         "checks": checks,
+        "hardening": hardening,
         "demo_data": {
             "tenant_id": auth.tenant_id,
             "message": DEFAULT_NORTHSTAR_MESSAGE,

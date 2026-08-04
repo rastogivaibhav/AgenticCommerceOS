@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from acosplatform.channels.contracts import MessageEnvelope
+from acosplatform.hardening.gates import build_hardening_gate_report
 from acosplatform.orchestration.runtime import run_omnichannel_turn
 from acosplatform.tools.registry import list_tools
 
@@ -65,6 +66,7 @@ def main() -> int:
         "alembic_migration_present": (ROOT / "migrations" / "versions" / "20260511_0001_northstar_runtime_rbac.py").exists(),
         "redis_fast_path_configurable": "ACOS_REDIS_ENABLED" in (ROOT / ".env.production.example").read_text(encoding="utf-8"),
         "docker_available": os.system("docker --version >/dev/null 2>&1") == 0,
+        "hardening": build_hardening_gate_report(),
         "note": "Docker runtime is only certified when this script is paired with docker compose up in a Docker-enabled runner.",
     }
     out = ROOT / "docs" / "release" / "production-runtime-check.json"
