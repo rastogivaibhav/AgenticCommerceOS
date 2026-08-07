@@ -1,0 +1,140 @@
+version: '3.9'
+
+x-spree-app: &spree-app
+  image: ghcr.io/spree/spree:latest
+  depends_on:
+    spree-postgres:
+      condition: service_healthy
+    spree-redis:
+      condition: service_healthy
+    spree-meilisearch:
+      condition: service_healthy
+  environment: &spree-env
+    RAILS_ENV: production
+    RACK_ENV: production
+    DATABASE_URL: postgres://postgres@spree-postgres:5432/spree_development
+    REDIS_URL: redis://spree-redis:6379/0
+    SECRET_KEY_BASE: ${SPREE_SECRET_KEY_BASE:-development_secret_key_base_not_for_production_use_only}
+    RAILS_FORCE_SSL: "false"
+    RAILS_ASSUME_SSL: "false"
+    MEILISEARCH_URL: http://spree-meilisearch:7700
+    SPREE_DEMO_PUBLISHABLE_KEY: ${SPREE_BEARER_TOKEN:-pk_acos_demo_publishable_key}
+    SPREE_WEBHOOK_SECRET: ${SPREE_WEBHOOK_SECRET:-dev-spree-webhook-secret}
+    ACOS_SPREE_WEBHOOK_URL: http://ops-api:8081/api/v1/webhooks/spree
+    ACOS_ALLOW_PRIVATE_WEBHOOKS: "true"
+  volumes:
+    - ./scripts/spree_demo_webhook_patch.rb:/rails/config/initializers/acos_demo_webhook_patch.rb:ro
+
+services:
+  shopper-api:
+    environment:
+      - ACOS_RETAIL_PROVIDER=spree
+      - SPREE_BASE_URL=http://spree-web:3000
+      - SPREE_BEARER_TOKEN=${SPREE_BEARER_TOKEN:-pk_acos_demo_publishable_key}
+      - SPREE_ALLOW_HTTP=true
+      - SPREE_WEBHOOK_SECRET=${SPREE_WEBHOOK_SECRET:-dev-spree-webhook-secret}
+      - ACOS_SPREE_DEMO_FIXTURE_PATH=/demo-shared/spree_demo_fixtures.json
+    volumes:
+      - ./var/demo:/demo-shared
+    depends_on:
+      spree-web:
+        condition: service_healthy
+
+  ops-api:
+    environment:
+      - ACOS_RETAIL_PROVIDER=spree
+      - ACOS_NORTHSTAR_REQUIRE_AUTH=${ACOS_NORTHSTAR_REQUIRE_AUTH:-0}
+      - ACOS_GRAPHQL_REQUIRE_AUTH=${ACOS_GRAPHQL_REQUIRE_AUTH:-0}
+      - ALLOW_MOCK_ROUTES=${ALLOW_MOCK_ROUTES:-1}
+      - ALLOW_INSECURE_DEV_AUTH=${ALLOW_INSECURE_DEV_AUTH:-1}
+      - SPREE_BASE_URL=http://spree-web:3000
+      - SPREE_BEARER_TOKEN=${SPREE_BEARER_TOKEN:-pk_acos_demo_publishable_key}
+      - SPREE_ALLOW_HTTP=true
+      - SPREE_WEBHOOK_SECRET=${SPREE_WEBHOOK_SECRET:-dev-spree-webhook-secret}
+      - ACOS_SPREE_DEMO_FIXTURE_PATH=/demo-shared/spree_demo_fixtures.json
+    volumes:
+      - ./var/demo:/demo-shared
+    depends_on:
+      spree-web:
+        condition: service_healthy
+
+  spree-postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - spree_postgres_data:/var/lib/postgresql
+    ports:
+      - "${SPREE_DB_HOST_PORT:-55433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  spree-redis:
+    image: redis:7-alpine
+    volumes:
+      - spree_redis_data:/data
+    ports:
+      - "${SPREE_REDIS_HOST_PORT:-56379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  spree-meilisearch:
+    image: getmeili/meilisearch:latest
+    volumes:
+      - spree_meilisearch_data:/meili_data
+    ports:
+      - "${SPREE_MEILI_HOST_PORT:-57700}:7700"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7700/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  spree-web:
+    <<: *spree-app
+    ports:
+      - "${SPREE_HOST_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/up || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+
+  spree-worker:
+    <<: *spree-app
+    command: bundle exec sidekiq
+    depends_on:
+      spree-web:
+        condition: service_healthy
+
+  spree-setup:
+    <<: *spree-app
+    command: >
+      sh -lc "bundle exec rails db:prepare &&
+              (bundle exec rails db:seed || true) &&
+              (bundle exec rake spree_sample:load || bundle exec rails spree:load_sample_data || true) &&
+              bundle exec rails runner /demo/spree_demo_setup.rb"
+    environment:
+      <<: *spree-env
+      SPREE_DEMO_FIXTURE_PATH: /demo-shared/spree_demo_fixtures.json
+      SPREE_DEMO_STORE_API_URL: http://spree-web:3000
+      SPREE_DEMO_PUBLIC_URL: http://127.0.0.1:${SPREE_HOST_PORT:-3000}
+    depends_on:
+      spree-web:
+        condition: service_healthy
+    volumes:
+      - ./scripts/spree_demo_setup.rb:/demo/spree_demo_setup.rb:ro
+      - ./var/demo:/demo-shared
+    restart: "no"
+
+volumes:
+  spree_postgres_data:
+  spree_redis_data:
+  spree_meilisearch_data:
